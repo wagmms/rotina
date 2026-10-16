@@ -17,15 +17,15 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Elevação do SOAP FMRP-USP / PEP, Segurança na Lactação (G&O), Saneamento da REMUME no Cockpit e Resiliência Live/Calendar (`src/04_motores_ia.js`, `src/02_lactacao_seguranca.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`, `gh_cockpit_deploy/index.html`, `server/google_calendar.js`, `server/index.js`)**:
-    - **Diagnóstico e Causa Raiz**: Modo SOAP necessitava de elevação telegráfica FMRP-USP com exame físico segmentar completo e obrigatório, CID-10 e bloco limpo para cópia no PEP; Preceptor Live falhava por timeout de 2s e endpoints do Google Calendar geravam 404 por URLs relativas no GitHub Pages; REMUME continha fallbacks de comprimido oral para ampolas EV; ausência de farmacologia determinística de lactação (Hale L1-L5 / MS).
+- [x] **Otimização de Baixa Latência do Bot Telegram com Gemini 4 Argon: Fast-Lane de Navegação, Persistência O(1) e Calibragem de Thinking Budget (`server/index.js`, `server/runtime.js`, `src/11_entrega_confiavel.js`, `src/04_motores_ia.js`, `ultra_rotina_master.js`)**:
+    - **Diagnóstico e Causa Raiz**: Head-of-line blocking na fila do webhook com comandos e botões imediatos enfileirados atrás de LLMs pesadas; indentação de JSON com overhead de I/O em disco; recálculo O(n) e fatiamento herdado do GAS em `PersistenciaBot`; e thinking budget excessivo na anamnese do SOAP Fase 1.
     - **Correções Implementadas**:
-      1. *SOAP Padrão FMRP-USP*: Exame segmentar por linhas individuais `\n`, CID-10 explícito, prescrição pronta dividida em [VIA ORAL] e [PARENTERAL] com diluente e tempo de infusão, e bloco pronto de cópia direta para o PEP (`[REGISTRO SOAP - PRONTUÁRIO ELETRÔNICO]`) sem truncamento.
-      2. *Segurança na Lactação (G&O)*: Desenvolvido `src/02_lactacao_seguranca.js` (58 fármacos críticos, 261 sinônimos, Hale L1-L5, Semáforo MS 🟢/🟡/🔴, O(1) < 0.1ms), comando `/lactacao` e 11º submódulo do Hub G&O.
-      3. *Saneamento da REMUME*: 20 injetáveis hospitalares de emergência indexados, indexação O(1) e trava estrita de forma farmacêutica (ampolas EV NUNCA casam com comprimidos orais).
-      4. *Resiliência Live & Calendar*: `window.ULTRA_CONFIG` e `obterApiBaseUrl()` implementados no Cockpit PWA para comunicação fluida com o Render; timeout de handshake Live elevado para 5s com modelo `gemini-2.5-flash`; suporte a variáveis OAuth sem prefixo no backend.
-      5. *Dogfooding do Usuário*: Bateria de testes de usuário (`tests/test_usuario_dogfooding.cjs`) simulando consultas, navegação, prontuário e cockpit 100% aprovada.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 21.43s** via `npm test`. Paridade de hash de `cockpit_movel.html` e `gh_cockpit_deploy/index.html` 100% íntegra.
+      1. *Fast-Lane Prioritária*: Fila de webhook com priorização de comandos e botões imediatos de navegação rápida (`🚨 Sala Vermelha`, `/calc`, `/dva`, menus diretos), furando a fila sem esperar o término de chamadas de LLM.
+      2. *Gravação Atômica Compacta*: Serialização direta via `JSON.stringify(valor)` em `escreverPropriedades()`, reduzindo ~40% do tamanho em disco e acelerando escritas atômicas.
+      3. *Rastreamento O(1) e Bloco Único*: Cache incremental de bytes `_totalBytesCache`, gravação em pedaço único (`nPartes = 1`) no Node.js e cache de objetos `_objCache` com cópia profunda defensiva `structuredClone`.
+      4. *Calibragem de Thinking Budget*: `thinkingBudget: 0` no SOAP Fase 1 (reduzindo TTFT em ~1.5-2s) e `thinkingBudget: 512` em imagens médicas multimodais.
+      5. *Sincronia de Bundles*: Recompilação do master e verificação de hashes SHA-256 dos espelhos do Cockpit.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 14.14s** via `npm test`. Código estável e zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -33,10 +33,10 @@
 
 ## 🔄 Próxima Tarefa em Andamento
 
-- [ ] **Aba Rotina — Sincronização Bidirecional Telegram ↔ Cockpit PWA (`src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js`, `gh_cockpit_deploy/rotina_timeline.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/07g_telegram_ajuda_e_protocolos.js`, `src/07a_telegram_router.js` e `gh_cockpit_deploy/rotina_timeline.js`
-    - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
-    - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
+- [ ] **Aba Rotina — Ergonomia Mobile, Thumb-Zone de 42px e Foco Inteligente no Card Ativo (`gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js`, `gh_cockpit_deploy/index.html`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js`, `rotina_timeline.js` e `gh_cockpit_deploy/index.html`
+    - **Função/Componente/Seletor**: Função `criarCardBloco` (alvos de toque de 42px) e auto-scroll no card ativo (`scrollIntoView`)
+    - **Comportamento Esperado / Critério de Aceite**: Elevar altura tátil mínima dos botões de ação para 42px (padrão Apple HIG / Material), isolar botão de pular e focar automaticamente o card em andamento ao carregar a aba.
 
 ---
 

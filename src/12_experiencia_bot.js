@@ -400,6 +400,7 @@ function enviarMenuSalaVermelha(chat, messageId) {
     [['💉 Drogas Vasoativas (DVA)', 'ux:dvamenu'], ['⚡ Choque & Hipotensão', 'ux:emerg:choque']],
     [['❤️ Crise HAS', 'ux:emerg:crisehas'], ['🧠 Escala de Glasgow', 'ux:emerg:glasgow']],
     [['🦟 Dengue C/D', 'ux:emerg:dengue'], ['🤕 Cefaleia / HSA', 'ux:emerg:cefaleia']],
+    [['📦 Pacotes Sindrômicos', 'ux:kit:menu'], ['🧪 Diluição & Compat. Y', 'ux:dil:menu']],
     [['⚡ Outras Condutas', 'ux:condutamenu']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
@@ -805,7 +806,22 @@ function enviarTelaCondutaEmergencia(chat, condutaKey, messageId) {
   var cache = uxCache();
   var ck = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ck, textoCond, 21600);
-  var linhas = [[['📋 Copiar para Prontuário', 'ux:copiar:' + ck]]];
+  safePutCache(cache, 'sala:' + ck, textoCond, 21600);
+  var linhas = [[['📋 Copiar para Prontuário', 'ux:copiar:sala:' + ck]]];
+
+  var k = String(condutaKey || '').toLowerCase();
+  if (k === 'cad') {
+    linhas.unshift([['🩸 Calcular Gaso / Winter', 'ux:iniciar:gaso']]);
+  } else if (k === 'hipercalemia') {
+    linhas.unshift([['🩸 Gasometria & Ânion Gap', 'ux:iniciar:gaso'], ['🧪 Diluição & Compat. Y', 'ux:dil:menu']]);
+  } else if (k === 'eap') {
+    linhas.unshift([['💉 Titular Nora / Tridil', 'ux:dvamenu']]);
+  } else if (k === 'gcs_8') {
+    linhas.unshift([['🫁 Doses de SRI / IOT', 'ux:srimenu']]);
+  } else if (k === 'choque_c' || k === 'choque_septico') {
+    linhas.unshift([['💉 Titular DVA (Nora / Vaso)', 'ux:dvamenu']]);
+  }
+
   return enviarTelaBotComNavegacao(chat, textoCond, linhas, 'sala', messageId);
 }
 
@@ -817,7 +833,8 @@ function enviarMenuEnfermaria(chat, messageId) {
     [['🏥 Painel de Leitos', 'ux:painel:0'], ['📋 Passagem SBAR', 'ux:enf:sbar']],
     [['🧪 Clearance (Cockcroft)', 'ux:enf:clcr'], ['💊 Ajuste Renal ATB', 'ux:enf:ajuste']],
     [['💧 Hidratação / Holliday', 'ux:enf:hidratacao'], ['📋 Prescrição Hospitalar', 'ux:enf:rxh']],
-    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos'], ['🏁 Fim de Plantão', 'ux:enf:plantao_fim']]
+    [['💊 Sintomáticos / SOS', 'ux:enf:sintomaticos'], ['✅ Checklist FAST HUG', 'ux:chk:menu']],
+    [['🏁 Fim de Plantão', 'ux:enf:plantao_fim']]
   ];
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'menu', messageId);
 }
@@ -3623,19 +3640,27 @@ function tratarEntradaUX(message) {
       enviarMensagemParaChat(chat, '🔄 *Recalculando conduta e doses para paciente de ' + pRecalc + ' kg...*');
       processarMensagemTexto({ chat: { id: chat }, text: textoComNovoPesoLivre });
       return true;
+    } else if (!/^[\d.,\s]+(?:kg|quilos?|kilos?)?$/i.test(text)) {
+      // Auto-escape: mensagem clínica livre não deve ficar retida na recalculadora
+      cache.remove('recalc_ck_' + chat);
     }
   }
 
   var drogaAguardando = cache.get('dvaw_' + chat);
   if (drogaAguardando && UX_DROGAS[drogaAguardando]) {
     var p = sanitizarEValidarPesoKg(text);
-    if (p === null) {
+    if (p !== null) {
+      cache.remove('dvaw_' + chat);
+      enviarTelaDiluicaoDva(chat, drogaAguardando, p);
+      return true;
+    }
+    // Se o texto parece uma tentativa numérica de informar peso (fora da faixa 1-300 kg)
+    if (/^[\d.,\s]+(?:kg|quilos?|kilos?)?$/i.test(text)) {
       enviarMensagemParaChat(chat, 'Informe apenas o peso em kg, por exemplo 70,5. /cancelar encerra.');
       return true;
     }
+    // Auto-escape: se enviou texto clínico livre, libera o lock modal e processa normalmente
     cache.remove('dvaw_' + chat);
-    enviarTelaDiluicaoDva(chat, drogaAguardando, p);
-    return true;
   }
 
   var leitoAguardando = cache.get('leito_' + chat);
@@ -4601,9 +4626,26 @@ function tratarCallbackUX(cb) {
       enviarMensagemParaChat(chat, '⚠️ *Analisando potenciais interações farmacológicas e segurança clínica...*');
       return processarMensagemTexto({ chat: { id: chat }, text: '/interacao ' + textoInteracao });
     } else if (op === 'detalhes' || op === 'copiar' || op === 'pdf') {
-      var raw = cache.get(v);
+      var partesCopiar = String(v || '').split(':');
+      var chaveCache = v;
+      var origemRetorno = 'menu';
+      if (partesCopiar.length >= 2) {
+        origemRetorno = partesCopiar[0];
+        chaveCache = partesCopiar.slice(1).join(':');
+      }
+      var raw = cache.get(chaveCache) || cache.get(v);
+      var mapaRetorno = {
+        'sala': { label: '🔙 Sala Vermelha', cb: 'ux:hub:sala' },
+        'amb': { label: '🔙 Ambulatório', cb: 'ux:hub:amb' },
+        'enf': { label: '🔙 Enfermaria', cb: 'ux:hub:enf' },
+        'calc': { label: '🔙 Calculadoras', cb: 'ux:hub:calc' },
+        'bolso': { label: '🔙 Consultas Bolso', cb: 'ux:hub:bolso' },
+        'go': { label: '🔙 Hub G&O', cb: 'ux:rotina:go' },
+        'rotina': { label: '🔙 Central Rotina', cb: 'ux:hub:rotina' }
+      };
+      var infoRetorno = mapaRetorno[origemRetorno] || { label: '🔙 Menu Anterior', cb: 'ux:menu' };
       var kbRetornoCopiar = botoesBot([
-        [['🔙 Menu Anterior', 'ux:menu'], ['🏠 Início', 'ux:hub:inicio']]
+        [[infoRetorno.label, infoRetorno.cb], ['🏠 Início', 'ux:hub:inicio']]
       ]);
       if (!raw) {
         enviarMensagemComTecladoParaChat(chat, '⚠️ Resultado expirado do cache. Gere novamente com os dados do caso.', kbRetornoCopiar);

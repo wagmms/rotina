@@ -1050,6 +1050,16 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
     return { executado: true, resultado: enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`") };
   }
 
+  // 12.1. Minha Rotina
+  if (texto === "📅 Minha Rotina" || texto === "📅 Minha rotina" || texto === "📅 Rotina") {
+    if (typeof enviarRotinaBot === "function") {
+      return { executado: true, resultado: enviarRotinaBot(chatId) };
+    }
+    if (typeof despacharComandosRotinaEProdutividade === "function") {
+      return { executado: true, resultado: despacharComandosRotinaEProdutividade("/rotina", "/rotina hoje", chatId) };
+    }
+  }
+
   // 13. Central / Menu / Hub
   if (texto === "⚙️ Central / Menu" || texto === "⚙️ Menu / Ajuda" || comando === "/teclado" || comando === "/menu" || comando === "/hub") {
     if (typeof registrarComandosNativosTelegram === "function") {

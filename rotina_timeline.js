@@ -905,6 +905,32 @@
     carregarBlocosDoServidor(estadoAtual.dataISO);
   }
 
+  function mesclarComFilaOffline(blocosServidor) {
+    var raw = localStorage.getItem(QUEUE_KEY);
+    if (!raw) return blocosServidor;
+    var fila = [];
+    try { fila = JSON.parse(raw); } catch (_) { return blocosServidor; }
+    if (!Array.isArray(fila) || !fila.length) return blocosServidor;
+
+    var mapaMutacoes = {};
+    for (var i = 0; i < fila.length; i++) {
+      if (fila[i] && fila[i].blocoId) {
+        mapaMutacoes[fila[i].blocoId] = fila[i];
+      }
+    }
+
+    return (blocosServidor || []).map(function(b) {
+      var mut = mapaMutacoes[b.id];
+      if (mut) {
+        if (mut.status) b.status = mut.status;
+        if (mut.nota) b.nota = mut.nota;
+        if (mut.inicio) b.inicio = mut.inicio;
+        if (mut.fim) b.fim = mut.fim;
+      }
+      return b;
+    });
+  }
+
   function carregarBlocosDoServidor(dataISO, callback) {
     if (typeof dataISO === 'function') {
       callback = dataISO;
@@ -924,8 +950,9 @@
         return res.json();
       }).then(function(data) {
         if (data && data.sucesso && Array.isArray(data.blocos)) {
-          salvarBlocosLocais(data.blocos, targetDateISO);
-          renderizar(data.blocos);
+          var blocosConciliados = mesclarComFilaOffline(data.blocos);
+          salvarBlocosLocais(blocosConciliados, targetDateISO);
+          renderizar(blocosConciliados);
           atualizarBadgeSync('Google Calendar', true);
         }
         processarFilaOffline();
@@ -1091,8 +1118,18 @@
         return res.json();
       }).then(function(data) {
         if (data && data.sucesso && Array.isArray(data.duvidas)) {
-          salvarDuvidasLocais(data.duvidas);
-          renderizarDuvidas(data.duvidas);
+          var locais = carregarDuvidasLocais();
+          var idsServidor = {};
+          data.duvidas.forEach(function(d) { idsServidor[d.id] = true; });
+
+          // Preserva dúvidas criadas localmente (tempId) que ainda não subiram ao servidor
+          var naoSincronizadas = locais.filter(function(d) {
+            return String(d.id).indexOf('duv_') === 0 && !idsServidor[d.id];
+          });
+
+          var listaFinal = naoSincronizadas.concat(data.duvidas);
+          salvarDuvidasLocais(listaFinal);
+          renderizarDuvidas(listaFinal);
         }
         if (typeof callback === 'function') callback(data);
       }).catch(function(err) {

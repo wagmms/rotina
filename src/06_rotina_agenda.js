@@ -468,13 +468,19 @@ var RotinaService = {
     return [];
   },
 
-  marcarStatusBloco: function(dataRef, blocoId, novoStatus, nota) {
+  marcarStatusBloco: function(dataRef, blocoId, novoStatus, nota, extras) {
     var blocos = RotinaService.obterBlocosDoDia(dataRef);
     var modificado = false;
     for (var i = 0; i < blocos.length; i++) {
       if (blocos[i].id === blocoId || (blocoId && blocos[i].categoria === blocoId) || (blocoId && blocos[i].titulo.toLowerCase().indexOf(blocoId.toLowerCase()) !== -1)) {
         blocos[i].status = novoStatus;
         if (nota) blocos[i].nota = nota;
+        if (extras && typeof extras.inicio === 'string' && extras.inicio.trim()) {
+          blocos[i].inicio = extras.inicio.trim();
+        }
+        if (extras && typeof extras.fim === 'string' && extras.fim.trim()) {
+          blocos[i].fim = extras.fim.trim();
+        }
         modificado = true;
         break;
       }

@@ -4642,6 +4642,69 @@
       }
     }
 
+    function enviarDadosAoTelegram(tipo, titulo, conteudo) {
+      hapticFeedback('medium');
+      const payload = {
+        tipo: tipo || 'registro',
+        titulo: titulo || 'Cockpit Clínico',
+        conteudo: conteudo || ''
+      };
+
+      // 1. Telegram Mini App oficial (quando aberto via Bot do Telegram)
+      if (window.Telegram?.WebApp && typeof window.Telegram.WebApp.sendData === 'function') {
+        try {
+          window.Telegram.WebApp.sendData(JSON.stringify(payload));
+          copiarToast('Enviado com sucesso para o chat do Telegram!');
+          return true;
+        } catch (eTg) {
+          console.warn('[Telegram sendData]:', eTg);
+        }
+      }
+
+      // 2. Fallback: Copia para área de transferência e notifica o médico
+      const textoCopia = typeof conteudo === 'string' ? conteudo : JSON.stringify(conteudo, null, 2);
+      copiarTextoClipboard(textoCopia, 'Copiado para o Telegram! Cole no chat do bot.');
+      return false;
+    }
+
+    function enviarPrescricaoAoTelegram() {
+      if (!prescricaoItens.length) {
+        copiarToast('Nenhum item na prescrição para enviar.');
+        return;
+      }
+      const dataHora = new Date().toLocaleString('pt-BR');
+      let cabecalho = `========================================\n` +
+                      `📋 PRESCRIÇÃO HOSPITALAR BEIRA-LEITO\n` +
+                      `Data: ${dataHora}\n` +
+                      `========================================\n\n`;
+      let corpo = prescricaoItens.map((item, idx) => `${idx + 1}. ${item}`).join('\n\n');
+      let rodape = `\n\n----------------------------------------\n` +
+                   `• Cuidados: Sinais vitais 6/6h, glicemia se DM, cabeceira 30°.\n` +
+                   `• Comunicar: Sinais de alarme, hipotensão (PAS < 90), dor refratária.`;
+      enviarDadosAoTelegram('prescricao', 'Prescrição Hospitalar Beira-Leito', cabecalho + corpo + rodape);
+    }
+
+    function enviarSbarAoTelegram() {
+      const previewEl = document.getElementById('sbar-texto-preview');
+      const texto = previewEl ? previewEl.textContent : '';
+      if (!texto || texto.includes('Carregando')) {
+        copiarToast('Passagem SBAR não carregada.');
+        return;
+      }
+      enviarDadosAoTelegram('sbar', 'Passagem de Plantão SBAR', texto);
+    }
+
+    function enviarSoapAoTelegram() {
+      const soapTexto = (typeof cockpitDados !== 'undefined' && cockpitDados && cockpitDados.soap) ? cockpitDados.soap : '';
+      const inputTexto = document.getElementById('input-conversa-texto')?.value?.trim();
+      const conteudo = soapTexto || inputTexto;
+      if (!conteudo) {
+        copiarToast('Nenhum dado clínico SOAP para enviar.');
+        return;
+      }
+      enviarDadosAoTelegram('soap', 'Resumo Clínico SOAP & Copiloto', conteudo);
+    }
+
     function escapeHtml(str) {
       if (str === null || str === undefined) return '';
       return String(str)
@@ -14151,26 +14214,34 @@
               hapticFeedback('success');
             } else if (msg.type === 'audio' && msg.audio) {
               audioTocadoNesteTurno = true;
+              // Garante que o fallback de voz sintética nunca fale junto com o áudio neural
+              if (window.speechSynthesis && window.speechSynthesis.speaking) {
+                window.speechSynthesis.cancel();
+              }
               setLiveStatus('🔊 Preceptor Falando (Voz Fenrir)...', 'speaking');
               tocarChunkAudioLive(msg.audio);
             } else if (msg.type === 'transcript') {
               if (msg.role === 'model') {
-                ultimoTextoModelo = msg.text;
-                audioTocadoNesteTurno = false;
+                ultimoTextoModelo = msg.streaming ? (ultimoTextoModelo + msg.text) : msg.text;
               }
-              adicionarItemTranscricaoLive(msg.role || 'model', msg.text);
+              adicionarItemTranscricaoLive(msg.role || 'model', msg.text, !!msg.streaming);
             } else if (msg.type === 'interrupted') {
               // Barge-in: médico interrompeu fala do preceptor
               pararReproducaoAudioLive();
-              if (window.speechSynthesis) window.speechSynthesis.cancel();
+              audioTocadoNesteTurno = false;
+              ultimoTextoModelo = '';
+              finalizarBolhasStreamingLive();
               setLiveStatus('🎙️ Ouvindo você...', 'listening');
             } else if (msg.type === 'turnComplete') {
-              if (!audioTocadoNesteTurno && ultimoTextoModelo) {
-                falarTextoPreceptorFallback(ultimoTextoModelo);
-                ultimoTextoModelo = '';
-              } else {
+              finalizarBolhasStreamingLive();
+              if (!audioTocadoNesteTurno && ultimoTextoModelo.trim()) {
+                falarTextoPreceptorFallback(ultimoTextoModelo.trim());
+              } else if (liveActiveSources.length === 0) {
                 setLiveStatus('🎙️ Ouvindo você...', 'listening');
               }
+              // Reseta marcadores APENAS no encerramento completo do turno
+              audioTocadoNesteTurno = false;
+              ultimoTextoModelo = '';
             } else if (msg.type === 'close') {
               copiarToast(msg.reason || 'Sessão do Preceptor Live finalizada.');
               desconectarLivePreceptor();
@@ -14201,6 +14272,11 @@
       }
     }
 
+    function isPreceptorSpeaking() {
+      const ttsSpeaking = typeof window !== 'undefined' && window.speechSynthesis && window.speechSynthesis.speaking;
+      return liveActiveSources.length > 0 || ttsSpeaking;
+    }
+
     function iniciarCapturaAudioLive() {
       const AudioCtx = window.AudioContext || window.webkitAudioContext;
       if (!liveInputAudioCtx || liveInputAudioCtx.state === 'closed') {
@@ -14227,6 +14303,16 @@
 
       liveMicProcessor.onaudioprocess = (e) => {
         if (!liveConectado || liveMudo || !liveWs || liveWs.readyState !== WebSocket.OPEN) return;
+
+        // BLOQUEIO DE ECO ACÚSTICO: Não envia o áudio da própria fala do Preceptor de volta ao servidor
+        if (isPreceptorSpeaking()) {
+          if (pulseRing) {
+            pulseRing.style.transform = 'scale(1)';
+            pulseRing.style.borderColor = '';
+          }
+          return;
+        }
+
         const float32 = e.inputBuffer.getChannelData(0);
 
         // Medição do nível RMS da voz
@@ -14236,7 +14322,7 @@
 
         // Feedback visual imediato: o anel do avatar reage em tempo real à voz do médico
         if (pulseRing) {
-          if (rms > 0.005) {
+          if (rms > 0.008) {
             const scale = Math.min(1.35, 1 + rms * 8);
             pulseRing.style.transform = `scale(${scale})`;
             pulseRing.style.borderColor = 'rgba(52, 211, 153, 0.85)';
@@ -14246,8 +14332,8 @@
           }
         }
 
-        // VAD: capta fala beira-leito sem cortar voz mansa ou com fone bluetooth
-        if (rms < 0.002) return;
+        // Limiar VAD ajustado para 0.006 para filtrar ruído ambiente e vazamento de fone
+        if (rms < 0.006) return;
 
         // Converte Float32 para Int16 Little-Endian
         const int16 = new Int16Array(float32.length);
@@ -14278,8 +14364,12 @@
         const ptVoice = voices.find(v => v.lang === 'pt-BR' || (v.lang && v.lang.startsWith('pt')));
         if (ptVoice) utter.voice = ptVoice;
         utter.onstart = () => setLiveStatus('🔊 Preceptor Falando (Voz Sintetizada)...', 'speaking');
-        utter.onend = () => setLiveStatus('🎙️ Ouvindo você...', 'listening');
-        utter.onerror = () => setLiveStatus('🎙️ Ouvindo você...', 'listening');
+        utter.onend = () => {
+          if (liveActiveSources.length === 0) setLiveStatus('🎙️ Ouvindo você...', 'listening');
+        };
+        utter.onerror = () => {
+          if (liveActiveSources.length === 0) setLiveStatus('🎙️ Ouvindo você...', 'listening');
+        };
         window.speechSynthesis.speak(utter);
       } catch (eSpeech) {
         console.warn('[SpeechSynthesis Fallback Warning]:', eSpeech);
@@ -14305,11 +14395,14 @@
         const isMp3 = bytes.length > 3 && ((bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) || (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0));
 
         if (isWav || isOgg || isMp3) {
+          // IMPEDE DUAS VOZES SIMULTÂNEAS: Para qualquer áudio anterior antes de iniciar o novo turno
+          pararReproducaoAudioLive();
+
           liveOutputAudioCtx.decodeAudioData(bytes.buffer.slice(0), (audioBuffer) => {
             const source = liveOutputAudioCtx.createBufferSource();
             source.buffer = audioBuffer;
             source.connect(liveOutputAudioCtx.destination);
-            source.start();
+            source.start(0);
             liveActiveSources.push(source);
             source.onended = () => {
               liveActiveSources = liveActiveSources.filter(s => s !== source);
@@ -14325,7 +14418,7 @@
           return;
         }
 
-        // Caso padrão: PCM raw 16-bit 24kHz
+        // Caso padrão: PCM raw 16-bit 24kHz enfileirado no tempo sem sobreposição
         const int16 = new Int16Array(bytes.buffer);
         const float32 = new Float32Array(int16.length);
         for (let i = 0; i < int16.length; i++) {
@@ -14358,8 +14451,11 @@
     }
 
     function pararReproducaoAudioLive() {
+      if (typeof window !== 'undefined' && window.speechSynthesis) {
+        try { window.speechSynthesis.cancel(); } catch (_) {}
+      }
       liveActiveSources.forEach(s => {
-        try { s.stop(); } catch (_) {}
+        try { s.stop(); s.disconnect(); } catch (_) {}
       });
       liveActiveSources = [];
       liveScheduledTime = 0;
@@ -14368,6 +14464,7 @@
     function desconectarLivePreceptor() {
       liveConectado = false;
       pararReproducaoAudioLive();
+      finalizarBolhasStreamingLive();
 
       if (liveMicProcessor) {
         try { liveMicProcessor.disconnect(); } catch (_) {}
@@ -14416,9 +14513,30 @@
       copiarToast(liveMudo ? 'Microfone mutado no Preceptor' : 'Microfone ativo');
     }
 
-    function adicionarItemTranscricaoLive(papel, texto) {
+    let bolhaStreamingAtual = { user: null, model: null };
+
+    function finalizarBolhasStreamingLive() {
+      bolhaStreamingAtual.user = null;
+      bolhaStreamingAtual.model = null;
+    }
+
+    function adicionarItemTranscricaoLive(papel, texto, isStreaming = false) {
       const container = document.getElementById('live-transcricao-container');
       if (!container || !texto) return;
+
+      // Se for streaming do mesmo interlocutor, concatena na mesma bolha
+      if (isStreaming && bolhaStreamingAtual[papel]) {
+        const pEl = bolhaStreamingAtual[papel].querySelector('p');
+        if (pEl) {
+          pEl.textContent += texto;
+          const ultimoHist = historicoTranscricaoLive[historicoTranscricaoLive.length - 1];
+          if (ultimoHist && ultimoHist.papel === papel) {
+            ultimoHist.texto = pEl.textContent;
+          }
+          container.scrollTop = container.scrollHeight;
+          return;
+        }
+      }
 
       historicoTranscricaoLive.push({ papel, texto, hora: new Date() });
 
@@ -14431,10 +14549,17 @@
       itemEl.innerHTML = `<span class="font-bold text-[10px] block text-emerald-400">${tag}</span><p class="mt-0.5">${escapeHtml(texto)}</p>`;
       container.appendChild(itemEl);
       container.scrollTop = container.scrollHeight;
+
+      if (isStreaming) {
+        bolhaStreamingAtual[papel] = itemEl;
+      } else {
+        bolhaStreamingAtual[papel] = null;
+      }
     }
 
     function limparTranscricaoLive() {
       historicoTranscricaoLive = [];
+      finalizarBolhasStreamingLive();
       const container = document.getElementById('live-transcricao-container');
       if (container) {
         container.innerHTML = '<p class="text-slate-500 italic text-center py-4">Transcrição limpa. Fale no microfone para continuar a discussão socrática...</p>';

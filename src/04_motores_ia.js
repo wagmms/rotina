@@ -20,9 +20,9 @@
  */
 
 var IA_PADROES = {
-  ORCAMENTO_MS: 18000,
-  FOLGA_TOKENS: 1024,
-  TOKENS_TETO: 6000,
+  ORCAMENTO_MS: 16000,
+  FOLGA_TOKENS: 384,
+  TOKENS_TETO: 5000,
   GROQ: ["openai/gpt-oss-120b", "openai/gpt-oss-20b"],
   OPENROUTER: ["openrouter/free"],
   ZAI: ["glm-4.7-flash", "glm-4.5-flash"],
@@ -1682,7 +1682,7 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
   ].join("\n");
 
   var opts = Object.assign({
-    thinkingBudget: 2048,
+    thinkingBudget: 512,
     clinico: true,
     multimodal: true,
     timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 20000)) || 20000,
@@ -2086,7 +2086,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
       : "Prescrição Pronta Copy-Paste (UBS/REMUME ou Urgência/Enfermaria)\n" + formatarListaTopicos(planoCons.prescricao, "Prescrição condicionada à conferência de dados clínicos e segurança.") +
         "\nExames que mudam conduta imediata\n" + formatarListaTopicos(planoCons.exames, "Nenhum exame imediato indicado pelos dados informados.") +
         "\nOrientações/Sinais de Alarme\n" + formatarListaTopicos(planoCons.orientacoes, "Reavaliar conforme evolução e orientar retorno diante de piora.");
-    if (pendencias.length) planoTexto += "\nDados de segurança a conferir antes de prescrever\n" + formatarListaTopicos(pendencias, "");
+    if (pendencias.length) planoTexto += "\nDados pendentes — conferir antes de concluir\n" + formatarListaTopicos(pendencias, "");
 
     // Bloco Limpo para Prontuário Eletrônico (PEP) - Cópia em 1 Toque
     var sPep = sTexto.replace(/\*/g, '').trim();
@@ -2170,7 +2170,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   ].join("\n");
 
 
-  var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000, { json: true });
+  var rawRasc = executarRaciocinioClinico(promptSistemaRascunho, "CASO CLÍNICO:\n" + dadosCaso, 3000, { json: true, thinkingBudget: 0 });
   if (typeof rawRasc === "string" && rawRasc.indexOf("🩺") !== -1 && rawRasc.indexOf("S -") !== -1 && rawRasc.indexOf("MODO OFFLINE") === -1 && rawRasc.indexOf("CONTINGÊNCIA") === -1) {
     return "⚠️ Estruturação SOAP incompleta. Revise o relato original antes de registrar.\n\nRelato recebido:\n" + dadosCaso;
   }

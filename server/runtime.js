@@ -145,7 +145,7 @@ let persistTimer = null;
 function escreverPropriedades() {
   const temporario = path.join(DATA_DIR, `.properties-${process.pid}.tmp`);
   try {
-    fs.writeFileSync(temporario, JSON.stringify(propsStore, null, 2), { encoding: 'utf8', mode: 0o600 });
+    fs.writeFileSync(temporario, JSON.stringify(propsStore), { encoding: 'utf8', mode: 0o600 });
     fs.renameSync(temporario, PROPERTIES_FILE);
   } catch (err) {
     try { fs.unlinkSync(temporario); } catch (_) {}

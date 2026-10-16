@@ -119,22 +119,20 @@ async function handlerCockpit(request, reply, runtime, { obterRemumeCacheada, re
       }
     }
 
-    const resultado = runtime.cockpitRpc(metodo, session, args);
+    const resultado = await runtime.cockpitRpc(metodo, session, args);
     const elapsed = (performance.now() - t0).toFixed(2);
 
     // Métodos de leitura: cabeçalhos de cache otimizados com stale-while-revalidate
-    if (metodo === 'cockpitRemume' && typeof obterRemumeCacheada === 'function') {
-      const { etag: remumeEtag } = obterRemumeCacheada();
-      reply.header('ETag', remumeEtag);
-      reply.header('Cache-Control', 'private, max-age=3600, stale-while-revalidate=86400');
-    } else if (metodo === 'cockpitConsultar' || metodo === 'cockpitPerfil') {
-      reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
-    } else if (metodo === 'cockpitBuscarCid' || metodo === 'cockpitAulasProgresso' || metodo === 'cockpitEstratificarRisco') {
-      reply.header('Cache-Control', 'private, max-age=1800, stale-while-revalidate=86400');
-    } else if (COCKPIT_READ_METHODS.has(metodo)) {
-      reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=120');
-    } else {
-      reply.header('Cache-Control', 'no-store');
+    if (metodo !== 'cockpitRemume') {
+      if (metodo === 'cockpitConsultar' || metodo === 'cockpitPerfil') {
+        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=60');
+      } else if (metodo === 'cockpitBuscarCid' || metodo === 'cockpitAulasProgresso' || metodo === 'cockpitEstratificarRisco') {
+        reply.header('Cache-Control', 'private, max-age=1800, stale-while-revalidate=86400');
+      } else if (COCKPIT_READ_METHODS.has(metodo)) {
+        reply.header('Cache-Control', 'private, max-age=30, stale-while-revalidate=120');
+      } else {
+        reply.header('Cache-Control', 'no-store');
+      }
     }
 
     // Telemetria ao vivo da interação no Cockpit

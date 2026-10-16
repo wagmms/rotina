@@ -589,7 +589,6 @@ function obterNomeTratamentoUsuario(chatId) {
  * Configurado com is_persistent: false para ergonomia mobile perfeita.
  */
 function obterTecladoFixoPrincipal(chatId) {
-  var urlApp = obterUrlCockpit(chatId);
   return {
     keyboard: [
       [
@@ -601,7 +600,7 @@ function obterTecladoFixoPrincipal(chatId) {
         { text: '💊 Consultas de Bolso' }
       ],
       [
-        { text: '📱 Cockpit Mini App', web_app: { url: urlApp } },
+        { text: '📅 Minha Rotina' },
         { text: '⚙️ Central / Menu' }
       ]
     ],

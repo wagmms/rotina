@@ -328,4 +328,34 @@ Quando o backend de produção do Render foi atualizado de `ultra-rotina-backend
 - Disposition: retain
 - Guidance: Manter o fluxo de deploy atômico no repositório do Cockpit e bump de versão no `sw.js`.
 
+---
+
+## [LRN-20261016-001] bug_fix
+
+**Logged**: 2026-10-16T00:40:00-03:00
+**Priority**: critical
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Gemini Live API (gemini-3.8-live), supressão de loop acústico de microfone e prevenção de vozes simultâneas no Preceptor Live.
+
+### Details
+1. **Modelo Bidi Live Correto**: A Gemini Live API de voz full-duplex requer o modelo oficial `gemini-3.8-live`. Modelos tradicionais como `gemini-2.5-flash` ou prévias descontinuadas retornam erro 1008 ("not found for API version v1beta, or is not supported for bidiGenerateContent") e forçavam o sistema a cair em fallback de contingência imperfeito.
+2. **Transcrição em Tempo Real**: Na Live API em modalidade de áudio (`responseModalities: [Modality.AUDIO]`), os chunks em `modelTurn.parts` não possuem `part.text` (são `undefined`). A transcrição correta do usuário e da IA deve ser habilitada via `inputAudioTranscription: {}` e `outputAudioTranscription: {}` no config de conexão, sendo lida a partir de `serverContent.inputTranscription.text` e `serverContent.outputTranscription.text`.
+3. **Loop de Eco Acústico**: O microfone capturava a própria voz do Preceptor emitida pelos alto-falantes/fones e retransmitia em tempo real para a IA. Implementar `isPreceptorSpeaking()` no frontend garante o descarte dos buffers de áudio durante a reprodução da IA, eliminando a confusão de vozes e as respostas alucinatórias.
+4. **Vozes Duplas Simultâneas**: A reprodução concorrente ocorria por colisão entre o fallback de `window.speechSynthesis` (que disparava indevidamente no `turnComplete` por reset da flag de áudio durante o streaming de texto) e os nós de áudio da Web Audio API (`AudioBufferSourceNode`), além da falta de trava de concorrência (`processandoTurno`) no backend.
+
+### Suggested Action
+Sempre utilizar `gemini-3.8-live` para WebSockets Bidi, habilitar transcrições explícitas de entrada/saída, aplicar bloqueio de captura de microfone enquanto a IA estiver falando (`isPreceptorSpeaking`), cancelar `speechSynthesis` ativamente e manter fila unificada de reprodução no `AudioContext`.
+
+### Metadata
+- Source: user_report
+- Related Files: `server/index.js`, `gh_cockpit_deploy/index.html`, `index.html`, `cockpit_movel.html`, `tests/test_preceptor_live_anti_eco_e_transcricao.cjs`
+- Tags: gemini_live, audio, websocket, anti_echo, vad, transcricao, webaudio
+- Pattern-Key: audio.gemini_live_echo_cancellation_transcription
+- Recurrence-Count: 1
+- First-Seen: 2026-10-16
+- Last-Seen: 2026-10-16
+
 

@@ -1099,6 +1099,24 @@ var PADRONIZACAO_AMPOLAS_DUPLAS_ISMP = {
       { "apresentacao": "Adrenalina 1:10.000 (0,1 mg/mL)", "indicacao": "PCR Adulto/Pediátrico IV/IO ou preparo para choque refratário", "dose": "1 mg IV (10 mL a 1:10.000) a cada 3-5 min em PCR. Preparo: 1 ampola 1:1.000 (1 mL) + 9 mL SF 0,9% = 10 mL a 1:10.000." }
     ],
     "regras": "Anafilaxia: 1ª linha SEMPRE IM no vasto lateral da coxa com 1:1.000. PCR: 1 mg IV (solução 1:10.000). Choque anafilático refratário: infusão contínua em BIC (1 ampola 1:1.000 em 249 mL SG 5% = 4 mcg/mL)."
+  },
+  "calcio": {
+    "farmaco": "Sais de Cálcio Injetáveis (Gluconato 10% vs Cloreto 10%)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA confundir Gluconato de Cálcio 10% com Cloreto de Cálcio 10%! O Cloreto de Cálcio tem 3x mais Cálcio elementar e causa necrose tecidual grave se extravasado em veia periférica.",
+    "ampolas": [
+      { "apresentacao": "Gluconato de Cálcio 10%", "concentracao": "100 mg/mL (0,1 g/mL)", "equivalencia": "1 ampola (10 mL) = 1 g gluconato = 90 mg (4,6 mEq) de Ca2+ elementar. (1ª escolha em veia periférica na hipercalemia com alteração de ECG/hipocalcemia)." },
+      { "apresentacao": "Cloreto de Cálcio 10%", "concentracao": "100 mg/mL (0,1 g/mL)", "equivalencia": "1 ampola (10 mL) = 1 g cloreto = 270 mg (13,6 mEq) de Ca2+ elementar (3x mais potente). Uso preferencial em Acesso Venoso Central ou PCR." }
+    ],
+    "regras": "Hipercalemia com onda T bicuda/alargamento de QRS: Gluconato de Cálcio 10% 1 a 2 ampolas (10 a 20 mL) IV em 5 a 10 min sob monitorização eletrocardiográfica. Repetir em 5 min se traçado mantido."
+  },
+  "nacl": {
+    "farmaco": "Cloreto de Sódio Hipertônico (NaCl 20% vs Salina 3%)",
+    "alertaSeguranca": "🚨 ALTO RISCO (ISMP Brasil): NUNCA infundir ampola de NaCl 20% pura diretamente! Risco fatal de hipernatremia aguda, desidratação neuronal e mielinólise pontina osmótica.",
+    "ampolas": [
+      { "apresentacao": "NaCl 20% (Ampola Concentrada)", "concentracao": "200 mg/mL", "equivalencia": "1 mL = 3,42 mEq de Na+. Ampola de 10 mL = 34,2 mEq de Na+; Ampola de 20 mL = 68,4 mEq de Na+." },
+      { "apresentacao": "Salina Hipertônica a 3% (Preparo Prático)", "concentracao": "30 mg/mL (~513 mEq/L)", "equivalencia": "Preparo rápido de 100 mL: 85 mL de SF 0,9% (ou Água Destilada) + 15 mL de NaCl 20% = 100 mL de Salina ~3%. Bólus na hiponatremia grave sintomática (coma/convulsão): 100 a 150 mL IV em 10-20 min." }
+    ],
+    "regras": "Limite máximo de elevação do Sódio sérico: 8 a 10 mEq/L nas primeiras 24 horas (máx 6 a 8 mEq/L/24h se alto risco de desmielinização osmótica: etilistas, desnutridos e hipocalêmicos)."
   }
 };
 
@@ -1108,6 +1126,8 @@ function formatarGuiaAmpolasDuplasISMP(chave) {
   if (/kcl|potassio|cloreto de potassio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.kcl;
   else if (/mgso4|magnesio|sulfato de magnesio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.mgso4;
   else if (/adrenalina|epinefrina/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.adrenalina;
+  else if (/calcio|gluconato|cloreto de calcio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.calcio;
+  else if (/nacl|salina|hipertonica|cloreto de sodio/.test(k)) item = PADRONIZACAO_AMPOLAS_DUPLAS_ISMP.nacl;
   if (!item) return null;
 
   var out = [];
@@ -2556,6 +2576,87 @@ function auditarAlergiasEGestacaoDeterministico(farmacosDetectados, textoContext
   return resultado;
 }
 
+/**
+ * Auditoria determinística em RAM (0ms) de síndromes farmacológicas de alto risco:
+ * 1. Prolongadores de QTc múltiplos (CredibleMeds - Risco de Torsades de Pointes)
+ * 2. Sinergismo de Hipercalemia (Trimetoprima/Bactrim + IECA/BRA + Espironolactona)
+ * 3. Tríade Nefrotóxica ("Triple Whammy": IECA/BRA + Diurético + AINE)
+ * 4. Incompatibilidades Físico-Químicas Letais (Fenitoína em SG5% e Ceftriaxona com Cálcio)
+ */
+function auditarSindromesFarmacologicasCriticas(farmacos, textoOriginal) {
+  var alertas = [];
+  var setF = {};
+  (farmacos || []).forEach(function(f) { setF[String(f).toLowerCase().trim()] = true; });
+  var txtNorm = " " + String(textoOriginal || "").toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9\s+]/g, " ") + " ";
+
+  // 1. Prolongadores de QTc (CredibleMeds - Known Risk of Torsades de Pointes)
+  var LISTA_QT = [
+    "amiodarona", "haloperidol", "ondansetrona", "ciprofloxacino", "levofloxacino",
+    "moxifloxacino", "azitromicina", "claritromicina", "clorpromazina", "metoclopramida",
+    "fluconazol", "escitalopram", "citalopram", "metadona", "sotalol"
+  ];
+  var qtEncontrados = LISTA_QT.filter(function(d) { return !!setF[d]; });
+  if (qtEncontrados.length >= 2) {
+    alertas.push({
+      grau: "GRAVE (SINERGISMO DE QTc)",
+      titulo: "Associação de Múltiplos Fármacos que Prolongam o Intervalo QTc (" + qtEncontrados.map(function(x){return x.toUpperCase();}).join(" + ") + ")",
+      efeito: "Risco sinérgico de prolongamento grave do intervalo QTc (> 500 ms) e taquicardia ventricular polimórfica com risco de parada cardíaca (Torsades de Pointes).",
+      conduta: "Realizar ECG basal e seriado; manter K+ > 4,0 mEq/L e Mg2+ > 2,0 mg/dL. Considerar substituir antiemético (ex: Dimenidrinato) ou antimicrobiano."
+    });
+  }
+
+  // 2. Sinergismo de Hipercalemia (Trimetoprima + IECA/BRA / Espironolactona)
+  var temEspiro = !!setF["espironolactona"];
+  var temIecaBra = !!(setF["enalapril"] || setF["captopril"] || setF["ramipril"] || setF["losartana"] || setF["valsartana"] || setF["candesartana"]);
+  var temBactrim = !!(setF["sulfametoxazol"] || setF["trimetoprima"]);
+  if ((temEspiro && temBactrim) || (temIecaBra && temBactrim)) {
+    var kDrogas = [];
+    if (temBactrim) kDrogas.push("SULFAMETOXAZOL+TRIMETOPRIMA");
+    if (temIecaBra) kDrogas.push("IECA/BRA");
+    if (temEspiro) kDrogas.push("ESPIRONOLACTONA");
+    alertas.push({
+      grau: "GRAVE (RISCO DE HIPERCALEMIA)",
+      titulo: "Combinação Hipercalemiante Crítica (" + kDrogas.join(" + ") + ")",
+      efeito: "A Trimetoprima age como a amilorida bloqueando canais ENaC no túbulo distal. Associada a IECA/BRA e/ou Espironolactona, eleva drasticamente o risco de hipercalemia grave e arritmia fatal.",
+      conduta: "Monitorar Potássio sérico e Creatinina em 48-72h ou substituir Sulfametoxazol+Trimetoprima por opção não hipercalemiante."
+    });
+  }
+
+  // 3. Triple Whammy (Lesão Renal Aguda Hemodinâmica)
+  var temDiuretico = !!(setF["furosemida"] || setF["hidroclorotiazida"] || setF["espironolactona"] || setF["indapamida"]);
+  var temAine = !!(setF["ibuprofeno"] || setF["cetoprofeno"] || setF["diclofenaco"] || setF["cetorolaco"] || setF["naproxeno"] || setF["nimesulida"] || setF["meloxicam"] || setF["piroxicam"] || setF["tenoxicam"]);
+  if (temIecaBra && temDiuretico && temAine) {
+    alertas.push({
+      grau: "GRAVE (TRIPLE WHAMMY RENAL)",
+      titulo: "Tríade Nefrotóxica Hemodinâmica (IECA/BRA + Diurético + AINE)",
+      efeito: "O AINE inibe prostaglandinas e causa vasoconstrição da arteríola aferente, o IECA/BRA dilata a arteríola eferente e o diurético reduz a volemia eficaz, precipitando queda abrupta da TFG e Injúria Renal Aguda (IRA) grave.",
+      conduta: "Suspender o AINE imediatamente; substituir analgesia por Paracetamol ou Dipirona."
+    });
+  }
+
+  // 4. Incompatibilidades Físico-Químicas Letais no Texto da Prescrição
+  if (setF["fenitoina"] && /\b(?:sg\s*5|soro\s+glicosado|glicose\s*5)\b/i.test(txtNorm)) {
+    alertas.push({
+      grau: "CONTRAINDICADO (PRECIPITAÇÃO IV)",
+      titulo: "Fenitoína diluída em Soro Glicosado (SG 5%)",
+      efeito: "A Fenitoína possui pH ~12 e precipita rapidamente em microcristais insolúveis em meio ácido como o SG 5%, causando flebite grave, embolia microvascular ou obstrução de cateter.",
+      conduta: "Diluir Fenitoína EXCLUSIVAMENTE em Soro Fisiológico 0,9% (SF 0,9%) a no máximo 50 mg/min em adultos."
+    });
+  }
+  if (setF["ceftriaxona"] && /\b(?:ringer|gluconato\s+de\s+calcio|cloreto\s+de\s+calcio)\b/i.test(txtNorm)) {
+    alertas.push({
+      grau: "CONTRAINDICADO (PRECIPITAÇÃO IV)",
+      titulo: "Ceftriaxona concomitante a Soluções com Cálcio (Ringer Lactato / Sais de Cálcio)",
+      efeito: "Formação de precipitado insolúvel de ceftriaxona-cálcio com risco de embolia microvascular pulmonar e renal (contraindicação absoluta em neonatos).",
+      conduta: "Diluir Ceftriaxona em SF 0,9% ou SG 5%. Lavar a linha venosa com SF 0,9% antes e após a infusão se não houver via exclusiva."
+    });
+  }
+
+  return alertas;
+}
+
 function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   var t0 = Date.now();
   var farmacos = [];
@@ -2678,12 +2779,25 @@ function executarCrossCheckSegurancaClinica(drogasOuTexto, dadosContexto) {
   // 4. Auditoria Determinística de Alergias Cruzadas e Gestação em RAM (0ms)
   var auditoriaAlergiasGestacao = auditarAlergiasEGestacaoDeterministico(farmacos, (typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
 
-  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0) || auditoriaAlergiasGestacao.temCritico;
+  // 5. Auditoria de Síndromes Farmacológicas Críticas (QTc, Hipercalemia, Triple Whammy)
+  var auditoriaSindromes = auditarSindromesFarmacologicasCriticas(farmacos, (typeof drogasOuTexto === "string" ? drogasOuTexto + " " : "") + contextoTexto);
+
+  var temAlertasCriticos = temContraindicado || temGrave || temIncompativelY || (ctxRenal.temDisfuncao && ajustesRenais.length > 0) || auditoriaAlergiasGestacao.temCritico || auditoriaSindromes.length > 0;
 
   // Formatação clínica para Telegram, Cockpit e Auditoria
   var linhasTexto = [];
   linhasTexto.push("🛡️ *CROSS-CHECK DE SEGURANÇA FARMACOLÓGICA*");
   linhasTexto.push("🔍 *Fármacos rastreados:* " + (farmacos.length > 0 ? farmacos.map(function(s){return "`" + s.toUpperCase() + "`";}).join(", ") : "Nenhum fármaco identificado"));
+
+  // Síndromes farmacológicas de alto risco (QTc, Hipercalemia, Triple Whammy, Incompatibilidade Física)
+  if (auditoriaSindromes.length > 0) {
+    linhasTexto.push("\n⚡ *ALERTA DE SÍNDROMES FARMACOLÓGICAS & TOXICIDADE:*");
+    auditoriaSindromes.forEach(function(sd) {
+      linhasTexto.push("🚨 *" + sd.grau + ":* " + sd.titulo);
+      linhasTexto.push("   • *Risco Clínico:* " + sd.efeito);
+      linhasTexto.push("   • *Conduta Mandatória:* " + sd.conduta);
+    });
+  }
 
   // Alergias medicamentosas e reatividade cruzada
   if (auditoriaAlergiasGestacao.alergias.length > 0) {

@@ -4,13 +4,19 @@ var EXECUCAO_ATUAL = null;
 // independentemente do volume. Varreduras usam um snapshot único por passagem.
 var PersistenciaBot = (function() {
   var _snapCache = null;
+  var _totalBytesCache = null;
+  var _objCache = (typeof Map !== 'undefined') ? new Map() : null;
   function props() { return PropertiesService.getScriptProperties(); }
   function snapshot(forcar) {
     if (_snapCache && !forcar) return _snapCache;
     _snapCache = props().getProperties() || {};
     return _snapCache;
   }
-  function invalidarSnapshot() { _snapCache = null; }
+  function invalidarSnapshot() {
+    _snapCache = null;
+    _totalBytesCache = null;
+    if (_objCache) _objCache.clear();
+  }
   // Reconstrói o texto de um registro a partir do snapshot; null se ausente ou incompleto.
   function textoDe(all, k) {
     var manifest = all[k];
@@ -24,17 +30,35 @@ var PersistenciaBot = (function() {
     return texto;
   }
   function ler(k, all) {
+    var manifest = all ? all[k] : props().getProperty(k);
+    if (!manifest) return null;
+    var m = null;
+    try { m = JSON.parse(manifest); } catch (_) { return null; }
+    if (_objCache && _objCache.has(k)) {
+      var cached = _objCache.get(k);
+      if (cached && cached.v === m.v) {
+        if (typeof structuredClone === 'function') {
+          try { return structuredClone(cached.obj); } catch (_) {}
+        }
+        return JSON.parse(JSON.stringify(cached.obj));
+      }
+    }
     if (all) {
-      if (!all[k]) return null;
       var t = textoDe(all, k);
-      if (t !== null) return JSON.parse(t);
-      // Snapshot capturou uma escrita concorrente pela metade: relê diretamente.
+      if (t !== null) {
+        var parsed = JSON.parse(t);
+        if (_objCache) _objCache.set(k, { v: m.v, obj: parsed });
+        return parsed;
+      }
     }
     var p = props();
     for (var tent = 0; tent < 2; tent++) {
-      var manifest = p.getProperty(k);
-      if (!manifest) return null;
-      var m = JSON.parse(manifest), texto = '', falhou = false;
+      if (tent > 0) {
+        manifest = p.getProperty(k);
+        if (!manifest) return null;
+        try { m = JSON.parse(manifest); } catch (_) { return null; }
+      }
+      var texto = '', falhou = false;
       for (var i = 0; i < m.n; i++) {
         var parte = p.getProperty(k + ':' + m.v + ':' + i);
         if (parte === null) {
@@ -44,7 +68,9 @@ var PersistenciaBot = (function() {
         texto += parte;
       }
       if (!falhou) {
-        return JSON.parse(texto);
+        var parsedObj = JSON.parse(texto);
+        if (_objCache) _objCache.set(k, { v: m.v, obj: parsedObj });
+        return parsedObj;
       }
     }
     throw new Error('Dados persistidos incompletos.');
@@ -77,8 +103,11 @@ var PersistenciaBot = (function() {
     return b;
   }
   function totalBytes(all) {
+    if (_totalBytesCache !== null && !all) return _totalBytesCache;
     all = all || snapshot();
-    return Object.keys(all).reduce(function(n,k) {return n + bytesUtf8(k) + bytesUtf8(all[k]);}, 0);
+    var tot = Object.keys(all).reduce(function(n,k) {return n + bytesUtf8(k) + bytesUtf8(all[k]);}, 0);
+    _totalBytesCache = tot;
+    return tot;
   }
   function chaves(prefixo, all) {
     return Object.keys(all || snapshot()).filter(function(k){return k.indexOf(prefixo)===0 && k.indexOf(':')===-1;}).sort();
@@ -109,7 +138,8 @@ var PersistenciaBot = (function() {
   // Partes em uma única chamada quando o serviço oferece escrita em lote (GAS: setProperties).
   function gravarPartes(p, k, m, s) {
     var partes = {};
-    for (var i=0;i<m.n;i++) partes[k+':'+m.v+':'+i] = s.slice(i*1500,(i+1)*1500);
+    var sliceSize = (m.n === 1) ? s.length : 1500;
+    for (var i=0;i<m.n;i++) partes[k+':'+m.v+':'+i] = s.slice(i*sliceSize,(i+1)*sliceSize);
     if (typeof p.setProperties === 'function') p.setProperties(partes);
     else Object.keys(partes).forEach(function(c) {p.setProperty(c, partes[c]);});
     return partes;
@@ -122,6 +152,7 @@ var PersistenciaBot = (function() {
     if (bAtual + sBytes > 300000) {
       podarPersistenciaAntiga(all);
       all = snapshot(true);
+      _totalBytesCache = null;
       bAtual = totalBytes(all);
     }
     var anterior = all[k] || null;
@@ -130,6 +161,7 @@ var PersistenciaBot = (function() {
     if (bAtual + sBytes > 400000 && !(sBytes < bytesAnteriores && bAtual + sBytes < 450000)) {
       podarPersistenciaAntiga(all);
       all = snapshot(true);
+      _totalBytesCache = null;
       bAtual = totalBytes(all);
       if (bAtual + sBytes > 420000) {
         // Purgar todos os outbox_ e inbox_ concluidos
@@ -137,19 +169,29 @@ var PersistenciaBot = (function() {
           listar(pfx, all).filter(function(r) { return !r.valor || r.valor.status === 'done'; }).forEach(function(r) { remover(r.key); });
         });
         all = snapshot(true);
+        _totalBytesCache = null;
         bAtual = totalBytes(all);
       }
       if (bAtual + sBytes > 480000) {
         throw new Error('Orçamento global de armazenamento excedido (cota 500 KB do GAS). Contrapressão ativada.');
       }
     }
-    var m={v:Utilities.getUuid().replace(/-/g,''),n:Math.ceil(s.length/1500)};
+    var ehNode = typeof process !== 'undefined';
+    var nPartes = ehNode ? 1 : Math.ceil(s.length/1500);
+    var m={v:Utilities.getUuid().replace(/-/g,''),n:nPartes};
     try {
       var partesGravadas = gravarPartes(p,k,m,s);
       p.setProperty(k,JSON.stringify(m)); // manifesto por último: leitores nunca veem partes incompletas
       if (_snapCache) {
         Object.assign(_snapCache, partesGravadas);
         _snapCache[k] = JSON.stringify(m);
+      }
+      if (_objCache) {
+        _objCache.set(k, { v: m.v, obj: valor });
+      }
+      if (_totalBytesCache !== null) {
+        var bytesGravados = bytesUtf8(k) + bytesUtf8(JSON.stringify(m)) + sBytes;
+        _totalBytesCache += (bytesGravados - bytesAnteriores);
       }
     } catch(e) { apagarPartes(k,m); throw e; }
     if(anterior) apagarPartes(k,JSON.parse(anterior));
@@ -159,6 +201,8 @@ var PersistenciaBot = (function() {
     props().deleteProperty(k);
     if(m) apagarPartes(k,JSON.parse(m));
     if (_snapCache) delete _snapCache[k];
+    if (_objCache) _objCache.delete(k);
+    _totalBytesCache = null;
   }
   return {ler:ler,salvar:salvar,remover:remover,chaves:chaves,listar:listar,totalBytes:totalBytes,snapshot:snapshot,invalidarSnapshot:invalidarSnapshot};
 })();

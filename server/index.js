@@ -666,7 +666,11 @@ async function buildServer() {
       if (!runtime.ctx.RotinaService || !runtime.ctx.RotinaService.marcarStatusBloco) {
         throw new Error('RotinaService indisponível.');
       }
-      const res = runtime.ctx.RotinaService.marcarStatusBloco(dataRef, blocoId, novoStatus, nota);
+      const extras = {
+        inicio: typeof body.inicio === 'string' ? body.inicio.trim() : undefined,
+        fim: typeof body.fim === 'string' ? body.fim.trim() : undefined
+      };
+      const res = runtime.ctx.RotinaService.marcarStatusBloco(dataRef, blocoId, novoStatus, nota, extras);
       const dataISO = runtime.ctx.RotinaService.normalizarDataISO(dataRef);
       return { ok: true, sucesso: res.sucesso, data: dataISO, blocos: res.blocos };
     } catch (err) {
@@ -1115,10 +1119,20 @@ async function buildServer() {
       }
       if (!novo) return { ok: true, duplicate: true };
 
-      // Enfileira para processamento em background e responde 200.
-      webhookQueue.push({ fakeGasEvent, updateId, t0, enqueuedAt: performance.now(), kind: updateKind(updateData) });
+      // Enfileira para processamento em background com Fast-Lane para navegação estática e responde 200.
+      const isFastLane = !!(runtime.ctx && typeof runtime.ctx.destinoNavegacaoRapida === 'function' && runtime.ctx.destinoNavegacaoRapida(updateData));
+      const queueItem = { fakeGasEvent, updateId, t0, enqueuedAt: performance.now(), kind: updateKind(updateData), isFastLane };
+      if (isFastLane) {
+        let insertIdx = 0;
+        while (insertIdx < webhookQueue.length && webhookQueue[insertIdx].isFastLane) {
+          insertIdx++;
+        }
+        webhookQueue.splice(insertIdx, 0, queueItem);
+      } else {
+        webhookQueue.push(queueItem);
+      }
       const elapsed = (performance.now() - t0).toFixed(2);
-      fastify.log.info(`[Webhook Telegram] Update ${updateId} enfileirado em ${elapsed}ms. Fila: ${webhookQueue.length} item(ns).`);
+      fastify.log.info(`[Webhook Telegram] Update ${updateId}${isFastLane ? ' (fast-lane)' : ''} enfileirado em ${elapsed}ms. Fila: ${webhookQueue.length} item(ns).`);
 
       // Dispara processamento da fila fora do ciclo de resposta HTTP
       setImmediate(processWebhookQueue);
@@ -1381,9 +1395,9 @@ async function buildServer() {
 
     const MODELOS_LIVE_CANDIDATOS = [
       process.env.GEMINI_LIVE_MODEL,
-      'gemini-2.5-flash',
-      'gemini-2.0-flash-exp',
-      'gemini-omni-flash-preview'
+      'gemini-3.8-live',
+      'gemini-2.0-flash-live-001',
+      'gemini-2.0-flash-exp'
     ].filter(Boolean);
 
     const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
@@ -1391,11 +1405,11 @@ Você está conversando por voz em tempo real diretamente no fone de ouvido do m
 Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio: "Qual hipótese diagnóstica você prioriza?", "Qual o próximo exame confirmatório?", "Por que indicou essa droga e não a primeira linha?".
-3. Mantenha cada turno de fala curto (15 a 40 segundos), permitindo que Wagner fale livremente.
+3. Mantenha cada turno de fala curto (15 a 30 segundos), permitindo que Wagner fale livremente.
 4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).
 5. NUNCA INVENTE DADOS DE PACIENTES nem simule casos fictícios aleatoriamente do nada. Se Wagner apenas chamar ou se faltarem dados (sinais vitais, exames), pergunte qual caso ele quer discutir ou pergunte ativamente o dado faltante. Somente simule caso se ele pedir expressamente.`;
 
-    // Função de tentativa de conexão com timeout defensivo (5s)
+    // Função de tentativa de conexão com timeout defensivo (6s)
     async function tentarConectarLive(key, modelo) {
       return new Promise((resolve, reject) => {
         let finalizado = false;
@@ -1404,7 +1418,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
             finalizado = true;
             reject(new Error(`Timeout na negociação Live com modelo ${modelo}`));
           }
-        }, 5000);
+        }, 6000);
 
         try {
           const ai = new GoogleGenAI({ apiKey: key });
@@ -1415,7 +1429,11 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
               speechConfig: {
                 voiceConfig: { prebuiltVoiceConfig: { voiceName: 'Fenrir' } }
               },
-              systemInstruction: SYSTEM_INSTRUCTION_PRECEPTOR
+              inputAudioTranscription: {},
+              outputAudioTranscription: {},
+              systemInstruction: {
+                parts: [{ text: SYSTEM_INSTRUCTION_PRECEPTOR }]
+              }
             },
             callbacks: {
               onopen: () => {},
@@ -1424,19 +1442,49 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
                   finalizado = true;
                   clearTimeout(timer);
                 }
-                const parts = message.serverContent?.modelTurn?.parts || [];
+                const sc = message.serverContent;
+                if (!sc) return;
+
+                // 1. Transcrição em tempo real da fala do médico
+                if (sc.inputTranscription?.text) {
+                  clientWs.send(JSON.stringify({
+                    type: 'transcript',
+                    role: 'user',
+                    text: sc.inputTranscription.text,
+                    streaming: true
+                  }));
+                }
+
+                // 2. Transcrição em tempo real da fala do Preceptor
+                if (sc.outputTranscription?.text) {
+                  clientWs.send(JSON.stringify({
+                    type: 'transcript',
+                    role: 'model',
+                    text: sc.outputTranscription.text,
+                    streaming: true
+                  }));
+                }
+
+                // 3. Áudio PCM 24kHz e texto complementar
+                const parts = sc.modelTurn?.parts || [];
                 for (const part of parts) {
                   if (part.inlineData?.data) {
                     clientWs.send(JSON.stringify({ type: 'audio', audio: part.inlineData.data }));
                   }
-                  if (part.text) {
-                    clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: part.text }));
+                  if (part.text && !part.thought && !sc.outputTranscription) {
+                    clientWs.send(JSON.stringify({
+                      type: 'transcript',
+                      role: 'model',
+                      text: part.text,
+                      streaming: true
+                    }));
                   }
                 }
-                if (message.serverContent?.interrupted) {
+
+                if (sc.interrupted) {
                   clientWs.send(JSON.stringify({ type: 'interrupted', interrupted: true }));
                 }
-                if (message.serverContent?.turnComplete) {
+                if (sc.turnComplete) {
                   clientWs.send(JSON.stringify({ type: 'turnComplete' }));
                 }
               },
@@ -1509,16 +1557,10 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         if (msg.audio) {
           try {
             liveSession.sendRealtimeInput({
-              media: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
+              audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
             });
-          } catch (_) {
-            try {
-              liveSession.sendRealtimeInput({
-                audio: { data: msg.audio, mimeType: 'audio/pcm;rate=16000' }
-              });
-            } catch (eAud) {
-              console.warn('[Live Audio Send]:', eAud.message);
-            }
+          } catch (eAud) {
+            console.warn('[Live Audio Send]:', eAud.message);
           }
         } else if (msg.text) {
           try {
@@ -1535,9 +1577,9 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
       }
     }
 
-    // Tenta conectar modelo Live em até 2 segundos com a chave principal
+    // Tenta conectar modelos Live candidatos com as chaves configuradas
     for (const mod of MODELOS_LIVE_CANDIDATOS) {
-      for (const k of chaves.slice(0, 1)) {
+      for (const k of chaves.slice(0, 2)) {
         try {
           const resultado = await tentarConectarLive(k, mod);
           liveSession = resultado.session;
@@ -1583,43 +1625,54 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
     let bufferAudioPcm = [];
     let audioTimerDebounce = null;
+    let processandoTurno = false;
 
-    async function processarTurnoContingencia(textoUsuario, audioWavBase64) {
+    async function processarTurnoContingencia(textoUsuario, isContextoSilencioso = false) {
+      if (!textoUsuario || !textoUsuario.trim()) return;
+      processandoTurno = true;
       try {
-        clientWs.send(JSON.stringify({ type: 'transcript', role: 'user', text: textoUsuario || 'Ditado em áudio...' }));
+        if (!isContextoSilencioso) {
+          clientWs.send(JSON.stringify({ type: 'transcript', role: 'user', text: textoUsuario.trim(), streaming: false }));
+        }
 
         const sistemaPrompt = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP falando no fone de Wagner durante o plantão.
 Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio clínico.
-3. Responda em no máximo 2 a 3 frases concisas (15 a 30 segundos de fala).
+3. Responda em no máximo 2 a 3 frases concisas (15 a 25 segundos de fala).
 4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.
 5. NUNCA invente dados de pacientes nem simule casos fictícios aleatoriamente do nada. Se Wagner não relatou o paciente ou faltarem dados, pergunte qual caso ele quer discutir ou pergunte o dado que falta.`;
 
         let respostaTexto = '';
-        if (runtime.ctx && typeof runtime.ctx.gerarDialogoPreceptorSocratico === 'function') {
+        if (runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
+          try {
+            const resIa = await runtime.ctx._iaProvGemini(sistemaPrompt, textoUsuario, 250, null, {
+              clinico: true,
+              instrucaoSistema: sistemaPrompt
+            });
+            if (resIa && resIa.texto) respostaTexto = resIa.texto;
+          } catch (_) {}
+        }
+
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
+          try {
+            respostaTexto = await runtime.ctx.chamarGeminiPoolMultimodal({
+              prompt: textoUsuario,
+              sistema: sistemaPrompt
+            }) || '';
+          } catch (_) {}
+        }
+
+        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.gerarDialogoPreceptorSocratico === 'function') {
           try {
             respostaTexto = runtime.ctx.gerarDialogoPreceptorSocratico(null, null, textoUsuario, '') || '';
           } catch (_) {}
         }
+
         if (!respostaTexto && runtime.ctx && typeof runtime.ctx.gerarCriticaSocraticaPreceptor === 'function') {
           try {
             respostaTexto = runtime.ctx.gerarCriticaSocraticaPreceptor(textoUsuario) || '';
           } catch (_) {}
-        }
-        if (!respostaTexto && runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
-          const resIa = runtime.ctx._iaProvGemini(sistemaPrompt, textoUsuario, 250, null, {
-            clinico: true,
-            instrucaoSistema: sistemaPrompt
-          });
-          if (resIa && resIa.texto) respostaTexto = resIa.texto;
-        }
-
-        if (!respostaTexto && runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
-          respostaTexto = runtime.ctx.chamarGeminiPoolMultimodal({
-            prompt: textoUsuario,
-            sistema: sistemaPrompt
-          }) || '';
         }
 
         if (!respostaTexto && runtime.ctx && typeof runtime.ctx.executarFallbackLocalOffline === 'function') {
@@ -1640,13 +1693,13 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         }
 
         respostaTexto = respostaTexto.replace(/[*_#`\[\]\(\)]/g, '').replace(/\s+/g, ' ').trim();
-        clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: respostaTexto }));
+        clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: respostaTexto, streaming: false }));
 
         // Síntese de áudio neural Fenrir
         let audioBase64 = null;
         if (runtime.ctx && typeof runtime.ctx.gerarAudioTtsGeminiNeural === 'function') {
           try {
-            const blobAudio = runtime.ctx.gerarAudioTtsGeminiNeural(respostaTexto);
+            const blobAudio = await runtime.ctx.gerarAudioTtsGeminiNeural(respostaTexto);
             if (blobAudio && typeof blobAudio.getBytes === 'function') {
               const b = Buffer.from(blobAudio.getBytes());
               audioBase64 = b.toString('base64');
@@ -1667,6 +1720,8 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
           type: 'error',
           error: 'Falha no processamento: ' + eTurno.message
         }));
+      } finally {
+        processandoTurno = false;
       }
     }
 
@@ -1674,32 +1729,32 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
       try {
         const msg = JSON.parse(raw.toString());
         if (msg.text) {
-          await processarTurnoContingencia(msg.text, null);
+          const isCtx = msg.text.startsWith('[Contexto do Paciente');
+          await processarTurnoContingencia(msg.text, isCtx);
         } else if (msg.audio) {
+          if (processandoTurno) return;
+
           bufferAudioPcm.push(msg.audio);
           clearTimeout(audioTimerDebounce);
+          // Debounce de 1500ms para aguardar o médico concluir a oração completa
           audioTimerDebounce = setTimeout(async () => {
-            if (bufferAudioPcm.length === 0) return;
+            if (bufferAudioPcm.length === 0 || processandoTurno) return;
             const chunks = bufferAudioPcm;
             bufferAudioPcm = [];
             const buffers = chunks.map(c => Buffer.from(c, 'base64'));
             const totalBuffer = Buffer.concat(buffers);
+
+            // Ignora áudios com menos de 0.5s (16000 bytes PCM16 mono a 16kHz)
+            if (totalBuffer.length < 16000) return;
+
             const wavBuffer = pcm16ToWavBuffer(totalBuffer, 16000, 1);
             const audioWavBase64 = wavBuffer.toString('base64');
 
             let textoTranscrito = '';
-            if (runtime.ctx && typeof runtime.ctx.processarAudioClinicoMultimodal === 'function') {
+            if (runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
               try {
-                const resAudio = runtime.ctx.processarAudioClinicoMultimodal(audioWavBase64, 'audio/wav');
-                if (resAudio && resAudio.transcricao) {
-                  textoTranscrito = String(resAudio.transcricao).trim();
-                }
-              } catch (_) {}
-            }
-            if (!textoTranscrito && runtime.ctx && typeof runtime.ctx.chamarGeminiPoolMultimodal === 'function') {
-              try {
-                textoTranscrito = runtime.ctx.chamarGeminiPoolMultimodal({
-                  prompt: 'Transcreva com fidelidade a fala clínica em português gravada neste áudio. Retorne exclusivamente o texto falado.',
+                textoTranscrito = await runtime.ctx.chamarGeminiPoolMultimodal({
+                  prompt: 'Transcreva exatamente o que o médico falou em português. Se for apenas silêncio, ruído ou incompreensível, retorne apenas VAZIO.',
                   dadosMidia: {
                     mimeType: 'audio/wav',
                     data: audioWavBase64
@@ -1708,12 +1763,22 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
               } catch (_) {}
             }
 
-            if (!textoTranscrito) {
-              textoTranscrito = 'Discussão clínica do caso beira-leito com o preceptor.';
+            if (!textoTranscrito && runtime.ctx && typeof runtime.ctx.processarAudioClinicoMultimodal === 'function') {
+              try {
+                const resAudio = await runtime.ctx.processarAudioClinicoMultimodal(audioWavBase64, 'audio/wav');
+                if (resAudio && resAudio.transcricao) {
+                  textoTranscrito = String(resAudio.transcricao).trim();
+                }
+              } catch (_) {}
             }
 
-            await processarTurnoContingencia(textoTranscrito, audioWavBase64);
-          }, 600);
+            textoTranscrito = String(textoTranscrito || '').trim();
+            if (!textoTranscrito || textoTranscrito.toUpperCase().includes('VAZIO') || textoTranscrito.length < 3) {
+              return; // Nunca inventa conversa fictícia sobre ruído
+            }
+
+            await processarTurnoContingencia(textoTranscrito, false);
+          }, 1500);
         }
       } catch (eParse) {
         console.warn('[Contingency Ws Parse]:', eParse.message);

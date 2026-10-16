@@ -83,6 +83,7 @@ async function testUiUxAcessibilidadeTelegram() {
     { txt: '🛏️ Enfermaria', esperado: 'ENFERMARIA' },
     { txt: '🩺 Ambulatório', esperado: 'AMBULATÓRIO' },
     { txt: '💊 Consultas de Bolso', esperado: 'CONSULTAS RÁPIDAS DE BOLSO' },
+    { txt: '📅 Minha Rotina', esperado: 'Rotina' },
     { txt: '⚙️ Central / Menu', esperado: 'Central de Comandos' }
   ];
 
@@ -93,7 +94,7 @@ async function testUiUxAcessibilidadeTelegram() {
     const txtResp = mensagensEnviadas.map(m => m.texto).join('\n');
     assert(txtResp.includes(bTest.esperado), `Botão ${bTest.txt} deve conter ${bTest.esperado}`);
   }
-  console.log('  ✓ Todos os 5 botões do teclado fixo acionam instantaneamente suas respectivas telas.');
+  console.log('  ✓ Todos os 6 botões do teclado fixo acionam instantaneamente suas respectivas telas.');
 
   // =========================================================================
   // 3. Callbacks dos 4 Cenários Clínicos (Navegação em no máximo 1-2 toques)
@@ -337,6 +338,38 @@ async function testUiUxAcessibilidadeTelegram() {
   assert(segundaChamada.payload.text.includes('[Parte 2/'), 'Segunda parte deve conter identificador de parte 2');
   assert(segundaChamada.payload.text.includes('Continuação'), 'Segunda parte deve indicar continuação');
   console.log('  ✓ Fragmentação inclui cabeçalhos/rodapés visuais (Parte X/Y) e reutiliza Fast-Ack sem mensagem órfã.');
+
+  // =========================================================================
+  // 9. Auto-Escape de Peso em DVA e Retorno Contextual em Cópia de PEP
+  // =========================================================================
+  console.log('\n[9] Testando Auto-Escape de Trava de Peso e Retorno Contextual...');
+  const cache = ctx.CacheService.getScriptCache();
+  cache.put('dvaw_' + chatId, 'nora', 300);
+
+  // Usuário envia uma dúvida clínica livre em vez de peso
+  mensagensEnviadas = [];
+  ctx.processarMensagemTexto({ chat: { id: chatId }, text: 'Paciente com dor precordial típica e sudorese' });
+  assert.strictEqual(cache.get('dvaw_' + chatId), null, 'Lock de peso dvaw_ deve ter sofrido auto-escape e sido removido');
+  const txtAutoEscape = mensagensEnviadas.map(m => m.texto).join('\n');
+  assert(!txtAutoEscape.includes('Informe apenas o peso em kg'), 'Não deve bloquear dúvida clínica com erro de peso');
+  console.log('  ✓ Auto-escape de peso dvaw_ destravou mensagem clínica livre com sucesso.');
+
+  // Retorno contextual em ux:copiar:<origem>:<chave>
+  const ckTeste = 'teste_pep_uuid_123';
+  cache.put(ckTeste, 'Paciente admitido em Sala Vermelha...', 300);
+  mensagensEnviadas = [];
+  ctx.processarCallbackBotao({
+    id: 'cb_copiar_sala',
+    data: 'ux:copiar:sala:' + ckTeste,
+    message: { chat: { id: chatId }, message_id: 111 }
+  });
+  assert(mensagensEnviadas.length >= 1, 'Callback ux:copiar:sala deve responder');
+  const msgCopiaSala = mensagensEnviadas.find(m => m.kb && m.kb.inline_keyboard);
+  assert(msgCopiaSala, 'Deve conter teclado de retorno contextual');
+  const btnRetornoSala = msgCopiaSala.kb.inline_keyboard.flat().find(b => b.callback_data === 'ux:hub:sala');
+  assert(btnRetornoSala, 'Botão de retorno deve apontar para ux:hub:sala quando a origem for sala');
+  assert.strictEqual(btnRetornoSala.text, '🔙 Sala Vermelha', 'Label do botão deve ser "🔙 Sala Vermelha"');
+  console.log('  ✓ Retorno contextual em ux:copiar:sala preservou o contexto da Sala Vermelha.');
 
   console.log('\n🎉 TODOS OS TESTES DE UI/UX, MENUS, ERGONOMIA E ENTRADA RÁPIDA PASSARAM COM SUCESSO!\n');
 }
