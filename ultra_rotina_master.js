@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 19:08:58
- * Checksum SHA256: 5d4525f273a0524a
+ * Gerado automaticamente via build_master.py em: 2026-10-16 19:24:13
+ * Checksum SHA256: e5103a107c4d2b52
  * ==============================================================================
  */
 
@@ -112,7 +112,7 @@ var TELEGRAM_CHAT_ID = ConfigService.get("TELEGRAM_CHAT_ID");
 var NOTION_TOKEN = ConfigService.get("NOTION_TOKEN");
 var NOTION_HABIT_LOG_DB_ID = ConfigService.get("NOTION_HABIT_LOG_DB_ID");
 var NOTION_TASKS_DB_ID = ConfigService.get("NOTION_TASKS_DB_ID");
-var PROVEDOR_TEXTO_PADRAO = ConfigService.get("PROVEDOR_TEXTO_PADRAO", "GROQ");
+var PROVEDOR_TEXTO_PADRAO = ConfigService.get("PROVEDOR_TEXTO_PADRAO", "GEMINI");
 var GROQ_API_KEY = ConfigService.get("GROQ_API_KEY");
 var OPENROUTER_API_KEY = ConfigService.get("OPENROUTER_API_KEY");
 var ZAI_API_KEY = ConfigService.get("ZAI_API_KEY");
@@ -44268,6 +44268,32 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
       maxOutputTokens: opcoes.maxOutputTokens || 4096
     }
   };
+
+  // Suporte a Thinking Level / Thinking Budget no Gemini 4 Argon (Vertex AI)
+  var thinking = opcoes.thinkingLevel || opcoes.thinking;
+  if (!thinking) {
+    if (opcoes.semThinking || opcoes.rapido || opcoes.extrativo) {
+      thinking = "low";
+    } else if (opcoes.clinico || opcoes.multimodal) {
+      thinking = "high";
+    }
+  }
+
+  if (thinking && String(thinking).toLowerCase() !== "off") {
+    var tLow = String(thinking).toLowerCase();
+    var levelMap = {
+      high: "HIGH",
+      medium: "MEDIUM",
+      low: "LOW",
+      minimal: "MINIMAL"
+    };
+    payloadObj.generationConfig.thinkingConfig = {
+      thinkingLevel: levelMap[tLow] || "HIGH"
+    };
+    if (opcoes.thinkingBudget) {
+      payloadObj.generationConfig.thinkingConfig.thinkingBudget = Number(opcoes.thinkingBudget);
+    }
+  }
 
   if (systemPrompt && String(systemPrompt).trim()) {
     payloadObj.systemInstruction = {

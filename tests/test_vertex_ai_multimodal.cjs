@@ -28,12 +28,14 @@ console.log('  ✓ 1. VertexAuthService configurado e gerando token OAuth2 Beare
 assert(typeof runtime.ctx.chamarVertexAIGemini === 'function', 'chamarVertexAIGemini deve existir no contexto');
 console.log('  ✓ 2. Função chamarVertexAIGemini compilada e disponível no contexto clínico');
 
-// 3. Testa mock de chamarGeminiPoolMultimodal com Vertex AI
+// 3. Testa mock de chamarGeminiPoolMultimodal e thinkingConfig adaptativo com Vertex AI
 let chamadaVertexOcorreu = false;
+let ultimoPayloadRecebido = null;
 const originalFetch = runtime.ctx.UrlFetchApp.fetch;
 runtime.ctx.UrlFetchApp.fetch = function(url, options) {
   if (url.includes('aiplatform.googleapis.com') && url.includes('gemini-4-argon')) {
     chamadaVertexOcorreu = true;
+    try { ultimoPayloadRecebido = JSON.parse(options.payload); } catch (e) {}
     return {
       getResponseCode: () => 200,
       getContentText: () => JSON.stringify({
@@ -54,7 +56,29 @@ const laudo = runtime.ctx.analisarImagemMedicaComIA(fakeImageBase64, 'image/png'
 
 assert(chamadaVertexOcorreu, 'Deve ter chamado endpoint Vertex AI');
 assert(laudo && laudo.includes('LAUDO ELETROCARDIOGRÁFICO'), 'Laudo deve conter o retorno da IA');
-console.log('  ✓ 3. analisarImagemMedicaComIA despachou prioritariamente para Vertex AI (gemini-4-argon)');
+assert(ultimoPayloadRecebido && ultimoPayloadRecebido.generationConfig && ultimoPayloadRecebido.generationConfig.thinkingConfig, 'Deve conter thinkingConfig no payload');
+assert.strictEqual(ultimoPayloadRecebido.generationConfig.thinkingConfig.thinkingLevel, 'HIGH', 'Modo clínico/multimodal deve usar thinkingLevel HIGH');
+console.log('  ✓ 3. analisarImagemMedicaComIA despachou prioritariamente para Vertex AI (gemini-4-argon) com thinkingLevel HIGH');
+
+// Testa thinking adaptativo para texto rápido (semThinking: true)
+let payloadTextoRapido = null;
+runtime.ctx.UrlFetchApp.fetch = function(url, options) {
+  if (url.includes('aiplatform.googleapis.com')) {
+    try { payloadTextoRapido = JSON.parse(options.payload); } catch (e) {}
+    return {
+      getResponseCode: () => 200,
+      getContentText: () => JSON.stringify({
+        candidates: [{ content: { role: 'model', parts: [{ text: 'Resposta rápida' }] } }]
+      })
+    };
+  }
+  return originalFetch.apply(this, arguments);
+};
+
+const resRapido = runtime.ctx.chamarVertexAIGemini([{ text: 'Teste rápido' }], 'Sistema', { semThinking: true });
+assert.strictEqual(resRapido, 'Resposta rápida');
+assert(payloadTextoRapido && payloadTextoRapido.generationConfig.thinkingConfig.thinkingLevel === 'LOW', 'Texto rápido deve ter thinkingLevel LOW');
+console.log('  ✓ 3b. chamarVertexAIGemini aplicou thinking adaptativo LOW para modo rápido em 0ms');
 
 // Restaura fetch
 runtime.ctx.UrlFetchApp.fetch = originalFetch;

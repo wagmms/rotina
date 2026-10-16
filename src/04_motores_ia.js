@@ -673,6 +673,32 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
     }
   };
 
+  // Suporte a Thinking Level / Thinking Budget no Gemini 4 Argon (Vertex AI)
+  var thinking = opcoes.thinkingLevel || opcoes.thinking;
+  if (!thinking) {
+    if (opcoes.semThinking || opcoes.rapido || opcoes.extrativo) {
+      thinking = "low";
+    } else if (opcoes.clinico || opcoes.multimodal) {
+      thinking = "high";
+    }
+  }
+
+  if (thinking && String(thinking).toLowerCase() !== "off") {
+    var tLow = String(thinking).toLowerCase();
+    var levelMap = {
+      high: "HIGH",
+      medium: "MEDIUM",
+      low: "LOW",
+      minimal: "MINIMAL"
+    };
+    payloadObj.generationConfig.thinkingConfig = {
+      thinkingLevel: levelMap[tLow] || "HIGH"
+    };
+    if (opcoes.thinkingBudget) {
+      payloadObj.generationConfig.thinkingConfig.thinkingBudget = Number(opcoes.thinkingBudget);
+    }
+  }
+
   if (systemPrompt && String(systemPrompt).trim()) {
     payloadObj.systemInstruction = {
       role: "system",

@@ -17,12 +17,14 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Aba Rotina: Sincronização Bidirecional Telegram ↔ Cockpit PWA via SSE + ETag, Sincronização In-Place Anti-Spam e Google Calendar Nativo sem GAS (`server/runtime.js`, `server/index.js`, `src/07i_telegram_rotina_central.js`, `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `tests/test_aba_rotina_sincronizacao_bidirecional.cjs`)**:
-    - **Barramento Reativo Monotônico (`server/runtime.js`)**: Criação do `rotinaBus` (EventEmitter) com persistência imediata atômica de chaves `ROTINA_` e `GCAL_` no `PropertiesService` (eliminando atraso de buffer debounce), rastreamento determinístico de origem (`runWithOrigin` para `'cockpit'`, `'telegram'`, `'gcal'`) e versionamento estritamente monotônico (`bumpRotinaVersion` e `getRotinaVersion`).
-    - **Endpoints Fastify em Tempo Real e In-Place Anti-Spam (`server/index.js`)**: Implementação de Server-Sent Events em `GET /api/rotina/events` com broadcast instantâneo (< 15ms) para todas as abas do PWA; rota ultraleve `GET /api/rotina/version` com headers ETag (`304 Not Modified`) para economia de dados e revalidação de foco; e função `sincronizarMensagemAtivaTelegramInPlace` usando hash SHA-1 do conteúdo para atualizar mensagens ativas do bot via `editMessageText` sem spam ou erros 400.
-    - **Registro de Mensagem Ativa no Bot (`src/07i_telegram_rotina_central.js`)**: Registro automático de `ROTINA_ACTIVE_MSG_<chatId>` ao renderizar ou alterar blocos no Telegram, permitindo que alterações feitas no Cockpit PWA reflitam instantaneamente na mensagem aberta no Telegram.
-    - **Cliente Frontend PWA e Paridade Absoluta (`rotina_timeline.js` e `gh_cockpit_deploy/rotina_timeline.js`)**: Conexão EventSource SSE em `conectarSSE()`, listeners de ciclo de vida (`online`, `visibilitychange`, `focus`) com revalidação condicional ETag e paridade SHA-256 de 100% entre raiz e deploy estático.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 19.48s** (`npm test`). Suíte direcionada `test_aba_rotina_sincronizacao_bidirecional.cjs` com 6/6 testes aprovados.
+- [x] **Consolidação do Gemini 4 Argon como Provedor Primário (Tier-0) e Thinking Adaptativo (`src/00_config.js`, `src/04_motores_ia.js`, `tests/test_vertex_ai_multimodal.cjs`)**:
+    - **Provedor Padrão Absoluto (`src/00_config.js`)**: Correção do fallback de `PROVEDOR_TEXTO_PADRAO` para `"GEMINI"`, garantindo que toda a cadeia de inferência parta imediatamente do ecossistema Google Cloud Vertex AI com o modelo `gemini-4-argon`.
+    - **Thinking Adaptativo no Vertex AI (`src/04_motores_ia.js`)**: Implementação de suporte dinâmico a `thinkingConfig` em `chamarVertexAIGemini`:
+      * *Modo Rápido / Extrativo / Comandos Telegram*: Nível `thinkingLevel: "LOW"` para respostas instantâneas (~0.8s a 1.8s) sem desperdício de tokens de raciocínio.
+      * *Modo Clínico / Emergência / Multimodal*: Nível `thinkingLevel: "HIGH"` para análise profunda de casos, ECG, exames laboratoriais e radiografias, eliminando alucinações e garantindo conformidade com diretrizes clínicas (FMRP-USP, SBC, AHA, AMIB).
+    - **Proteção contra Falhas de Chaves Gratuitas**: Circuit breaker de 1 hora para erros HTTP 402 (*credits depleted*), impedindo atrasos de 8s a 15s em retries infrutíferos nas chaves do AI Studio.
+    - **Suíte de Testes Automatizada (`tests/test_vertex_ai_multimodal.cjs`)**: Validação de token Bearer OAuth2, inferência multimodal, despacho prioritário para `gemini-4-argon` e seleção adaptativa de thinking level (`LOW` para texto rápido e `HIGH` para clínico/multimodal).
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 35.69s** (`npm test`). Zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
