@@ -280,8 +280,43 @@ RotinaTimeline.salvarBlocosOfflineAsync(blocosParaSalvar, '2026-10-12').then(fun
   assert.ok(blocosCarregados.some(b => b.id === 'b-off-roundtrip'), 'Bloco salvo assincronamente deve ser recuperado');
 });
 
-RotinaTimeline.processarFilaOffline();
-console.log('  ✓ Persistência IndexedDB e contratos da fila offline validados.');
+// 4.10 Novos Recursos: Modo Plantão, Visualizações, Metas Diárias, Pomodoro e Bloco Personalizado
+console.log('\n[9] Testando novos recursos: Modo Plantão, Visualizações, Metas Diárias e Pomodoro...');
+assert.strictEqual(typeof RotinaTimeline.alternarModoPlantaoAltoContraste, 'function');
+assert.strictEqual(typeof RotinaTimeline.alternarVisualizacao, 'function');
+assert.strictEqual(typeof RotinaTimeline.incrementarMetaDiaria, 'function');
+assert.strictEqual(typeof RotinaTimeline.iniciarPomodoroBloco, 'function');
+assert.strictEqual(typeof RotinaTimeline.salvarBlocoPersonalizado, 'function');
+assert.strictEqual(typeof RotinaTimeline.selecionarAreaDuvida, 'function');
+
+// Teste de Modo Plantão Alto Contraste
+RotinaTimeline.alternarModoPlantaoAltoContraste(true);
+RotinaTimeline.alternarModoPlantaoAltoContraste(false);
+
+// Teste de Metas Diárias
+RotinaTimeline.incrementarMetaDiaria('questoes', 10);
+const metasLidas = RotinaTimeline.carregarMetasDiarias();
+assert.ok(metasLidas.questoes >= 10, 'Metas de questões devem ser incrementadas');
+
+// Teste de Pomodoro
+RotinaTimeline.iniciarPomodoroBloco('b2', 25);
+RotinaTimeline.resetarPomodoroBloco('b2', 25);
+
+// Teste de Bloco Personalizado
+const novoB = RotinaTimeline.salvarBlocoPersonalizado({
+  titulo: 'Sessão Extra Casos R1',
+  inicio: '21:15',
+  fim: '22:00',
+  categoria: 'estudo',
+  nota: 'Casos difíceis'
+});
+assert.ok(novoB, 'Bloco personalizado deve ser retornado');
+assert.strictEqual(novoB.inicio, '21:15');
+
+// Teste de seleção de grande área
+RotinaTimeline.selecionarAreaDuvida('Cirurgia');
+
+console.log('  ✓ Novos recursos da Aba Rotina v2.0 validados com sucesso.');
 
 console.log('\n=== TODOS OS TESTES DA ABA ROTINA COCKPIT APROVADOS COM SUCESSO! ===');
 

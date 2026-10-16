@@ -17,17 +17,18 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Implementação Integral dos 6 Pontos Cegos Críticos com Gemini 4 Argon: Poka-Yoke Context Bleed (Pediatria ↔ Adulto), Isolador de Leito, Ponte Live ➔ Telegram SBAR, Modo Contingência Offline, Throttling Anti-429 e Suíte CI/CD Golden Dataset Clínico (`src/07a_telegram_router.js`, `server/index.js`, `src/12_experiencia_bot.js`, `tests/test_golden_dataset_clinico.cjs`, `ultra_rotina_master.js`)**:
-    - **Diagnóstico e Causa Raiz**: Auditoria profunda com Gemini 4 Argon das 5 conversas anteriores revelou riscos beira-leito não cobertos: contaminação de contexto entre pacientes pediátricos e adultos no Telegram (*context bleed*); falta de isolamento estrito de leito; conversas no Preceptor Live perdidas sem registro SBAR pós-áudio; ausência de modo de contingência determinístico offline explícito; risco de erro 429 em cliques rápidos em menus; retenção de dados clínicos pós-plantão em memória; e ausência de uma suíte CI/CD de 20 casos extremos para travar regressões clínicas.
-    - **Correções Implementadas**:
-      1. *Poka-Yoke contra Context Bleed*: Detecção em RAM de transições bruscas de perfil clínico com expurgo preventivo de contexto anterior e aviso de segurança.
-      2. *Isolador de Leito e /novo_paciente*: Comandos `/novo_paciente` e `/leito <num>` para segregação atômica de casos.
-      3. *Ponte Live ➔ Telegram SBAR & Cockpit*: Transcrição agregada no encerramento da chamada WebSocket `/live`, emissão automática de card SBAR no Telegram do médico e rota `GET /api/cockpit/live-resumo`.
-      4. *Modo Contingência Determinístico Offline*: Comandos `/offline` e `/contingencia` renderizando condutas de emergência e calculadoras locais em 0ms.
-      5. *Throttling Anti-429*: Coalescência e limite de frequência por timestamp em `enviarTelaBot`.
-      6. *Higienização LGPD Pós-Plantão*: Comandos `/limpar_plantao` e `/autopurge` para expurgo completo de estados clínicos em RAM.
-      7. *Golden Dataset Clínico*: Suíte `tests/test_golden_dataset_clinico.cjs` com 20 casos extremos cobrindo emergências clínicas, farmacologia, toxicologia e obstetrícia.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 17.23s** via `npm test`. Suíte do Golden Dataset Clínico com **20/20 casos aprovados (100%)**.
+- [x] **Recriação Integral da Aba de Rotina (v2.0) com Gemini 4 Argon: Radar "AGORA" em Tempo Real, Modo Plantão de Alto Contraste, Pomodoro Integrado, Gamificação de Metas R1 e Caderno de Dúvidas por Grande Área (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `tests/test_aba_rotina_cockpit.cjs`)**:
+    - **Diagnóstico e Oportunidades**: A aba de rotina atuava de forma passiva, sem orientação em tempo real ("o que fazer agora?"), sem cronometragem de foco nos blocos de estudo e sem modo de emergência para uso em plantão.
+    - **Implementação com Gemini 4 Argon**:
+      1. *Radar "AGORA" & Relógio Vivo*: Indicador live do bloco atual com barra de decaimento percentual intra-bloco, relógio vivo e barra de progresso dos blocos do dia.
+      2. *Modo Plantão Beira-Leito Ativo (Alto Contraste)*: Banner de emergência com 4 atalhos rápidos (`SRI/IOT`, `DVA/Bomba`, `Passar SBAR`, `+ Dúvida`) e layout de alto contraste ativado em 1 toque.
+      3. *Pomodoro & Timer de Foco Integrado*: Cronômetro regressivo de 25m/50m nos cards de estudo MedQuest com alerta sonoro/haptic e botão `+10 Questões` direto no card.
+      4. *Gamificação & Metas Diárias R1*: Contadores de 1 toque para Questões MedQuest, Flashcards Anki e Hidratação (ml).
+      5. *Seletor de Visualização Trimodal*: Modos `Timeline` (padrão), `Modo Foco` (bloco em andamento/próximo) e `7 Dias` (panorama semanal de consistência).
+      6. *Criação e Edição Rápida (+ Bloco)*: Modal autocontido para criar/editar blocos com ordenação horária automática e persistência offline-first.
+      7. *Caderno de Dúvidas por Grande Área R1*: Classificação rápida por chips (Clínica, Cirurgia, Pediatria, GO, Preventiva).
+      8. *Paridade Absoluta SHA-256*: Espelhamento 100% idêntico entre raiz e `gh_cockpit_deploy/`.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 16.59s** via `npm test`.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
@@ -49,10 +50,10 @@
     - **Função/Componente/Seletor**: Callbacks inline `rt_concluir:ID`, `rt_adiar:ID` e rota `/api/rotina/status`
     - **Comportamento Esperado / Critério de Aceite**: Ao interagir com o teclado inline do Telegram (`/rotina`), a alteração de status reflete instantaneamente no Cockpit PWA e vice-versa, sem inconsistências de cache.
 
-2. [ ] **Aba Rotina — Modo Plantão 24h & Alternância de Contraste Beira-Leito (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
-    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`, `rotina_timeline.js` e `src/06_rotina_agenda.js`
-    - **Função/Componente/Seletor**: Botão de alternância `#modo-plantao-toggle` e classe `.tema-plantao-urgente`
-    - **Comportamento Esperado / Critério de Aceite**: Ativação com 1 toque de visual escuro de altíssimo contraste para uso em emergência/sala vermelha, priorizando blocos de DVA, SRI e acesso vascular sem rolagem.
+2. [ ] **Aba Rotina — Notificações Nativas e Sentinela de Bloco no Cockpit (`gh_cockpit_deploy/rotina_timeline.js`, `sw.js`)**:
+    - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/rotina_timeline.js` e `sw.js`
+    - **Função/Componente/Seletor**: Função `notificarTransicaoBlocoPWA` via Notification API / Service Worker
+    - **Comportamento Esperado / Critério de Aceite**: Disparar alerta visual suave no início de cada novo bloco (ex: 5 min antes do plantão ou da sessão MedQuest).
 
 3. [ ] **Aba Rotina — Gamificação & Consistência Visual de Streaks (`gh_cockpit_deploy/index.html`, `rotina_timeline.js`, `src/06_rotina_agenda.js`)**:
     - **Arquivo/Módulo Alvo**: `gh_cockpit_deploy/index.html`, `rotina_timeline.js` e `src/06_rotina_agenda.js`

@@ -233,6 +233,18 @@ async function testAmbulatorioUX() {
   assert(msgEf, 'ux:amb:ef deve entregar modelo de exame físico normal');
   assert(msgEf.texto.includes('ACV') && msgEf.texto.includes('AR') && msgEf.texto.includes('Abdome'), 'Deve conter exame segmentar');
   assert(msgEf.kb.inline_keyboard.flat().some(b => b.callback_data === 'ux:hub:amb'), 'Exame Físico deve ter retorno a Ambulatório');
+  assert(msgEf.kb.inline_keyboard.flat().some(b => b.callback_data === 'ux:amb:ef:pediatrico_completo'), 'Deve conter botão para molde pediátrico');
+  assert(msgEf.kb.inline_keyboard.flat().some(b => b.callback_data === 'ux:amb:ef:geriatrico_aga'), 'Deve conter botão para molde geriátrico');
+
+  let msgsPed = acionarCallback('ux:amb:ef:pediatrico_completo');
+  let msgPed = msgsPed.find(m => m.texto && (m.texto.includes('PEDIÁTRICO') || m.texto.includes('Pediátrico')));
+  assert(msgPed, 'ux:amb:ef:pediatrico_completo deve entregar molde pediátrico');
+  assert(msgPed.kb.inline_keyboard.flat().some(b => b.callback_data && b.callback_data.startsWith('ux:copiar:')), 'Deve conter botão de cópia do molde pediátrico');
+
+  let msgsCardio = acionarCallback('ux:amb:ef:cardio');
+  let msgCardio = msgsCardio.find(m => m.texto && (m.texto.includes('HAS') || m.texto.includes('CARDIO')));
+  assert(msgCardio, 'ux:amb:ef:cardio deve resolver alias e entregar molde cardiovascular');
+  console.log('  ✓ Grade de outros moldes de exame físico copiáveis validada com sucesso.');
 
   msgs = acionarCallback('ux:amb:sisreg');
   let msgSisreg = msgs.find(m => m.texto && m.texto.includes('GUIA DE ENCAMINHAMENTO / REGULAÇÃO AMBULATORIAL'));

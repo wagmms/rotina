@@ -1,5 +1,30 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C72. [x] **Recriação Integral da Aba de Rotina (v2.0) com Gemini 4 Argon: Radar "AGORA" em Tempo Real, Modo Plantão de Alto Contraste, Pomodoro Integrado, Gamificação de Metas R1 e Caderno de Dúvidas por Grande Área (`rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `tests/test_aba_rotina_cockpit.cjs`)**:
+    - **Diagnóstico e Oportunidades (Auditoria com Gemini 4 Argon)**:
+      * *Aba Passiva vs Cockpit Central do Dia*: A aba anterior funcionava como uma listagem linear estática, sem fornecer orientação imediata sobre o bloco em andamento ("o que fazer agora?"), sem ferramentas de foco ativo no estudo e sem atalhos de emergência quando o médico está em plantão beira-leito.
+      * *Falta de Controle Tátil de Estudos*: O bloco MedQuest/Anki não oferecia cronometragem de foco (Pomodoro 25m/50m) nem atalho para contabilizar questões resolvidas.
+      * *Ausência de Modo Plantão Rápido*: Durante o plantão noturno ou de enfermaria, faltava um modo de alto contraste com acesso prioritário sem rolagem a protocolos críticos (SRI/IOT, DVA em bomba, passagem SBAR).
+      * *Caderno de Dúvidas Indiferenciado*: Dúvidas eram salvas sem categorização pelas 5 Grandes Áreas da Residência Médica (Clínica, Cirurgia, Pediatria, Ginecologia/Obstetrícia, Preventiva).
+    - **Implementação com Gemini 4 Argon**:
+      1. *Radar "AGORA" & Relógio Vivo*: HUD executivo no topo com indicador de status live do bloco em tempo real, régua de decaimento percentual intra-bloco, relógio vivo e barra de progresso diária.
+      2. *Modo Plantão Beira-Leito Ativo (Alto Contraste)*: Banner de emergência com 4 botões de 1 toque (`SRI/IOT`, `DVA/Bomba`, `Passar SBAR`, `+ Dúvida`) e layout escuro de alto contraste ativado instantaneamente.
+      3. *Timer Pomodoro / Focus Integrado*: Embutido nos cards de estudo MedQuest com contagem regressiva ao vivo de 25m ou 50m, alerta vibratório/sonoro e botão tátil `+10 Questões` direto no card.
+      4. *Gamificação & Metas Diárias R1*: Painel de metas com contadores rápidos em 1 toque para Questões MedQuest resolvidas, Flashcards Anki revisados e Hidratação bio-metabólica (ml).
+      5. *Seletor de Visualização Trimodal*: Alternância rápida entre visualização em `Timeline` (padrão), `Modo Foco` (foco exclusivo no bloco atual/próximo) e `7 Dias` (panorama semanal com mapa de consistência).
+      6. *Criação e Edição Rápida de Blocos (+ Bloco)*: Modal ergonômico para criar ou editar blocos personalizados com horários, categorias e metas, mantendo ordenação cronológica e persistência offline-first (IndexedDB + LocalStorage).
+      7. *Caderno de Erros & Dúvidas por Grande Área*: Categorização ágil por chips das 5 Grandes Áreas da Residência (Clínica, Cirurgia, Pediatria, GO e Preventiva) com sincronização em nuvem e suporte offline.
+      8. *Paridade Absoluta SHA-256 & Bateria de Testes*: Sincronização rigorosa entre `cockpit_movel.html` e `gh_cockpit_deploy/index.html`, bem como entre `rotina_timeline.js` e `gh_cockpit_deploy/rotina_timeline.js`.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 16.59s** via `npm test`. Suíte `tests/test_aba_rotina_cockpit.cjs` aprovada em 0.31s com 100% de cobertura dos novos métodos.
+
+0C71. [x] **Seleção e Cópia Multimodal de Moldes de Exame Físico com Gemini 4 Argon: Alternância Rápida de 12 Especialidades no Telegram e Cockpit PWA (`src/12_experiencia_bot.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`, `ultra_rotina_master.js`, `tests/test_cockpit_ef_moldes_copia.cjs`)**:
+    - **Diagnóstico e Demanda**: Ao tocar em "Exame Físico Padrão" no Telegram (`ux:amb:ef`) ou no Cockpit PWA, o sistema exibia apenas o exame físico segmentar adulto canônico com um único botão de cópia, sem fornecer opções para consultar ou copiar diretamente outros moldes semiológicos direcionados (ex: Pediátrico, Geriátrico, Obstétrico, Cardiovascular, Respiratório, Abdominal, Neurológico, Vascular, Coluna e Saúde Mental).
+    - **Implementação com Gemini 4 Argon**:
+      1. *Bot Telegram (`src/12_experiencia_bot.js`)*: A função `enviarTelaAmbExameFisico` agora suporta parâmetro de chave de modelo com resolução de aliases, mantendo o cabeçalho canônico para o modelo padrão e renderizando grade dinâmica de 12 moldes (`ux:amb:ef:<chave>`) com indicador visual `✅` no modelo ativo, botão de cópia rápida dedicado para o molde em exibição e opção de incorporação ao SOAP ativo. O roteador `op === 'amb'` agora despacha tanto `ux:amb:ef` quanto `ux:amb:ef:<chave>`.
+      2. *Cockpit PWA (`cockpit_movel.html` e `gh_cockpit_deploy/index.html`)*: Implementada barra horizontal com chips rápidos de alternância (`#ef-chips-moldes`) e grade de botões para cópia direta em 1 toque (`copiarOutroModeloEfDireto`) de qualquer um dos 11 moldes para o clipboard/PEP, sem sobrescrever o conteúdo em edição no editor principal.
+      3. *Cobertura de Testes e Paridade SHA-256*: Criada suíte `tests/test_cockpit_ef_moldes_copia.cjs`, expandida suíte `tests/test_ambulatorio_ux.cjs` e sincronizados os espelhos com paridade absoluta SHA-256 via `build_master.py`.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 23.39s** via `npm test`.
+
 0C70. [x] **Implementação Integral dos 6 Pontos Cegos Críticos com Gemini 4 Argon: Poka-Yoke de Context Bleed (Pediatria ↔ Adulto), Isolador de Leito, Ponte Live ➔ Telegram SBAR, Modo Contingência Offline, Throttling Anti-429 e Suíte CI/CD Golden Dataset Clínico (`src/07a_telegram_router.js`, `server/index.js`, `src/12_experiencia_bot.js`, `tests/test_golden_dataset_clinico.cjs`, `ultra_rotina_master.js`)**:
     - **Diagnóstico e Causa Raiz (Auditoria Sistêmica com Gemini 4 Argon)**:
       * *Context Bleed Perigoso (Pediatria ↔ Adulto)*: No Telegram, se o médico alternava rapidamente de um paciente pediátrico (ex: 8 kg) para um adulto/idoso, o contexto salvo em cache mantinha parâmetros do paciente anterior, gerando risco crítico de erro posológico ou sobredose.

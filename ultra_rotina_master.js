@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 01:24:52
- * Checksum SHA256: ac43d0f449447cda
+ * Gerado automaticamente via build_master.py em: 2026-10-16 02:12:34
+ * Checksum SHA256: cd524f0ec158c6c7
  * ==============================================================================
  */
 
@@ -62567,25 +62567,117 @@ function tratarCallbackAmbAtestado(chat, valor, messageId) {
   return enviarTelaBot(chat, msgRetorno, botoes, messageId);
 }
 
-function enviarTelaAmbExameFisico(chat, messageId) {
-  var textoEf = (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
-    ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
-    : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
-      "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
-      "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
-      "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
-      "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
-      " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos.";
+var ALIASES_MOLDES_EF_AMB_ = {
+  'padrao': 'padrao_completo',
+  'adulto': 'padrao_completo',
+  'pediatrico': 'pediatrico_completo',
+  'ped': 'pediatrico_completo',
+  'geriatrico': 'geriatrico_aga',
+  'aga': 'geriatrico_aga',
+  'obstetrico': 'obstetrico_prenatal',
+  'prenatal': 'obstetrico_prenatal',
+  'has': 'has_rotina',
+  'cardio': 'has_rotina',
+  'cardiovascular': 'has_rotina',
+  'dm': 'dm_rotina',
+  'respiratorio': 'respiratorio_ivas',
+  'ivas': 'respiratorio_ivas',
+  'pneumo': 'respiratorio_ivas',
+  'gastro': 'dispepsia_gastro',
+  'abdome': 'dispepsia_gastro',
+  'neuro': 'cefaleia_neuro',
+  'neurologico': 'cefaleia_neuro',
+  'coluna': 'lombalgia_postural',
+  'lombalgia': 'lombalgia_postural',
+  'ortopedico': 'lombalgia_postural',
+  'vascular': 'vascular_periferico',
+  'mental': 'saude_mental',
+  'psiquico': 'saude_mental',
+  'pqu': 'saude_mental'
+};
 
-  var texto = "📋 *MODELO CANÔNICO DE EXAME FÍSICO NORMAL (SEGMENTAR PADRÃO-OURO)*\n\n" +
-    "Exame físico descritivo completo e objetivo para o Prontuário Eletrônico (sem termos vagos):\n\n```\n" +
+function enviarTelaAmbExameFisico(chat, messageId, tipoModelo) {
+  var chave = String(tipoModelo || 'padrao_completo').trim();
+  if (ALIASES_MOLDES_EF_AMB_[chave]) {
+    chave = ALIASES_MOLDES_EF_AMB_[chave];
+  }
+
+  var modelos = (typeof SoapAmbulatorialService !== "undefined" && SoapAmbulatorialService.MODELOS_EXAME_FISICO)
+    ? SoapAmbulatorialService.MODELOS_EXAME_FISICO
+    : null;
+
+  if (!modelos || !modelos[chave]) {
+    chave = 'padrao_completo';
+  }
+
+  var item = modelos ? modelos[chave] : null;
+  var textoEf = item ? item.texto : (
+    (typeof SoapAmbulatorialService !== "undefined" && typeof SoapAmbulatorialService.obterModeloExameFisicoCompleto === "function")
+      ? SoapAmbulatorialService.obterModeloExameFisicoCompleto()
+      : "Sinais Vitais: PA: 120/80 mmHg | FC: 72 bpm | FR: 16 irpm | SpO2: 98% em ar ambiente | T: 36.5°C.\n" +
+        "Bom estado geral, lúcido e orientado no tempo e espaço, corado, hidratado, anictérico, acianótico, afebril ao toque, eupneico em ar ambiente.\n" +
+        "  ACV: Ritmo cardíaco regular em 2 tempos, bulhas normofonéticas, sem sopros. Pulsos radiais amplos, cheios e simétricos bilateralmente.\n" +
+        "  AR: Murmúrio vesicular globalmente presente, sem ruídos adventícios. Expansibilidade torácica preservada bilateralmente. Eupneico em ar ambiente.\n" +
+        "  Abdome: Plano, flácido, indolor à palpação superficial e profunda. RHA normoativos. Sem massas ou visceromegalias.\n" +
+        " Extremidades: Sem edema de membros inferiores. Panturrilhas livres sem empastamento. TEC < 3 segundos."
+  );
+
+  var titulo = item ? item.titulo : "Adulto Geral Completo (Segmentar Padrão Ouro)";
+  var tituloCabecalho = (chave === 'padrao_completo')
+    ? "📋 *MODELO CANÔNICO DE EXAME FÍSICO NORMAL (SEGMENTAR PADRÃO-OURO)*"
+    : "📋 *MOLDE DE EXAME FÍSICO: " + titulo.toUpperCase() + "*";
+
+  var texto = tituloCabecalho + "\n\n" +
+    "Exame físico descritivo pronto para o Prontuário Eletrônico (toque em copiar ou selecione outro molde abaixo):\n\n```\n" +
     textoEf + "\n```";
 
   var cache = uxCache();
   var ckEf = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ckEf, textoEf, 21600);
 
-  var linhas = [[['📋 Copiar Exame Físico', 'ux:copiar:' + ckEf]]];
+  var rotuloCopiar = (chave === 'padrao_completo')
+    ? '📋 Copiar Exame Físico'
+    : ('📋 Copiar ' + (titulo.split('(')[0].trim()));
+  if (rotuloCopiar.length > 34) rotuloCopiar = '📋 Copiar Exame Físico';
+
+  var linhas = [
+    [[rotuloCopiar, 'ux:copiar:' + ckEf]]
+  ];
+
+  var estSoap = (typeof modoBot === "function") ? modoBot(chat) : null;
+  if (estSoap && estSoap.mode === 'soap' && estSoap.data && estSoap.data.trim().length > 5) {
+    linhas.push([['➕ Incorporar ao SOAP', 'ux:ef_inc:' + chave]]);
+  }
+
+  var listaMoldes = [
+    { k: 'padrao_completo', nome: '🧍 Padrão Ouro' },
+    { k: 'pediatrico_completo', nome: '👶 Pediátrico' },
+    { k: 'geriatrico_aga', nome: '🧓 Geriátrico (AGA)' },
+    { k: 'obstetrico_prenatal', nome: '🤰 Pré-Natal' },
+    { k: 'has_rotina', nome: '🫀 Cardio & HAS' },
+    { k: 'dm_rotina', nome: '🩸 DM & Pés' },
+    { k: 'respiratorio_ivas', nome: '🫁 Respiratório' },
+    { k: 'dispepsia_gastro', nome: '🍽️ Gastro/Abdome' },
+    { k: 'cefaleia_neuro', nome: '🧠 Neurológico' },
+    { k: 'lombalgia_postural', nome: '🦴 Coluna/Lombar' },
+    { k: 'vascular_periferico', nome: '🦵 Vascular' },
+    { k: 'saude_mental', nome: '🗣️ Saúde Mental' }
+  ];
+
+  var linhasMoldes = [];
+  var par = [];
+  for (var i = 0; i < listaMoldes.length; i++) {
+    var m = listaMoldes[i];
+    var rotulo = (m.k === chave) ? ('✅ ' + m.nome) : m.nome;
+    par.push([rotulo, 'ux:amb:ef:' + m.k]);
+    if (par.length === 2) {
+      linhasMoldes.push(par);
+      par = [];
+    }
+  }
+  if (par.length > 0) linhasMoldes.push(par);
+
+  linhas = linhas.concat(linhasMoldes);
   return enviarTelaBotComNavegacao(chat, texto, linhas, 'amb', messageId);
 }
 
@@ -65471,7 +65563,8 @@ function tratarCallbackUX(cb) {
       else if (v === 'remume') return enviarTelaAmbRemume(chat, msgId);
       else if (v === 'cid') return enviarTelaAmbCid(chat, msgId);
       else if (v === 'atestado') return enviarTelaAmbAtestado(chat, msgId);
-      else if (v === 'ef') return enviarTelaAmbExameFisico(chat, msgId);
+      else if (v === 'ef') return enviarTelaAmbExameFisico(chat, msgId, 'padrao_completo');
+      else if (v.indexOf('ef:') === 0) return enviarTelaAmbExameFisico(chat, msgId, v.substring(3));
       else if (v === 'sisreg') return enviarTelaAmbSisreg(chat, msgId);
       else if (v.indexOf('cid:') === 0) return tratarCallbackAmbCid(chat, v.replace('cid:', ''), msgId);
       else if (v.indexOf('atest:') === 0) return tratarCallbackAmbAtestado(chat, v.replace('atest:', ''), msgId);
