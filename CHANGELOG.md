@@ -1,5 +1,23 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C70. [x] **Implementação Integral dos 6 Pontos Cegos Críticos com Gemini 4 Argon: Poka-Yoke de Context Bleed (Pediatria ↔ Adulto), Isolador de Leito, Ponte Live ➔ Telegram SBAR, Modo Contingência Offline, Throttling Anti-429 e Suíte CI/CD Golden Dataset Clínico (`src/07a_telegram_router.js`, `server/index.js`, `src/12_experiencia_bot.js`, `tests/test_golden_dataset_clinico.cjs`, `ultra_rotina_master.js`)**:
+    - **Diagnóstico e Causa Raiz (Auditoria Sistêmica com Gemini 4 Argon)**:
+      * *Context Bleed Perigoso (Pediatria ↔ Adulto)*: No Telegram, se o médico alternava rapidamente de um paciente pediátrico (ex: 8 kg) para um adulto/idoso, o contexto salvo em cache mantinha parâmetros do paciente anterior, gerando risco crítico de erro posológico ou sobredose.
+      * *Ausência de Ponte de Memória Live ➔ Texto*: O diálogo de voz no Preceptor Live (Gemini Live API) era efêmero; ao encerrar a chamada de áudio, nenhum registro estruturado (SBAR) era enviado ao médico nem ficava disponível para o prontuário.
+      * *Dependência Frágil de IA Online*: Em caso de blackout de API ou conectividade oscilante no pronto-socorro, faltava um comando determinístico explícito (`/offline`, `/contingencia`) para renderizar de imediato as condutas e calculadoras em RAM sem depender de LLMs.
+      * *Risco de Rate Limit do Telegram (HTTP 429)*: Cliques repetidos em teclados inline ágeis em sucessão rápida geravam rajadas de requisições de edição de mensagem (`editMessageText`), arriscando punições temporárias pelo Telegram.
+      * *Retenção de PII/Dados Clínicos Pós-Plantão (LGPD/CFM)*: Faltava um comando universal de higienização de plantão (`/limpar_plantao`, `/autopurge`) para zerar leitos e identificadores de memória de trabalho.
+      * *Ausência de Suíte CI/CD com Golden Dataset Clínico*: Não existia uma suíte com 20 casos extremos de emergência beira-leito rodando continuamente para auditar desvios posológicos ou de conduta.
+    - **Correções Implementadas**:
+      1. *Poka-Yoke contra Context Bleed (`src/07a_telegram_router.js`)*: Detecção instantânea em RAM de discrepâncias extremas de perfil clínico (Lactente/Criança vs Adulto/Idoso), descartando automaticamente dados incompatíveis com aviso de segurança.
+      2. *Isolador de Leito & Novo Paciente (`src/07a_telegram_router.js`)*: Comandos `/novo_paciente` e `/leito <num>` integrados para expurgar dados clínicos do paciente anterior, atrelando nova sessão atômica.
+      3. *Ponte de Memória Live ➔ Telegram & Cockpit (`server/index.js`)*: Captura contínua de turnos no WebSocket `/live` e persistência automática de resumo SBAR estruturado ao desconectar, disparado via Telegram e exposto em `GET /api/cockpit/live-resumo`.
+      4. *Modo Contingência Determinístico Offline (`src/07a_telegram_router.js`)*: Comandos `/offline` e `/contingencia` renderizando hub de condutas de emergência e calculadoras puras com resposta em 0ms.
+      5. *Throttling Anti-429 em Menus Rápidos (`src/12_experiencia_bot.js`)*: Mecanismo de debounce e proteção de frequência por timestamp em `enviarTelaBot` prevenindo erros de flood.
+      6. *Higienização LGPD Pós-Plantão (`src/07a_telegram_router.js`)*: Comandos `/limpar_plantao` e `/autopurge` que resetam com 1 toque todos os estados clínicos em cache.
+      7. *Suíte CI/CD Golden Dataset Clínico (`tests/test_golden_dataset_clinico.cjs`)*: Criada bateria de 20 casos extremos (PCR adulto e gestante, choque séptico, PBW/ARDSNet, anafilaxia, sulfato de magnésio, QTc, Triple Whammy, ampolas ISMP, salina 3%, posologias pediátricas com travas de teto, amamentação Hale L1-L5, ClCr Cockcroft vs CKD-EPI 2021 e SRI com 7Ps).
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 17.23s** via `npm test`. Suíte do Golden Dataset Clínico com **20/20 casos aprovados (100%)**.
+
 0C69. [x] **Elevação Padrão-Ouro de Conteúdo Clínico com Gemini 4 Argon: PBW/ARDSNet na Ventilação/SRI, Síndromes Farmacológicas em RAM (QTc, Triple Whammy, Sais de Cálcio ISMP) e Sinais de Alarme Leigos na Alta (`src/03_bases_locais.js`, `src/02_calculadoras_puras.js`, `src/04_motores_ia.js`, `tests/test_auditoria_qualidade_clinica.cjs`, `ultra_rotina_master.js`)**:
     - **Diagnóstico e Causa Raiz (Auditoria com Gemini 4 Argon)**:
       * *Ventilação Mecânica e SRI por Peso Real*: Risco severo de barotrauma/volutrauma em obesos pela ausência de cálculo automático de Peso Predito pela Altura (PBW - Devine) para guiar o volume corrente protetor (6 mL/kg) e drogas hidrofílicas.

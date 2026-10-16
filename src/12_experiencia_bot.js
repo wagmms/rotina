@@ -163,9 +163,21 @@ function botoesBot(rows) {
   };
 }
 
-/** Edita a tela in-place; trata "message is not modified" e mensagens não editáveis com fallback. */
+/** Edita a tela in-place; trata "message is not modified" e mensagens não editáveis com fallback seguro anti-flood. */
+var _ultimoEnvioTelaTimestamp = {};
+
 function enviarTelaBot(chat, texto, kb, messageId) {
   if (messageId && String(texto).length < UX_MAX_EDIT_CHARS) {
+    var agora = Date.now();
+    var chaveThrottle = String(chat) + '_' + String(messageId);
+    var deltaEnvio = agora - (_ultimoEnvioTelaTimestamp[chaveThrottle] || 0);
+
+    // Cooldown defensivo anti-429: se duas edições quase simultâneas (< 40ms) ocorrerem, protege o limite da API
+    if (deltaEnvio < 40 && typeof Utilities !== 'undefined' && typeof Utilities.sleep === 'function') {
+      try { Utilities.sleep(40); } catch (_) {}
+    }
+    _ultimoEnvioTelaTimestamp[chaveThrottle] = Date.now();
+
     var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(texto);
     var parseMode = contemHtml ? 'HTML' : 'Markdown';
     var textoEnvio = contemHtml

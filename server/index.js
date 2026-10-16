@@ -479,6 +479,11 @@ async function buildServer() {
     }
   });
 
+  // 4.0 Resumo SBAR da última sessão de voz do Preceptor Live (Ponte de Memória Intermodal)
+  fastify.get('/api/cockpit/live-resumo', async (request, reply) => {
+    return { ok: true, resumo: global.ultimoResumoLive || null };
+  });
+
   // 4.1 Catálogo de Aulas Flash R1 (cacheado em memória com ETag e Stale-While-Revalidate)
   const pathAulas = require('path').join(__dirname, '..', 'src', 'data', 'aulas_compactas.json');
   let cacheAulasJson = null;
@@ -1325,7 +1330,46 @@ async function buildServer() {
     }
   });
 
-  liveWss.on('connection', async (clientWs) => {
+  liveWss.on('connection', async (clientWs, request) => {
+    const reqUrl = request ? new URL(request.url, `http://${request.headers?.host || 'localhost'}`) : null;
+    const chatIdParam = reqUrl ? reqUrl.searchParams.get('chatId') : null;
+    const turnosSessao = [];
+
+    function finalizarEPersistirSbarLive() {
+      if (turnosSessao.length < 2) return;
+      try {
+        const falasMedico = turnosSessao.filter(t => t.role === 'user').map(t => t.text).join('; ');
+        const falasPreceptor = turnosSessao.filter(t => t.role === 'model').map(t => t.text).join('; ');
+        const resumoSbar = {
+          id: 'live_' + Date.now(),
+          timestamp: new Date().toISOString(),
+          totalTurnos: turnosSessao.length,
+          situacao: falasMedico.slice(0, 300) || 'Discussão socrática beira-leito com o Preceptor',
+          avaliacaoEConduta: falasPreceptor.slice(0, 500) || 'Condutas clínicas orientadas em áudio',
+          turnos: turnosSessao.slice(-8)
+        };
+        global.ultimoResumoLive = resumoSbar;
+
+        const chatIdEnvio = chatIdParam || process.env.TELEGRAM_CHAT_ID || (cfg && cfg.get && cfg.get('TELEGRAM_CHAT_ID'));
+        if (chatIdEnvio && runtime && runtime.ctx && typeof runtime.ctx.enviarMensagemParaChat === 'function') {
+          const cardTelegram = [
+            '🎙️ *RESUMO SBAR DA DISCUSSÃO AO VIVO (PRECEPTOR LIVE)*',
+            '• *Situação & Discussão:* ' + resumoSbar.situacao,
+            '• *Conduta & Decisões Clínicas:* ' + resumoSbar.avaliacaoEConduta,
+            '',
+            '💡 *Memória Integrada:* O caso discutido foi registrado no sistema e está disponível no Cockpit PWA.'
+          ].join('\n');
+          try {
+            runtime.ctx.enviarMensagemParaChat(chatIdEnvio, cardTelegram);
+          } catch (eEnv) {
+            console.warn('[Live Preceptor SBAR Send]:', eEnv.message);
+          }
+        }
+      } catch (eSbar) {
+        console.warn('[Live Preceptor SBAR]:', eSbar.message);
+      }
+    }
+
     // 1. Extração robusta de todas as chaves Gemini configuradas
     const cfg = runtime.ctx?.ConfigService;
     let chaves = [];
@@ -1447,6 +1491,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
                 // 1. Transcrição em tempo real da fala do médico
                 if (sc.inputTranscription?.text) {
+                  turnosSessao.push({ role: 'user', text: sc.inputTranscription.text });
                   clientWs.send(JSON.stringify({
                     type: 'transcript',
                     role: 'user',
@@ -1457,6 +1502,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
                 // 2. Transcrição em tempo real da fala do Preceptor
                 if (sc.outputTranscription?.text) {
+                  turnosSessao.push({ role: 'model', text: sc.outputTranscription.text });
                   clientWs.send(JSON.stringify({
                     type: 'transcript',
                     role: 'model',
@@ -1604,6 +1650,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
 
       clientWs.on('close', () => {
         try { liveSession.close(); } catch (_) {}
+        finalizarEPersistirSbarLive();
       });
 
       // Esvazia mensagens em buffer
@@ -1693,6 +1740,8 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         }
 
         respostaTexto = respostaTexto.replace(/[*_#`\[\]\(\)]/g, '').replace(/\s+/g, ' ').trim();
+        turnosSessao.push({ role: 'user', text: textoUsuario.trim() });
+        turnosSessao.push({ role: 'model', text: respostaTexto });
         clientWs.send(JSON.stringify({ type: 'transcript', role: 'model', text: respostaTexto, streaming: false }));
 
         // Síntese de áudio neural Fenrir
@@ -1784,6 +1833,10 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         console.warn('[Contingency Ws Parse]:', eParse.message);
       }
     }
+
+    clientWs.on('close', () => {
+      finalizarEPersistirSbarLive();
+    });
 
     // Esvazia mensagens em buffer
     while (pendingRawMessages.length > 0) {

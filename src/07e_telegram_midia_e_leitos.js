@@ -352,8 +352,15 @@ function processarMensagemFoto(message) {
     var photos = message.photo;
     var fotoAlvo = null;
     if (photos && photos.length > 0) {
-      // Download inteligente: seleciona resolução ideal (~1000-1280px) economizando ~60% de I/O
-      fotoAlvo = (photos.length >= 2) ? photos[photos.length - 2] : photos[photos.length - 1];
+      // Alta resolução diagnóstica: seleciona a máxima fidelidade clínica útil.
+      // Se a última foto for excessivamente gigantesca (>2560px) e houver alternativa >= 1000px, usa a ideal (~1280px).
+      // Se photos tiver dimensões padrão do Telegram (onde a última é ~1280px ou 800px), seleciona sempre a maior disponível.
+      var ult = photos[photos.length - 1];
+      if (photos.length >= 2 && ult && ult.width && ult.width > 2560) {
+        fotoAlvo = photos[photos.length - 2];
+      } else {
+        fotoAlvo = ult;
+      }
     } else if (message.document) {
       fotoAlvo = message.document;
     }

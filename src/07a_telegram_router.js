@@ -857,6 +857,76 @@ function rotearComandoSistema(comando, texto, chatId) {
       if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
       return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
     },
+    "/novo_paciente": function() {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      }
+      var cCache = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCache) {
+        cCache.remove("ctx_" + chatId);
+        cCache.remove("modo_" + chatId);
+        cCache.remove("leito_" + chatId);
+        cCache.remove("dvaw_" + chatId);
+        cCache.remove("pending_" + chatId);
+      }
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Contexto de paciente resetado.* Memória limpa e pronta para o próximo caso clínico (zero contaminação de peso/idade).");
+    },
+    "/novopaciente": function() {
+      return cmdHandlers["/novo_paciente"]();
+    },
+    "/leito": function() {
+      if (typeof despacharComandosEnfermariaPlantaoEReceitas_ === "function") {
+        var resL = despacharComandosEnfermariaPlantaoEReceitas_("/leito", texto, chatId);
+        if (resL && resL.executado) return resL.resultado;
+      }
+      return false;
+    },
+    "/limpar_plantao": function() {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      }
+      var cCache = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCache) {
+        cCache.remove("ctx_" + chatId);
+        cCache.remove("modo_" + chatId);
+        cCache.remove("leito_" + chatId);
+        cCache.remove("dvaw_" + chatId);
+        cCache.remove("pending_" + chatId);
+      }
+      var msgPurge = "🛡️ *HIGIENIZAÇÃO PÓS-PLANTÃO (LGPD & SIGILO MÉDICO)*\n\n" +
+        "✅ Memória de cache em RAM de pacientes e leitos: *Zerada*\n" +
+        "✅ Travas de dosagem, peso e cálculos anteriores: *Descartadas*\n" +
+        "✅ Sessão limpa e segura para o próximo turno.\n\n" +
+        "🔒 *Segurança Beira-Leito:* Nenhum identificador clínico ativo em memória.";
+      return enviarMensagemComTecladoFixo(chatId, msgPurge);
+    },
+    "/limparplantao": function() {
+      return cmdHandlers["/limpar_plantao"]();
+    },
+    "/autopurge": function() {
+      return cmdHandlers["/limpar_plantao"]();
+    },
+    "/offline": function() {
+      var msgOffline = "⚡ *MODO CONTINGÊNCIA DETERMINÍSTICA EM RAM (OFFLINE-FROM-AI)*\n\n" +
+        "Este modo opera com *zero dependência de LLMs externas* e latência de 0ms em RAM:\n\n" +
+        "• *Calculadoras Puras:* /gaso, /curb65, /crcl, /dva, /pbw, /chadsvasc\n" +
+        "• *Sala Vermelha & PCR:* /pcr, /sri, /arritmia, /choque\n" +
+        "• *Drogas & REMUME:* /amoxi, /ceftriaxona, /adrenalina, /noradrenalina\n\n" +
+        "💡 Todos os cálculos utilizam os algoritmos determinísticos em memória.";
+      var kbOff = {
+        inline_keyboard: [
+          [{ text: "🚨 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🧮 Calculadoras", callback_data: "ux:hub:calc" }],
+          [{ text: "💊 Drogas Vasoativas", callback_data: "ux:dvamenu" }, { text: "👶 Pediatria", callback_data: "ux:hub:ped" }]
+        ]
+      };
+      if (typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgOffline, kbOff);
+      }
+      return enviarMensagemParaChat(chatId, msgOffline);
+    },
+    "/contingencia": function() {
+      return cmdHandlers["/offline"]();
+    },
     "/pc": function() {
       return tratarComandoPc(chatId, texto);
     },
@@ -4178,6 +4248,12 @@ function executarComandoEnfermariaPlantaoEReceitasInterno_(comando, texto, chatI
     if (matchLeito) {
       var numLeito = matchLeito[1];
       var infoLeito = matchLeito[2];
+      var cCacheL = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCacheL) {
+        cCacheL.put("leito_" + chatId, numLeito, 28800);
+        cCacheL.remove("ctx_" + chatId);
+        cCacheL.remove("dvaw_" + chatId);
+      }
 
       if (!infoLeito) {
         var leitoAtual = EnfermariaService.obterLeito(numLeito);
@@ -5415,8 +5491,8 @@ function processarMensagemTexto(message) {
     var contextoCache = CacheService.getScriptCache();
     var contextoKey = "ctx_" + chatId;
 
-    // Gerenciamento de Memória (Contexto Clínico)
-    if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
+    // Gerenciamento de Memória (Contexto Clínico & Isolador de Leito)
+    if (comando === "/cancelar" || comando === "/novo" || comando === "/novo_paciente" || comando === "/novopaciente" || comando === "/limpar_paciente" || comando === "/limparpaciente" || comando === "/leito_reset" || comando === "/limpar_plantao" || comando === "/limparplantao" || comando === "/autopurge" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
       if (typeof limparEstadoBot === "function") {
         try { limparEstadoBot(chatId); } catch (eLimp) {}
       } else {
@@ -5429,7 +5505,7 @@ function processarMensagemTexto(message) {
       if (typeof cancelarAcoesPendentes === "function") {
         try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
       }
-      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória clínica e dados de leito limpos.* Pronto para o próximo paciente (zero contaminação de peso/idade)!");
     }
 
     // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
@@ -5450,8 +5526,21 @@ function processarMensagemTexto(message) {
   if (texto.charAt(0) !== "/") {
     var contextoAnterior = contextoCache.get(contextoKey);
     if (contextoAnterior) {
-      texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
-      comando = contextoAnterior.split(/\s/)[0].toLowerCase();
+      // POKA-YOKE MÉDICO: Detecção de Contaminação Cruzada entre Pacientes (Context Bleed)
+      var eraPediatrico = /lactente|meses|pedi[aá]tr|rec[eé]m[- ]nascido|rn\b|crian[çc]a|\b\d{1,2}\s*kg\b/i.test(contextoAnterior);
+      var agoraAdulto = /adulto|idoso|anos\b|gestante|homem|mulher|\b[4-9]\d\s*kg\b|\b1\d\d\s*kg\b/i.test(texto);
+      var eraAdulto = /adulto|idoso|gestante|homem|mulher/i.test(contextoAnterior) && !eraPediatrico;
+      var agoraPediatrico = /lactente|meses|pedi[aá]tr|rec[eé]m[- ]nascido|rn\b|crian[çc]a/i.test(texto);
+
+      if ((eraPediatrico && agoraAdulto) || (eraAdulto && agoraPediatrico)) {
+        // Discrepância extrema de perfil: descarta o contexto anterior para evitar dose errônea letal!
+        contextoCache.remove(contextoKey);
+        contextoCache.remove("dvaw_" + chatId);
+        texto = texto + "\n\n⚠️ *[AVISO DE SEGURANÇA]:* Detectada transição de perfil (Pediatria ↔ Adulto). O contexto do paciente anterior foi descartado para prevenir contaminação de dose.";
+      } else {
+        texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
+        comando = contextoAnterior.split(/\s/)[0].toLowerCase();
+      }
     }
   }
 

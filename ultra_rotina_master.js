@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-16 01:03:40
- * Checksum SHA256: 0c67a2a21c6aa537
+ * Gerado automaticamente via build_master.py em: 2026-10-16 01:24:52
+ * Checksum SHA256: ac43d0f449447cda
  * ==============================================================================
  */
 
@@ -40722,9 +40722,39 @@ var IaLocalFallbackService = (function () {
                 ctxLow.indexOf('troponina') !== -1 || ctxLow.indexOf('creatinina') !== -1 ||
                 ctxLow.indexOf('laudo') !== -1 || ctxLow.indexOf('resultado') !== -1;
 
+    var ehTc = ctxLow.indexOf('tc') !== -1 || ctxLow.indexOf('tomografia') !== -1 ||
+               ctxLow.indexOf('angiotc') !== -1 || ctxLow.indexOf('aspects') !== -1 ||
+               ctxLow.indexOf('fisher') !== -1 || ctxLow.indexOf('apendicite') !== -1;
+
+    var ehPocus = ctxLow.indexOf('pocus') !== -1 || ctxLow.indexOf('usg') !== -1 ||
+                  ctxLow.indexOf('ultrassom') !== -1 || ctxLow.indexOf('efast') !== -1 ||
+                  ctxLow.indexOf('fast') !== -1 || ctxLow.indexOf('blue') !== -1 ||
+                  ctxLow.indexOf('vci') !== -1;
+
+    var ehRm = ctxLow.indexOf('ressonancia') !== -1 || ctxLow.indexOf('ressonância') !== -1 ||
+               ctxLow.indexOf('rm') !== -1 || ctxLow.indexOf('flair') !== -1 ||
+               ctxLow.indexOf('dwi') !== -1 || ctxLow.indexOf('adc') !== -1;
+
+    var ehOftalmo = ctxLow.indexOf('fundoscopia') !== -1 || ctxLow.indexOf('fundo de olho') !== -1 ||
+                    ctxLow.indexOf('retina') !== -1 || ctxLow.indexOf('papiledema') !== -1 ||
+                    ctxLow.indexOf('oftalmo') !== -1;
+
+    var ehCtg = ctxLow.indexOf('cardiotocografia') !== -1 || ctxLow.indexOf('ctg') !== -1 ||
+                ctxLow.indexOf('fcf') !== -1 || ctxLow.indexOf('dip') !== -1;
+
+    var ehEda = ctxLow.indexOf('endoscopia') !== -1 || ctxLow.indexOf('eda') !== -1 ||
+                ctxLow.indexOf('forrest') !== -1 || ctxLow.indexOf('varizes') !== -1;
+
+    var ehOrtopedia = ctxLow.indexOf('fratura') !== -1 || ctxLow.indexOf('luxacao') !== -1 ||
+                      ctxLow.indexOf('luxação') !== -1 || ctxLow.indexOf('salter') !== -1 ||
+                      ctxLow.indexOf('gustilo') !== -1;
+
+    var ehFerida = ctxLow.indexOf('queimadura') !== -1 || ctxLow.indexOf('curativo') !== -1 ||
+                   ctxLow.indexOf('ferida') !== -1 || ctxLow.indexOf('npuap') !== -1;
+
     var cabecalhoContingencia = [
       '⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMAGEM FMRP-USP)*',
-      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
+      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). A imagem não pôde ser examinada em seus pixels visuais no ambiente local. O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
       ''
     ].join('\n');
 
@@ -40736,7 +40766,7 @@ var IaLocalFallbackService = (function () {
 
     var corpo = [];
 
-    if (ehEcg || (!ehRx && !ehDerma && !ehLab && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
+    if (ehEcg || (!ehRx && !ehDerma && !ehLab && !ehTc && !ehPocus && !ehRm && !ehOftalmo && !ehCtg && !ehEda && !ehOrtopedia && !ehFerida && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
       // ECG ou Suspeita Coronariana
       if (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('supra') !== -1 || ctxLow.indexOf('iam') !== -1 || ctxLow.indexOf('infarto') !== -1 || ctxLow.indexOf('peito') !== -1) {
         corpo.push('🚨 *EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA):* Suspeita de Síndrome Coronariana Aguda. Priorizar Porta-ECG < 10min. Duplo bloqueio (AAS 200-300mg VO mastigado + Ticagrelor 180mg ou Clopidogrel 300-600mg) e Enoxaparina 1mg/kg SC se confirmado IAM.');
@@ -40785,6 +40815,49 @@ var IaLocalFallbackService = (function () {
       corpo.push('• *Sódio (Na+):* Normal 135 a 145 mEq/L. Em hiponatremia aguda sintomática (convulsão/coma): NaCl 3% 100-150 mL IV em 20 min (meta de elevação: máx 8-10 mEq/L em 24h).');
       corpo.push('• *Lactato Arterial/Venoso:* Normal < 2,0 mmol/L. Se >= 4,0 mmol/L em contexto infeccioso: Choque Séptico / Bundle SSC (30 mL/kg cristaloide balanceado).');
       corpo.push('• *Troponina Ultrasensível:* Acima do percentil 99: confirma injúria miocárdica; correlacionar com delta temporal de 1-3 horas.');
+    } else if (ehTc) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE TOMOGRAFIA COMPUTADORIZADA (TC):*');
+      corpo.push('1. *TC de Crânio (Método B-C-B-V-B e ASPECTS):*');
+      corpo.push('   • Blood: Sangramento agudo hiperdenso (Extradural biconvexo vs Subdural em crescente vs HSA de Fisher).');
+      corpo.push('   • Cisterns: Apagamento de cisternas perimesencefálicas (risco de herniação uncal).');
+      corpo.push('   • Brain: Perda da fita insular/núcleo lenticular (Score ASPECTS no AVC) e desvio de linha média > 5mm.');
+      corpo.push('   • Ventricles: Simetria e hidrocefalia obstrutiva.');
+      corpo.push('   • Bone: Fraturas de base de crânio e pneumoencéfalo.');
+      corpo.push('2. *AngioTC de Tórax e Abdome:* Falhas de enchimento pulmonares (TEP) e flap intimal de dissecção aórtica (Stanford A vs B).');
+      corpo.push('3. *Abdome Agudo:* Apêndice cecal > 6mm com apendicolito e borramento adiposo; pneumoperitônio subdiafragmático.');
+    } else if (ehPocus) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE ULTRASSONOGRAFIA BEIRA-LEITO (POCUS):*');
+      corpo.push('1. *Protocolo eFAST (Trauma):* Janela subxifoide (tamponamento cardíaco), espaço hepatorrenal de Morrison, esplenorrenal, pelve retovesical/Douglas e deslizamento pleural (lung sliding).');
+      corpo.push('2. *Protocolo BLUE (Dispneia Aguda):* Perfil A (linhas A normais), Perfil B (> 3 linhas B confluentes em cometa = edema agudo), Perfil C (consolidação subpleural) e Perfil PLAPS (derrame pleural posterior).');
+      corpo.push('3. *Ecocardiograma Focado & VCI:* Fração de ejeção subjetiva, sinal de McConnell em VD, colababilidade de Veia Cava Inferior (> 50% = resposta a volume).');
+    } else if (ehRm) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE RESSONÂNCIA MAGNÉTICA (RM ENCEFÁLICA):*');
+      corpo.push('1. *Difusão e ADC:* Hiperintensidade em DWI com hipointensidade correspondente no Mapa ADC confirma restrição citotóxica verdadeira (AVC isquêmico hiperagudo ou abscesso piogênico central).');
+      corpo.push('2. *Sequências T1, T2 e FLAIR:* Edema vasogênico perilesional, efeito compressivo e gliose.');
+    } else if (ehOftalmo) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FUNDOSCOPIA BEIRA-LEITO (FUNDO DE OLHO):*');
+      corpo.push('1. *Disco Óptico:* Relação escavação/disco <= 0.3-0.5; bordas nítidas vs borradas por Papiledema (hipertensão intracraniana).');
+      corpo.push('2. *Retinopatia Hipertensiva (Keith-Wagener):* Grau 1 (estreitamento), Grau 2 (cruzamentos patológicos), Grau 3 (hemorragias e exsudatos), Grau 4 (papiledema = emergência).');
+      corpo.push('3. *Emergência Vascular:* OACR com mancha vermelho-cereja na mácula vs OVCR com tempestade de sangue.');
+    } else if (ehCtg) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE CARDIOTOCOGRAFIA (CTG OBSTÉTRICA):*');
+      corpo.push('1. *FCF Basal:* 110 a 160 bpm (taquicardia > 160 bpm vs bradicardia < 110 bpm).');
+      corpo.push('2. *Variabilidade:* Moderada normal 6-25 bpm; ausente (< 5 bpm) ou sinusoidal (sofrimento fetal grave / anemia).');
+      corpo.push('3. *Desacelerações:* DIP I (fisiológica/cefálica), DIP II (tardia / insuficiência placentária - alarme crítico), DIP III (variável/cordão).');
+      corpo.push('4. *Classificação FIGO:* Categoria I (Normal) vs Categoria II (Vigilância) vs Categoria III (Anormal - resolução imediata).');
+    } else if (ehEda) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE ENDOSCOPIA DIGESTIVA ALTA (EDA):*');
+      corpo.push('1. *Classificação de Forrest (Úlcera Péptica):* Ia (jato arterial ~90% ressangramento), Ib (babando ativo ~30%), IIa (vaso visível ~50%), IIb (coágulo aderido ~30%), IIc (hematina < 10%), III (fibrina limpa < 5%).');
+      corpo.push('2. *Varizes Esofágicas:* Finas, médias ou grossas; presença de red spots = alto risco de ruptura iminente.');
+    } else if (ehOrtopedia) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FRATURAS E ORTOPEDIA (RX/TC):*');
+      corpo.push('1. *Salter-Harris Pediátrico:* Tipos I (fise pura), II (metafisária - Thurston-Holland), III (epifisária), IV (transfixante), V (compressão).');
+      corpo.push('2. *Fraturas Expostas (Gustilo):* Grau I (< 1cm), Grau II (1-10cm), Grau IIIa (> 10cm coberta), Grau IIIb (ampla perda), Grau IIIc (lesão vascular arterial).');
+      corpo.push('3. *Fratura Oculta:* Sinal do coxim gorduroso (fat pad sign / vela de barco no cotovelo).');
+    } else if (ehFerida) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FERIDAS, LESÕES POR PRESSÃO E QUEIMADURAS:*');
+      corpo.push('1. *Lesões por Pressão (NPUAP):* Estágio 1 (eritema não branqueável), 2 (úlcera rasa dérmica), 3 (gordura subcutânea), 4 (músculo/osso exposto).');
+      corpo.push('2. *Queimaduras (Parkland):* Volume 24h = 2 a 4 mL x Peso (kg) x %SCQ (50% nas primeiras 8h).');
     } else {
       corpo.push('*CHECKLIST UNIVERSAL DE SEGURANÇA DIAGNÓSTICA (SALA VERMELHA / ENFERMARIA):*');
       corpo.push('1. *Sinais Vitais e Monitorização (MOV):* Monitor cardíaco, Oxímetro de pulso, PA seriada.');
@@ -42825,6 +42898,11 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
     "- A PRIMEIRA LINHA DA RESPOSTA DEVE SER OBRIGATORIAMENTE ESTE ALERTA EM MAIÚSCULAS E NEGRITO:",
     "  🚨 *EMERGÊNCIA - ACHADO CRÍTICO:* [Descrição do Achado + Ação Imediata Obrigatória]",
     "",
+    "🛡️ TRAVAS DE SEGURANÇA PROPEDÊUTICA E LGPD (OBRIGATÓRIO):",
+    "- PRIVACIDADE (LGPD/HIPAA): Ignore e JAMAIS transcreva no laudo nomes de pacientes, números de prontuário, RG, CPF, hospital ou datas de nascimento visíveis no cabeçalho ou marcação da imagem.",
+    "- CONTROLE DE QUALIDADE TÉCNICA: Antes de laudar, avalie a qualidade da imagem. Se houver artefatos severos, rotação acentuada, corte de derivações ou calibração fora do padrão no ECG (25mm/s, 10mm/mV), declare explicitamente a limitação técnica no topo da seção 1.",
+    "- ANTI-VIÉS DE ANCORAGEM CLÍNICA: Analise os achados visuais da imagem de forma semiologicamente agnóstica e estritamente objetiva ANTES de correlacionar com a legenda ou hipótese sugerida pelo médico, prevenindo viés de confirmação.",
+    "",
     "ROTEIROS METÓDICOS POR MODALIDADE (PADRÃO OURO INTERNACIONAL):",
     "1. SE FOR ELETROCARDIOGRAMA (ECG DE 12 DERIVAÇÕES):",
     "   - Realize a leitura sistemática obrigatória em 6 passos:",
@@ -42897,6 +42975,45 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
     "   - 7.2 Difusão (DWI) e Mapa ADC: Restrição citotóxica verdadeira (hiper no DWI e hipo no ADC = AVC isquêmico hiperagudo ou abscesso piogênico central).",
     "   - 7.3 Parênquima: Efeito de massa, herniações e padrão de realce pós-gadolínio.",
     "",
+    "8. SE FOR OFTALMOLOGIA / FUNDOSCOPIA & RETINOGRAFIA (FUNDO DE OLHO):",
+    "   - 8.1 Disco Óptico e Escavação: Relação escavação/disco (normal <= 0,3 a 0,5; assimetria > 0,2 = suspeita de glaucoma), nitidez de bordas vs borramento/edema (Papiledema por hipertensão intracraniana, neurite óptica) e palidez (atrofia óptica).",
+    "   - 8.2 Vasos e Retinopatia Hipertensiva (Keith-Wagener-Barker): Grau 1 (estreitamento arteriolar difuso), Grau 2 (cruzamentos AV patológicos - sinal de Salus e Gunn), Grau 3 (hemorragias em chama de vela e exsudatos duros/algodonosos), Grau 4 (papiledema bilateral associado - emergência hipertensiva).",
+    "   - 8.3 Retinopatia Diabética: Não proliferativa (microaneurismas, hemorragias em ponto e borra, exsudatos duros) vs Proliferativa (neovasos de retina/disco, hemorragia vítrea, descolamento tracional).",
+    "   - 8.4 Oclusões Vasculares Agudas: OACR (oclusão de artéria central: palidez retiniana difusa com mancha vermelho-cereja na mácula - emergência oftalmológica aguda); OVCR (oclusão de veia central: padrão em 'tempestade de sangue' com hemorragias difusas nos 4 quadrantes e ingurgitamento venoso).",
+    "   - 8.5 Manchas de Roth: Hemorragias retinianas com centro pálido esbranquiçado (estigma de Endocardite Infecciosa ou leucemia).",
+    "",
+    "9. SE FOR OTOSCOPIA & OROSCOPIA / VIAS AÉREAS SUPERIORES (ADULTO E PEDIATRIA):",
+    "   - 9.1 Otoscopia: Membrana timpânica íntegra normal (translúcida, perolada, triângulo luminoso e cabo do martelo visíveis); Otite Média Aguda - OMA (hiperemia acentuada, abaulamento timpânico com perda dos marcos anatômicos, nível hidroaéreo ou perfuração com otorreia purulenta); Otite Externa (edema difuso do conduto auditivo com debris e dor intensa à tração do pavilhão/trago); Otite Média Secretora/Efusão (MT retraída, âmbar ou com bolhas).",
+    "   - 9.2 Oroscopia e Faringe: Faringoamigdalite Bacteriana por Estreptococo (hiperemia, amígdalas hipertrofiadas com exsudato purulento confluente, petéquias em palato mole - escore de Centor/McIsaac); Mononucleose Infecciosa (exsudato espesso membranoso, adenomegalia cervical posterior simétrica, esplenomegalia); Abscesso Periamigdaliano (abaulamento unilateral de pilar anterior, desvio contralateral da úvula e trismo - indicação de punção/drenagem).",
+    "",
+    "10. SE FOR CARDIOTOCOGRAFIA (CTG) E MEDICINA FETAL / OBSTETRÍCIA:",
+    "   - 10.1 FCF Basal: Normal (110 a 160 bpm), Taquicardia fetal (> 160 bpm por > 10 min - febre materna, corioamnionite), Bradicardia fetal (< 110 bpm - sofrimento fetal agudo, DPP).",
+    "   - 10.2 Variabilidade da FCF: Ausente (linha reta - acidose fetal grave), Mínima (<= 5 bpm), Moderada normal (6 a 25 bpm - boa oxigenação), Saltatória (> 25 bpm), Padrão Sinusoidal (onda regular e suave de 3 a 5 ciclos/min por > 20 min = anemia fetal grave / descolamento prematuro - cesárea de emergência).",
+    "   - 10.3 Acelerações Transitórias: Elevação >= 15 bpm por >= 15 segundos (feto reativo).",
+    "   - 10.4 Desacelerações: DIP I ou Precoce (espelho da contração por compressão cefálica - reflexo vagal fisiológico); DIP II ou Tardia (nadir após o pico da contração uterina = insuficiência placentária e hipóxia fetal aguda - alarme crítico); DIP III ou Variável (formato em V ou U por compressão de cordão).",
+    "   - 10.5 Categorização FIGO/ACOG: Categoria I (Normal / fisiológica); Categoria II (Indeterminada / ressuscitação intrauterina e vigilância contínua); Categoria III (Anormal: variabilidade ausente com desacelerações tardias/variáveis ou bradicardia ou sinusoidal - interrupção imediata da gestação).",
+    "",
+    "11. SE FOR ENDOSCOPIA DIGESTIVA ALTA (EDA) E HEMORRAGIA DIGESTIVA:",
+    "   - 11.1 Classificação de Forrest (Úlcera Péptica Sangrante e Risco de Ressangramento):",
+    "     * Forrest Ia: Sangramento arterial ativo em jato (ressangramento ~90% - endoterapia combinada de emergência).",
+    "     * Forrest Ib: Sangramento ativo em porejamento / babando (ressangramento ~20-30% - hemostasia combinada).",
+    "     * Forrest IIa: Vaso visível não sangrante na base da úlcera (ressangramento ~50% - endoterapia combinada).",
+    "     * Forrest IIb: Coágulo aderido resistente à lavagem (ressangramento ~25-30% - remoção com alça e hemostasia seletiva).",
+    "     * Forrest IIc: Base hematínica com manchas escuras (ressangramento < 10% - IBP sem necessidade de endoterapia).",
+    "     * Forrest III: Base limpa de fibrina branca (ressangramento < 5% - alta precoce com IBP oral).",
+    "   - 11.2 Varizes Esofágicas e Gástricas: Calibre (finas < 3mm, médias 3-5mm, grossas > 5mm); Sinais da cor vermelha (red spots / manchas vermelho-cereja = iminência de ruptura - ligadura elástica profilática ou terapêutica).",
+    "   - 11.3 Esofagite de Refluxo (Classificação de Los Angeles Graus A a D).",
+    "",
+    "12. SE FOREM FRATURAS, LUXAÇÕES E ORTOPEDIA (RX E TC MUSCULOESQUELÉTICO):",
+    "   - 12.1 Classificação de Salter-Harris (Fises Pediátricas): Tipo I (separação fisária pura), Tipo II (fratura fisária com fragmento metafisário / sinal de Thurston-Holland - a mais comum), Tipo III (fratura fisária estendendo-se à epífise articular), Tipo IV (transfixante de metáfise, fise e epífise), Tipo V (compressão/esmagamento fisário).",
+    "   - 12.2 Fraturas Expostas (Classificação de Gustilo-Anderson): Grau I (ferimento puntiforme < 1cm limpo), Grau II (ferida 1 a 10cm sem lesão extensa), Grau IIIa (ferimento > 10cm com cobertura óssea adequada), Grau IIIb (ampla perda de partes moles e periósteo exposto), Grau IIIc (fratura com lesão vascular associada exigindo reparo - risco de perda do membro).",
+    "   - 12.3 Fraturas Ocultas e Luxações: Sinal do Coxim Gorduroso (Fat Pad Sign / Vela de Barco) no cotovelo (deslocamento dos coxins anterior/posterior indicando hemartrose por fratura oculta de cabeça de rádio ou supracondiliana); Luxações articulares (glenoumeral anterior vs posterior com sinal da lâmpada, luxação coxofemoral).",
+    "",
+    "13. SE FOREM FERIDAS CRÔNICAS, QUEIMADURAS E LESÕES POR PRESSÃO:",
+    "   - 13.1 Estadiamento de Lesões por Pressão (NPUAP/EPUAP): Estágio 1 (eritema não branqueável em pele íntegra sobre proeminência óssea); Estágio 2 (perda parcial da espessura dérmica, úlcera rasa com leito avermelhado sem esfacelo ou flictena intacta/rompida); Estágio 3 (perda total da espessura cutânea com tecido adiposo visível, sem atingir músculo/osso); Estágio 4 (perda total com exposição de fáscia, músculo, tendão ou osso visível/palpável); Não Classificável (leito coberto por esfacelo ou necrose/escara); Lesão Tissular Profunda (área localizada de cor púrpura/marrom intacta ou bolha hemática).",
+    "   - 13.2 Avaliação do Leito da Ferida (TIME): Tecido (percentual de granulação vermelho vivo, esfacelo úmido amarelado, necrose seca preta); Infecção (eritema perilesional, calor, odor fétido, exsudato purulento); Umidade (exsudato seroso, hemorrágico, purulento); Bordas (maceradas, descoladas, enroladas).",
+    "   - 13.3 Queimaduras: Profundidade (1º grau eritematoso; 2º grau superficial com flictenas e base rósea muito dolorosa; 2º grau profundo com base branca e hipoestésica; 3º grau aspecto coriáceo/nacarado indolor); Cálculo da Área Queimada pela Regra dos Nove de Wallace e hidratação guiada pela Fórmula de Parkland (2-4 mL x Peso x %SCQ nas primeiras 24h, metade nas primeiras 8 horas).",
+    "",
     "ESTRUTURA FORMAL DO LAUDO (Markdown do Telegram):",
     "- Título em destaque com emoji funcional e modalidade identificada (ex: *LAUDO CLÍNICO MULTIMODAL · ECG DE 12 DERIVAÇÕES* ou *LAUDO CLÍNICO MULTIMODAL · RADIOGRAFIA DE TÓRAX*).",
     "- *1. 🔍 Descrição Semiológica e Metódica dos Achados*",
@@ -42912,11 +43029,11 @@ function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) 
   ].join("\n");
 
   var opts = Object.assign({
-    thinkingBudget: 512,
+    thinkingBudget: 2048,
     clinico: true,
     multimodal: true,
-    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 20000)) || 20000,
-    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 20000)) || 20000
+    timeoutMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 25000)) || 25000,
+    orcamentoMs: Number(_iaCfg("IA_MULTIMODAL_TIMEOUT_MS", 25000)) || 25000
   }, opcoes);
 
   var resLaudo = chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptInstrucao, opts);
@@ -47586,6 +47703,76 @@ function rotearComandoSistema(comando, texto, chatId) {
       if (typeof mostrarPainelLeitos === "function") return mostrarPainelLeitos(chatId, 0);
       return enviarMensagemComTecladoParaChat(chatId, EnfermariaService.formatarPainelBordo(), construirTecladoHubEnfermaria());
     },
+    "/novo_paciente": function() {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      }
+      var cCache = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCache) {
+        cCache.remove("ctx_" + chatId);
+        cCache.remove("modo_" + chatId);
+        cCache.remove("leito_" + chatId);
+        cCache.remove("dvaw_" + chatId);
+        cCache.remove("pending_" + chatId);
+      }
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Contexto de paciente resetado.* Memória limpa e pronta para o próximo caso clínico (zero contaminação de peso/idade).");
+    },
+    "/novopaciente": function() {
+      return cmdHandlers["/novo_paciente"]();
+    },
+    "/leito": function() {
+      if (typeof despacharComandosEnfermariaPlantaoEReceitas_ === "function") {
+        var resL = despacharComandosEnfermariaPlantaoEReceitas_("/leito", texto, chatId);
+        if (resL && resL.executado) return resL.resultado;
+      }
+      return false;
+    },
+    "/limpar_plantao": function() {
+      if (typeof limparEstadoBot === "function") {
+        try { limparEstadoBot(chatId); } catch (eLimp) {}
+      }
+      var cCache = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCache) {
+        cCache.remove("ctx_" + chatId);
+        cCache.remove("modo_" + chatId);
+        cCache.remove("leito_" + chatId);
+        cCache.remove("dvaw_" + chatId);
+        cCache.remove("pending_" + chatId);
+      }
+      var msgPurge = "🛡️ *HIGIENIZAÇÃO PÓS-PLANTÃO (LGPD & SIGILO MÉDICO)*\n\n" +
+        "✅ Memória de cache em RAM de pacientes e leitos: *Zerada*\n" +
+        "✅ Travas de dosagem, peso e cálculos anteriores: *Descartadas*\n" +
+        "✅ Sessão limpa e segura para o próximo turno.\n\n" +
+        "🔒 *Segurança Beira-Leito:* Nenhum identificador clínico ativo em memória.";
+      return enviarMensagemComTecladoFixo(chatId, msgPurge);
+    },
+    "/limparplantao": function() {
+      return cmdHandlers["/limpar_plantao"]();
+    },
+    "/autopurge": function() {
+      return cmdHandlers["/limpar_plantao"]();
+    },
+    "/offline": function() {
+      var msgOffline = "⚡ *MODO CONTINGÊNCIA DETERMINÍSTICA EM RAM (OFFLINE-FROM-AI)*\n\n" +
+        "Este modo opera com *zero dependência de LLMs externas* e latência de 0ms em RAM:\n\n" +
+        "• *Calculadoras Puras:* /gaso, /curb65, /crcl, /dva, /pbw, /chadsvasc\n" +
+        "• *Sala Vermelha & PCR:* /pcr, /sri, /arritmia, /choque\n" +
+        "• *Drogas & REMUME:* /amoxi, /ceftriaxona, /adrenalina, /noradrenalina\n\n" +
+        "💡 Todos os cálculos utilizam os algoritmos determinísticos em memória.";
+      var kbOff = {
+        inline_keyboard: [
+          [{ text: "🚨 Sala Vermelha", callback_data: "ux:hub:sala" }, { text: "🧮 Calculadoras", callback_data: "ux:hub:calc" }],
+          [{ text: "💊 Drogas Vasoativas", callback_data: "ux:dvamenu" }, { text: "👶 Pediatria", callback_data: "ux:hub:ped" }]
+        ]
+      };
+      if (typeof enviarMensagemComTecladoParaChat === "function") {
+        return enviarMensagemComTecladoParaChat(chatId, msgOffline, kbOff);
+      }
+      return enviarMensagemParaChat(chatId, msgOffline);
+    },
+    "/contingencia": function() {
+      return cmdHandlers["/offline"]();
+    },
     "/pc": function() {
       return tratarComandoPc(chatId, texto);
     },
@@ -50907,6 +51094,12 @@ function executarComandoEnfermariaPlantaoEReceitasInterno_(comando, texto, chatI
     if (matchLeito) {
       var numLeito = matchLeito[1];
       var infoLeito = matchLeito[2];
+      var cCacheL = (typeof CacheService !== "undefined" && CacheService.getScriptCache) ? CacheService.getScriptCache() : null;
+      if (cCacheL) {
+        cCacheL.put("leito_" + chatId, numLeito, 28800);
+        cCacheL.remove("ctx_" + chatId);
+        cCacheL.remove("dvaw_" + chatId);
+      }
 
       if (!infoLeito) {
         var leitoAtual = EnfermariaService.obterLeito(numLeito);
@@ -52144,8 +52337,8 @@ function processarMensagemTexto(message) {
     var contextoCache = CacheService.getScriptCache();
     var contextoKey = "ctx_" + chatId;
 
-    // Gerenciamento de Memória (Contexto Clínico)
-    if (comando === "/cancelar" || comando === "/novo" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
+    // Gerenciamento de Memória (Contexto Clínico & Isolador de Leito)
+    if (comando === "/cancelar" || comando === "/novo" || comando === "/novo_paciente" || comando === "/novopaciente" || comando === "/limpar_paciente" || comando === "/limparpaciente" || comando === "/leito_reset" || comando === "/limpar_plantao" || comando === "/limparplantao" || comando === "/autopurge" || texto === "🩺 Novo SOAP" || texto === "🧹 Novo Paciente" || texto === "🧹 Novo" || texto === "🧹 Limpar Paciente" || texto === "🧹 Limpar Memória") {
       if (typeof limparEstadoBot === "function") {
         try { limparEstadoBot(chatId); } catch (eLimp) {}
       } else {
@@ -52158,7 +52351,7 @@ function processarMensagemTexto(message) {
       if (typeof cancelarAcoesPendentes === "function") {
         try { cancelarAcoesPendentes(chatId); } catch (eCanc) {}
       }
-      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória limpa.* Pronto para o próximo paciente!");
+      return enviarMensagemComTecladoFixo(chatId, "🧹 *Memória clínica e dados de leito limpos.* Pronto para o próximo paciente (zero contaminação de peso/idade)!");
     }
 
     // 1. Despacho O(1) de Atalhos do Teclado Fixo Persistente
@@ -52179,8 +52372,21 @@ function processarMensagemTexto(message) {
   if (texto.charAt(0) !== "/") {
     var contextoAnterior = contextoCache.get(contextoKey);
     if (contextoAnterior) {
-      texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
-      comando = contextoAnterior.split(/\s/)[0].toLowerCase();
+      // POKA-YOKE MÉDICO: Detecção de Contaminação Cruzada entre Pacientes (Context Bleed)
+      var eraPediatrico = /lactente|meses|pedi[aá]tr|rec[eé]m[- ]nascido|rn\b|crian[çc]a|\b\d{1,2}\s*kg\b/i.test(contextoAnterior);
+      var agoraAdulto = /adulto|idoso|anos\b|gestante|homem|mulher|\b[4-9]\d\s*kg\b|\b1\d\d\s*kg\b/i.test(texto);
+      var eraAdulto = /adulto|idoso|gestante|homem|mulher/i.test(contextoAnterior) && !eraPediatrico;
+      var agoraPediatrico = /lactente|meses|pedi[aá]tr|rec[eé]m[- ]nascido|rn\b|crian[çc]a/i.test(texto);
+
+      if ((eraPediatrico && agoraAdulto) || (eraAdulto && agoraPediatrico)) {
+        // Discrepância extrema de perfil: descarta o contexto anterior para evitar dose errônea letal!
+        contextoCache.remove(contextoKey);
+        contextoCache.remove("dvaw_" + chatId);
+        texto = texto + "\n\n⚠️ *[AVISO DE SEGURANÇA]:* Detectada transição de perfil (Pediatria ↔ Adulto). O contexto do paciente anterior foi descartado para prevenir contaminação de dose.";
+      } else {
+        texto = contextoAnterior + "\n[Nova Informação do Usuário]: " + texto;
+        comando = contextoAnterior.split(/\s/)[0].toLowerCase();
+      }
     }
   }
 
@@ -55559,8 +55765,15 @@ function processarMensagemFoto(message) {
     var photos = message.photo;
     var fotoAlvo = null;
     if (photos && photos.length > 0) {
-      // Download inteligente: seleciona resolução ideal (~1000-1280px) economizando ~60% de I/O
-      fotoAlvo = (photos.length >= 2) ? photos[photos.length - 2] : photos[photos.length - 1];
+      // Alta resolução diagnóstica: seleciona a máxima fidelidade clínica útil.
+      // Se a última foto for excessivamente gigantesca (>2560px) e houver alternativa >= 1000px, usa a ideal (~1280px).
+      // Se photos tiver dimensões padrão do Telegram (onde a última é ~1280px ou 800px), seleciona sempre a maior disponível.
+      var ult = photos[photos.length - 1];
+      if (photos.length >= 2 && ult && ult.width && ult.width > 2560) {
+        fotoAlvo = photos[photos.length - 2];
+      } else {
+        fotoAlvo = ult;
+      }
     } else if (message.document) {
       fotoAlvo = message.document;
     }
@@ -60648,7 +60861,7 @@ function rotearUpdate(update) {
   if(!m) return;
   if(m.web_app_data && typeof processarWebAppData === 'function') return processarWebAppData(m);
   if(m.voice||m.audio) return processarMensagemVoz(m);
-  if(m.photo) return processarMensagemFoto(m);
+  if(m.photo || (m.document && (m.document.mime_type ? /^(image\/|application\/pdf)/i.test(m.document.mime_type) : /\.(jpe?g|png|webp|pdf)$/i.test(m.document.file_name || "")))) return processarMensagemFoto(m);
   if(m.text) return processarMensagemTexto(m);
 }
 
@@ -60661,7 +60874,7 @@ function destinoNavegacaoRapida(update) {
     'ux:srimenu':'sri'};
     chave = String(cb.data || '');
   } else {
-    if (!m || m.voice || m.audio || m.photo) return null;
+    if (!m || m.voice || m.audio || m.photo || m.document) return null;
     destinos = {'/menu':'hub', '/start':'hub', '/sala':'sala',
       '🚨 Sala Vermelha':'sala', '📐 Calculadoras':'calc'};
     chave = String(m.text || '').trim();
@@ -61158,9 +61371,21 @@ function botoesBot(rows) {
   };
 }
 
-/** Edita a tela in-place; trata "message is not modified" e mensagens não editáveis com fallback. */
+/** Edita a tela in-place; trata "message is not modified" e mensagens não editáveis com fallback seguro anti-flood. */
+var _ultimoEnvioTelaTimestamp = {};
+
 function enviarTelaBot(chat, texto, kb, messageId) {
   if (messageId && String(texto).length < UX_MAX_EDIT_CHARS) {
+    var agora = Date.now();
+    var chaveThrottle = String(chat) + '_' + String(messageId);
+    var deltaEnvio = agora - (_ultimoEnvioTelaTimestamp[chaveThrottle] || 0);
+
+    // Cooldown defensivo anti-429: se duas edições quase simultâneas (< 40ms) ocorrerem, protege o limite da API
+    if (deltaEnvio < 40 && typeof Utilities !== 'undefined' && typeof Utilities.sleep === 'function') {
+      try { Utilities.sleep(40); } catch (_) {}
+    }
+    _ultimoEnvioTelaTimestamp[chaveThrottle] = Date.now();
+
     var contemHtml = /<\/?(?:b|i|u|s|code|pre|a)\b/i.test(texto);
     var parseMode = contemHtml ? 'HTML' : 'Markdown';
     var textoEnvio = contemHtml

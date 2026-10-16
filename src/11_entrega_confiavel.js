@@ -317,7 +317,7 @@ function rotearUpdate(update) {
   if(!m) return;
   if(m.web_app_data && typeof processarWebAppData === 'function') return processarWebAppData(m);
   if(m.voice||m.audio) return processarMensagemVoz(m);
-  if(m.photo) return processarMensagemFoto(m);
+  if(m.photo || (m.document && (m.document.mime_type ? /^(image\/|application\/pdf)/i.test(m.document.mime_type) : /\.(jpe?g|png|webp|pdf)$/i.test(m.document.file_name || "")))) return processarMensagemFoto(m);
   if(m.text) return processarMensagemTexto(m);
 }
 
@@ -330,7 +330,7 @@ function destinoNavegacaoRapida(update) {
     'ux:srimenu':'sri'};
     chave = String(cb.data || '');
   } else {
-    if (!m || m.voice || m.audio || m.photo) return null;
+    if (!m || m.voice || m.audio || m.photo || m.document) return null;
     destinos = {'/menu':'hub', '/start':'hub', '/sala':'sala',
       '🚨 Sala Vermelha':'sala', '📐 Calculadoras':'calc'};
     chave = String(m.text || '').trim();

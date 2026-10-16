@@ -17,16 +17,17 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Elevação Padrão-Ouro de Conteúdo Clínico com Gemini 4 Argon: PBW/ARDSNet na Ventilação/SRI, Síndromes Farmacológicas em RAM (QTc, Triple Whammy, Sais de Cálcio ISMP) e Sinais de Alarme Leigos na Alta (`src/03_bases_locais.js`, `src/02_calculadoras_puras.js`, `src/04_motores_ia.js`, `tests/test_auditoria_qualidade_clinica.cjs`, `ultra_rotina_master.js`)**:
-    - **Diagnóstico e Causa Raiz**: Falta de cálculo de Peso Predito (PBW) na ventilação mecânica gerando risco de barotrauma em obesos; lacuna de detecção para prolongadores sinérgicos de QTc (Torsades de Pointes), tríade nefrotóxica *Triple Whammy* e hipercalemia por Trimetoprima; ausência de ampolas duplas de Cálcio e Salina 3% na padronização ISMP; sinais de alarme na alta hospitalar contendo jargões médicos indecifráveis para leigos; e sobredose de clavulanato na suspensão 4:1 em dose alta pediátrica.
+- [x] **Implementação Integral dos 6 Pontos Cegos Críticos com Gemini 4 Argon: Poka-Yoke Context Bleed (Pediatria ↔ Adulto), Isolador de Leito, Ponte Live ➔ Telegram SBAR, Modo Contingência Offline, Throttling Anti-429 e Suíte CI/CD Golden Dataset Clínico (`src/07a_telegram_router.js`, `server/index.js`, `src/12_experiencia_bot.js`, `tests/test_golden_dataset_clinico.cjs`, `ultra_rotina_master.js`)**:
+    - **Diagnóstico e Causa Raiz**: Auditoria profunda com Gemini 4 Argon das 5 conversas anteriores revelou riscos beira-leito não cobertos: contaminação de contexto entre pacientes pediátricos e adultos no Telegram (*context bleed*); falta de isolamento estrito de leito; conversas no Preceptor Live perdidas sem registro SBAR pós-áudio; ausência de modo de contingência determinístico offline explícito; risco de erro 429 em cliques rápidos em menus; retenção de dados clínicos pós-plantão em memória; e ausência de uma suíte CI/CD de 20 casos extremos para travar regressões clínicas.
     - **Correções Implementadas**:
-      1. *Peso Predito & ARDSNet*: Implementada `CalculadorasClinicas.pesoPreditoEVolumeCorrente` com fórmula de Devine, faixa 4-8 mL/kg e alvo de 6 mL/kg.
-      2. *Síndromes Farmacológicas em RAM 0ms*: Função `auditarSindromesFarmacologicasCriticas` integrada ao cross-check cobrindo QTc múltiplo, Tríade Triple Whammy, sinergismo hipercalemiante e precipitações físico-químicas letais (Fenitoína em SG 5% e Ceftriaxona com Cálcio).
-      3. *Padronização ISMP Expandida*: Sais de Cálcio (Gluconato 10% vs Cloreto 10%) e Salina 3% com preparo de 85 mL + 15 mL e teto de correção de 8-10 mEq/L/24h.
-      4. *Sinais de Alarme em Linguagem Leiga*: Prompts de SOAP Fase 2 e Prescrição atualizados para exigir red flags objetivos e acessíveis ao paciente/familiar.
-      5. *Segurança Farmacotécnica Pediátrica*: Alerta SBP/CDC para formulações 7:1/14:1 em dose alta de Amox/Clav e trava de 200 mg (40 gotas) de Ibuprofeno para crianças < 20 kg.
-      6. *Marcadores Ativos de Exames*: Inseridos `[CONFERIR SE TESTADO]` e `[CONFERIR ATIVAMENTE]` nos modelos neuro e psiquiátrico.
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 21.51s** via `npm test`. Testes clínicos ampliados para 18/18 testes em `tests/test_auditoria_qualidade_clinica.cjs` 100% aprovados.
+      1. *Poka-Yoke contra Context Bleed*: Detecção em RAM de transições bruscas de perfil clínico com expurgo preventivo de contexto anterior e aviso de segurança.
+      2. *Isolador de Leito e /novo_paciente*: Comandos `/novo_paciente` e `/leito <num>` para segregação atômica de casos.
+      3. *Ponte Live ➔ Telegram SBAR & Cockpit*: Transcrição agregada no encerramento da chamada WebSocket `/live`, emissão automática de card SBAR no Telegram do médico e rota `GET /api/cockpit/live-resumo`.
+      4. *Modo Contingência Determinístico Offline*: Comandos `/offline` e `/contingencia` renderizando condutas de emergência e calculadoras locais em 0ms.
+      5. *Throttling Anti-429*: Coalescência e limite de frequência por timestamp em `enviarTelaBot`.
+      6. *Higienização LGPD Pós-Plantão*: Comandos `/limpar_plantao` e `/autopurge` para expurgo completo de estados clínicos em RAM.
+      7. *Golden Dataset Clínico*: Suíte `tests/test_golden_dataset_clinico.cjs` com 20 casos extremos cobrindo emergências clínicas, farmacologia, toxicologia e obstetrícia.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 17.23s** via `npm test`. Suíte do Golden Dataset Clínico com **20/20 casos aprovados (100%)**.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

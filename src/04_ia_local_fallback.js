@@ -603,9 +603,39 @@ var IaLocalFallbackService = (function () {
                 ctxLow.indexOf('troponina') !== -1 || ctxLow.indexOf('creatinina') !== -1 ||
                 ctxLow.indexOf('laudo') !== -1 || ctxLow.indexOf('resultado') !== -1;
 
+    var ehTc = ctxLow.indexOf('tc') !== -1 || ctxLow.indexOf('tomografia') !== -1 ||
+               ctxLow.indexOf('angiotc') !== -1 || ctxLow.indexOf('aspects') !== -1 ||
+               ctxLow.indexOf('fisher') !== -1 || ctxLow.indexOf('apendicite') !== -1;
+
+    var ehPocus = ctxLow.indexOf('pocus') !== -1 || ctxLow.indexOf('usg') !== -1 ||
+                  ctxLow.indexOf('ultrassom') !== -1 || ctxLow.indexOf('efast') !== -1 ||
+                  ctxLow.indexOf('fast') !== -1 || ctxLow.indexOf('blue') !== -1 ||
+                  ctxLow.indexOf('vci') !== -1;
+
+    var ehRm = ctxLow.indexOf('ressonancia') !== -1 || ctxLow.indexOf('ressonância') !== -1 ||
+               ctxLow.indexOf('rm') !== -1 || ctxLow.indexOf('flair') !== -1 ||
+               ctxLow.indexOf('dwi') !== -1 || ctxLow.indexOf('adc') !== -1;
+
+    var ehOftalmo = ctxLow.indexOf('fundoscopia') !== -1 || ctxLow.indexOf('fundo de olho') !== -1 ||
+                    ctxLow.indexOf('retina') !== -1 || ctxLow.indexOf('papiledema') !== -1 ||
+                    ctxLow.indexOf('oftalmo') !== -1;
+
+    var ehCtg = ctxLow.indexOf('cardiotocografia') !== -1 || ctxLow.indexOf('ctg') !== -1 ||
+                ctxLow.indexOf('fcf') !== -1 || ctxLow.indexOf('dip') !== -1;
+
+    var ehEda = ctxLow.indexOf('endoscopia') !== -1 || ctxLow.indexOf('eda') !== -1 ||
+                ctxLow.indexOf('forrest') !== -1 || ctxLow.indexOf('varizes') !== -1;
+
+    var ehOrtopedia = ctxLow.indexOf('fratura') !== -1 || ctxLow.indexOf('luxacao') !== -1 ||
+                      ctxLow.indexOf('luxação') !== -1 || ctxLow.indexOf('salter') !== -1 ||
+                      ctxLow.indexOf('gustilo') !== -1;
+
+    var ehFerida = ctxLow.indexOf('queimadura') !== -1 || ctxLow.indexOf('curativo') !== -1 ||
+                   ctxLow.indexOf('ferida') !== -1 || ctxLow.indexOf('npuap') !== -1;
+
     var cabecalhoContingencia = [
       '⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMAGEM FMRP-USP)*',
-      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
+      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). A imagem não pôde ser examinada em seus pixels visuais no ambiente local. O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
       ''
     ].join('\n');
 
@@ -617,7 +647,7 @@ var IaLocalFallbackService = (function () {
 
     var corpo = [];
 
-    if (ehEcg || (!ehRx && !ehDerma && !ehLab && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
+    if (ehEcg || (!ehRx && !ehDerma && !ehLab && !ehTc && !ehPocus && !ehRm && !ehOftalmo && !ehCtg && !ehEda && !ehOrtopedia && !ehFerida && (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('peito') !== -1 || ctxLow.indexOf('coracao') !== -1 || ctxLow.indexOf('coração') !== -1))) {
       // ECG ou Suspeita Coronariana
       if (ctxLow.indexOf('dor') !== -1 || ctxLow.indexOf('supra') !== -1 || ctxLow.indexOf('iam') !== -1 || ctxLow.indexOf('infarto') !== -1 || ctxLow.indexOf('peito') !== -1) {
         corpo.push('🚨 *EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA):* Suspeita de Síndrome Coronariana Aguda. Priorizar Porta-ECG < 10min. Duplo bloqueio (AAS 200-300mg VO mastigado + Ticagrelor 180mg ou Clopidogrel 300-600mg) e Enoxaparina 1mg/kg SC se confirmado IAM.');
@@ -666,6 +696,49 @@ var IaLocalFallbackService = (function () {
       corpo.push('• *Sódio (Na+):* Normal 135 a 145 mEq/L. Em hiponatremia aguda sintomática (convulsão/coma): NaCl 3% 100-150 mL IV em 20 min (meta de elevação: máx 8-10 mEq/L em 24h).');
       corpo.push('• *Lactato Arterial/Venoso:* Normal < 2,0 mmol/L. Se >= 4,0 mmol/L em contexto infeccioso: Choque Séptico / Bundle SSC (30 mL/kg cristaloide balanceado).');
       corpo.push('• *Troponina Ultrasensível:* Acima do percentil 99: confirma injúria miocárdica; correlacionar com delta temporal de 1-3 horas.');
+    } else if (ehTc) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE TOMOGRAFIA COMPUTADORIZADA (TC):*');
+      corpo.push('1. *TC de Crânio (Método B-C-B-V-B e ASPECTS):*');
+      corpo.push('   • Blood: Sangramento agudo hiperdenso (Extradural biconvexo vs Subdural em crescente vs HSA de Fisher).');
+      corpo.push('   • Cisterns: Apagamento de cisternas perimesencefálicas (risco de herniação uncal).');
+      corpo.push('   • Brain: Perda da fita insular/núcleo lenticular (Score ASPECTS no AVC) e desvio de linha média > 5mm.');
+      corpo.push('   • Ventricles: Simetria e hidrocefalia obstrutiva.');
+      corpo.push('   • Bone: Fraturas de base de crânio e pneumoencéfalo.');
+      corpo.push('2. *AngioTC de Tórax e Abdome:* Falhas de enchimento pulmonares (TEP) e flap intimal de dissecção aórtica (Stanford A vs B).');
+      corpo.push('3. *Abdome Agudo:* Apêndice cecal > 6mm com apendicolito e borramento adiposo; pneumoperitônio subdiafragmático.');
+    } else if (ehPocus) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE ULTRASSONOGRAFIA BEIRA-LEITO (POCUS):*');
+      corpo.push('1. *Protocolo eFAST (Trauma):* Janela subxifoide (tamponamento cardíaco), espaço hepatorrenal de Morrison, esplenorrenal, pelve retovesical/Douglas e deslizamento pleural (lung sliding).');
+      corpo.push('2. *Protocolo BLUE (Dispneia Aguda):* Perfil A (linhas A normais), Perfil B (> 3 linhas B confluentes em cometa = edema agudo), Perfil C (consolidação subpleural) e Perfil PLAPS (derrame pleural posterior).');
+      corpo.push('3. *Ecocardiograma Focado & VCI:* Fração de ejeção subjetiva, sinal de McConnell em VD, colababilidade de Veia Cava Inferior (> 50% = resposta a volume).');
+    } else if (ehRm) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE RESSONÂNCIA MAGNÉTICA (RM ENCEFÁLICA):*');
+      corpo.push('1. *Difusão e ADC:* Hiperintensidade em DWI com hipointensidade correspondente no Mapa ADC confirma restrição citotóxica verdadeira (AVC isquêmico hiperagudo ou abscesso piogênico central).');
+      corpo.push('2. *Sequências T1, T2 e FLAIR:* Edema vasogênico perilesional, efeito compressivo e gliose.');
+    } else if (ehOftalmo) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FUNDOSCOPIA BEIRA-LEITO (FUNDO DE OLHO):*');
+      corpo.push('1. *Disco Óptico:* Relação escavação/disco <= 0.3-0.5; bordas nítidas vs borradas por Papiledema (hipertensão intracraniana).');
+      corpo.push('2. *Retinopatia Hipertensiva (Keith-Wagener):* Grau 1 (estreitamento), Grau 2 (cruzamentos patológicos), Grau 3 (hemorragias e exsudatos), Grau 4 (papiledema = emergência).');
+      corpo.push('3. *Emergência Vascular:* OACR com mancha vermelho-cereja na mácula vs OVCR com tempestade de sangue.');
+    } else if (ehCtg) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE CARDIOTOCOGRAFIA (CTG OBSTÉTRICA):*');
+      corpo.push('1. *FCF Basal:* 110 a 160 bpm (taquicardia > 160 bpm vs bradicardia < 110 bpm).');
+      corpo.push('2. *Variabilidade:* Moderada normal 6-25 bpm; ausente (< 5 bpm) ou sinusoidal (sofrimento fetal grave / anemia).');
+      corpo.push('3. *Desacelerações:* DIP I (fisiológica/cefálica), DIP II (tardia / insuficiência placentária - alarme crítico), DIP III (variável/cordão).');
+      corpo.push('4. *Classificação FIGO:* Categoria I (Normal) vs Categoria II (Vigilância) vs Categoria III (Anormal - resolução imediata).');
+    } else if (ehEda) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE ENDOSCOPIA DIGESTIVA ALTA (EDA):*');
+      corpo.push('1. *Classificação de Forrest (Úlcera Péptica):* Ia (jato arterial ~90% ressangramento), Ib (babando ativo ~30%), IIa (vaso visível ~50%), IIb (coágulo aderido ~30%), IIc (hematina < 10%), III (fibrina limpa < 5%).');
+      corpo.push('2. *Varizes Esofágicas:* Finas, médias ou grossas; presença de red spots = alto risco de ruptura iminente.');
+    } else if (ehOrtopedia) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FRATURAS E ORTOPEDIA (RX/TC):*');
+      corpo.push('1. *Salter-Harris Pediátrico:* Tipos I (fise pura), II (metafisária - Thurston-Holland), III (epifisária), IV (transfixante), V (compressão).');
+      corpo.push('2. *Fraturas Expostas (Gustilo):* Grau I (< 1cm), Grau II (1-10cm), Grau IIIa (> 10cm coberta), Grau IIIb (ampla perda), Grau IIIc (lesão vascular arterial).');
+      corpo.push('3. *Fratura Oculta:* Sinal do coxim gorduroso (fat pad sign / vela de barco no cotovelo).');
+    } else if (ehFerida) {
+      corpo.push('*ROTEIRO DETERMINÍSTICO DE FERIDAS, LESÕES POR PRESSÃO E QUEIMADURAS:*');
+      corpo.push('1. *Lesões por Pressão (NPUAP):* Estágio 1 (eritema não branqueável), 2 (úlcera rasa dérmica), 3 (gordura subcutânea), 4 (músculo/osso exposto).');
+      corpo.push('2. *Queimaduras (Parkland):* Volume 24h = 2 a 4 mL x Peso (kg) x %SCQ (50% nas primeiras 8h).');
     } else {
       corpo.push('*CHECKLIST UNIVERSAL DE SEGURANÇA DIAGNÓSTICA (SALA VERMELHA / ENFERMARIA):*');
       corpo.push('1. *Sinais Vitais e Monitorização (MOV):* Monitor cardíaco, Oxímetro de pulso, PA seriada.');
