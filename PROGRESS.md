@@ -17,14 +17,12 @@
 
 ## 🔄 Tarefa Concluída
 
-- [x] **Consolidação do Gemini 4 Argon como Provedor Primário (Tier-0) e Thinking Adaptativo (`src/00_config.js`, `src/04_motores_ia.js`, `tests/test_vertex_ai_multimodal.cjs`)**:
-    - **Provedor Padrão Absoluto (`src/00_config.js`)**: Correção do fallback de `PROVEDOR_TEXTO_PADRAO` para `"GEMINI"`, garantindo que toda a cadeia de inferência parta imediatamente do ecossistema Google Cloud Vertex AI com o modelo `gemini-4-argon`.
-    - **Thinking Adaptativo no Vertex AI (`src/04_motores_ia.js`)**: Implementação de suporte dinâmico a `thinkingConfig` em `chamarVertexAIGemini`:
-      * *Modo Rápido / Extrativo / Comandos Telegram*: Nível `thinkingLevel: "LOW"` para respostas instantâneas (~0.8s a 1.8s) sem desperdício de tokens de raciocínio.
-      * *Modo Clínico / Emergência / Multimodal*: Nível `thinkingLevel: "HIGH"` para análise profunda de casos, ECG, exames laboratoriais e radiografias, eliminando alucinações e garantindo conformidade com diretrizes clínicas (FMRP-USP, SBC, AHA, AMIB).
-    - **Proteção contra Falhas de Chaves Gratuitas**: Circuit breaker de 1 hora para erros HTTP 402 (*credits depleted*), impedindo atrasos de 8s a 15s em retries infrutíferos nas chaves do AI Studio.
-    - **Suíte de Testes Automatizada (`tests/test_vertex_ai_multimodal.cjs`)**: Validação de token Bearer OAuth2, inferência multimodal, despacho prioritário para `gemini-4-argon` e seleção adaptativa de thinking level (`LOW` para texto rápido e `HIGH` para clínico/multimodal).
-    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 35.69s** (`npm test`). Zero regressões.
+- [x] **Saneamento de UX e Remoção de Funções Ruidosas: Erradicação de "Ouvir no Fone" (SOAP, Laudo de Imagem, Conversa Livre e Plantão) e Keep-Alive Nativo (`src/07c_telegram_consultas_e_ia.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07a_telegram_router.js`, `tests/test_leitor_imagens_ostensivo.cjs`)**:
+    - **Remoção de "Ouvir no Fone" no SOAP (`src/07c_telegram_consultas_e_ia.js`)**: Eliminação de botões de TTS nas Fases 1 (Rascunho) e 2 (Consolidado) do SOAP; reorganização do teclado em matriz simétrica 2x2 + 1 com `📋 Fechar Plano`, `🩺 EF Normal`, `🔬 Exames` e `🧹 Novo Paciente`.
+    - **Limpeza nos Laudos de Imagem Médica (`src/07e_telegram_midia_e_leitos.js`)**: Remoção de `🎧 Ouvir no Fone` em laudos multimodais de ECG, Radiografia e Exames; teclado reestruturado com `➕ Incorporar ao SOAP`, `📁 Salvar no Notion` e `📋 Copiar Laudo`.
+    - **Keep-Alive Nativo do Telegram (`src/07e_telegram_midia_e_leitos.js`)**: Substituição de mensagens de texto intermediárias pelo sinalizador nativo `enviarChatAction(chatId, "upload_photo")`, economizando requisições HTTP e eliminando poluição visual no chat.
+    - **Saneamento em Conversas Livres e Passagem de Plantão (`src/07a_telegram_router.js`, `src/07c_telegram_consultas_e_ia.js`)**: Descarte de botão de TTS em respostas de dúvidas clínicas e passagens de plantão SBAR, mantendo apenas ações de alto valor (`📁 Salvar no Notion` e `👨‍⚕️ Pitch do Round`).
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 40.91s** (`npm test`). Zero regressões.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

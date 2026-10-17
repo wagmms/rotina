@@ -347,18 +347,7 @@ function processarMensagemVoz(message) {
 
 function processarMensagemFoto(message) {
   var chatId = (message.chat && message.chat.id) ? message.chat.id : ConfigService.get("TELEGRAM_CHAT_ID");
-  enviarChatAction(chatId, "typing");
-
-  // Feedback visual instantâneo (< 300ms) para eliminar sensação de travamento no plantão
-  var msgStatusId = null;
-  try {
-    var resStatus = enviarMensagemParaChat(chatId, "🩺 _Analisando imagem médica com IA (Vertex AI)..._");
-    if (resStatus && resStatus.result && resStatus.result.message_id) {
-      msgStatusId = resStatus.result.message_id;
-    } else if (typeof resStatus === "number" || typeof resStatus === "string") {
-      msgStatusId = resStatus;
-    }
-  } catch (eSt) {}
+  enviarChatAction(chatId, "upload_photo");
 
   try {
     var photos = message.photo;
@@ -378,13 +367,11 @@ function processarMensagemFoto(message) {
     }
 
     if (!fotoAlvo) {
-      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Nenhuma imagem identificada na mensagem.");
     }
 
     var midia = medirEtapaBot('download_midia', function() { return baixarMidiaTelegram(fotoAlvo); });
     if (!midia || !midia.data) {
-      if (msgStatusId && typeof deletarMensagemTelegram === "function") deletarMensagemTelegram(chatId, msgStatusId);
       return enviarMensagemParaChat(chatId, "⚠️ Falha ao baixar imagem do Telegram.");
     }
 
@@ -399,11 +386,6 @@ function processarMensagemFoto(message) {
           caption
         );
 
-    // Remove a mensagem temporária de "Analisando..."
-    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
-      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDel) {}
-    }
-
     if (resultadoImagem) {
       var cacheKey = Utilities.getUuid().replace(/-/g, "");
       safePutCache(CacheService.getScriptCache(), cacheKey, resultadoImagem, 21600);
@@ -412,12 +394,11 @@ function processarMensagemFoto(message) {
       var tecladoSalvar = {
         "inline_keyboard": [
           [
-            { "text": "📋 Copiar Laudo", "callback_data": "ux:copiar:" + cacheKey },
-            { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey }
+            { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey },
+            { "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_imagem_" + cacheKey }
           ],
           [
-            { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
-            { "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_imagem_" + cacheKey }
+            { "text": "📋 Copiar Laudo", "callback_data": "ux:copiar:" + cacheKey }
           ]
         ]
       };
@@ -426,9 +407,6 @@ function processarMensagemFoto(message) {
       return enviarMensagemParaChat(chatId, "⚠️ Erro ao analisar imagem médica (IA não retornou resposta).");
     }
   } catch (err) {
-    if (msgStatusId && typeof deletarMensagemTelegram === "function") {
-      try { deletarMensagemTelegram(chatId, msgStatusId); } catch (eDelErr) {}
-    }
     var msgErrFoto = (err && (err.message || err)) || "Erro desconhecido";
     Logger.log("Erro no processamento de foto: " + (err && err.stack ? err.stack : msgErrFoto));
     return enviarMensagemParaChat(chatId, "⚠️ Erro ao processar imagem: " + msgErrFoto);

@@ -6146,16 +6146,17 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900);
     var cacheKeyConversa = Utilities.getUuid().replace(/-/g, "");
     safePutCache(CacheService.getScriptCache(), cacheKeyConversa, respostaConversa, 21600);
-    var linhaConversa = [
-      {"text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKeyConversa}
-    ];
+    var linhaConversa = [];
     if (ehUsuarioTitular(chatId)) {
       linhaConversa.push({"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa});
     }
-    var botoesConversa = {
-      "inline_keyboard": [linhaConversa]
-    };
-    return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
+    if (linhaConversa.length > 0) {
+      var botoesConversa = {
+        "inline_keyboard": [linhaConversa]
+      };
+      return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
+    }
+    return enviarMensagemParaChat(chatId, respostaConversa);
   }
 
     // Fallback conversacional

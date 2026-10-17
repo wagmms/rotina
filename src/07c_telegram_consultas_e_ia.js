@@ -595,7 +595,7 @@ function montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria
     ]);
     botoes.push([
       { "text": "🔬 Exames", "callback_data": "ef_menu" },
-      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey }
+      { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
     ]);
   } else {
     // FASE 2: SOAP Consolidado completo (com plano farmacológico ativo)
@@ -615,7 +615,6 @@ function montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria
       botoes.push(linhaNotion);
     }
     botoes.push([
-      { "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey },
       { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
     ]);
   }
@@ -667,9 +666,6 @@ function montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro
 
   if (tipoCache === "plantao" && !ehErro) {
     linhaSecundaria.push({ "text": "👨‍⚕️ Pitch do Round (60s)", "callback_data": "gerarRound_" + cacheKey });
-  }
-  if ((tipoCache === "round" || tipoCache === "plantao") && !ehErro) {
-    linhaSecundaria.push({ "text": "🎧 Ouvir no Fone", "callback_data": "ouvirPreceptor_" + cacheKey });
   }
   if (linhaSecundaria.length) botoes.push(linhaSecundaria);
 
