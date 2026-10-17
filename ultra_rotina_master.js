@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 14:20:24
- * Checksum SHA256: fe15b52492f9e734
+ * Gerado automaticamente via build_master.py em: 2026-10-17 14:21:56
+ * Checksum SHA256: f1b1cc756bd7971f
  * ==============================================================================
  */
 
@@ -8755,17 +8755,7 @@ var CentroObstetricoService = (function() {
       nota: '⚠️ NUNCA aplicar ocitocina pura em bolus IV rápido (risco de vasodilatação súbita, hipotensão letal e colapso circulatório).'
     });
 
-    // TXA é adjuvante da resposta inicial; não aguardar falha dos uterotônicos.
-    var oportunoTransamin = tempoDesdePartoMin <= 180;
-    sequenciaUterotonica.push({
-      etapa: 4,
-      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce)',
-      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
-      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP.' : 'Após 3 horas do parto, benefício não demonstrado.',
-      bloqueado: !oportunoTransamin
-    });
-
-    // Passo 3: Metilergometrina (Ergotrate)
+    // Passo 2: Metilergometrina (Ergotrate)
     if (temHas) {
       sequenciaUterotonica.push({
         etapa: 2,
@@ -8783,12 +8773,22 @@ var CentroObstetricoService = (function() {
       });
     }
 
-    // Passo 4: Misoprostol
+    // Passo 3: Misoprostol
     sequenciaUterotonica.push({
       etapa: 3,
       farmaco: 'Misoprostol 800 mcg (3ª Linha)',
       dose: '800 mcg (4 comprimidos de 200 mcg) via Retal ou Sublingual.',
       nota: 'Absorção rápida e potente tônus miometrial mantido por várias horas.'
+    });
+
+    // Passo 4: Ácido Tranexâmico (Adjuvante Precoce do Pacote E-MOTIVE em até 3h)
+    var oportunoTransamin = tempoDesdePartoMin <= 180;
+    sequenciaUterotonica.push({
+      etapa: 4,
+      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce em até 3h)',
+      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
+      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP (Estudo WOMAN).' : 'Após 3 horas do parto, benefício não demonstrado.',
+      bloqueado: !oportunoTransamin
     });
 
     // 5. Medidas Não Farmacológicas e Cirúrgicas de Resgate
@@ -35552,15 +35552,17 @@ var SoapAmbulatorialService = (function() {
     }
   };
 
-  // 3. DICIONÁRIO DE PATOLOGIAS AMBULATORIAIS COM CID-10 E CIAP-2
+  // 3. DICIONÁRIO DE PATOLOGIAS AMBULATORIAIS COM CID-10 E CIAP-2 (EXPANDIDO: >130 DIAGNÓSTICOS ESSENCIAIS)
   var CATALOGO_DIAGNOSTICOS = [
+    // --- CARDIOVASCULAR (CIAP-2: K) ---
     {
       termo: 'hipertensao',
-      sinonimos: ['has', 'pressao alta', 'hipertensao arterial', 'hipertensao essencial'],
+      sinonimos: ['has', 'pressao alta', 'hipertensao arterial', 'hipertensao essencial', 'pa elevada'],
       diagnostico: 'Hipertensão Arterial Sistêmica Primária',
       cid10: 'I10',
       ciap2: 'K86',
       categoria: 'Cardiovascular',
+      modeloEf: 'has_rotina',
       estratificavel: true,
       meta_sbc: '< 130/80 mmHg (alto risco) ou < 140/90 mmHg (baixo/intermediário)',
       escalonamento_sbc: 'Passo 1: Monoterapia (Estágio 1 baixo risco); Passo 2: Dupla terapia IECA/BRA + BCC ou Tiazídico (Estágio 1 alto risco ou Estágios 2/3); Passo 3: Tripla terapia (IECA/BRA + BCC + Tiazídico); Passo 4: Espironolactona 25-50mg (HAR)',
@@ -35568,213 +35570,1554 @@ var SoapAmbulatorialService = (function() {
       alarmes: ['Cefaleia occipital súbita em trovoada', 'Dor torácica opressiva', 'Déficit motor focal', 'Escotomas cintilantes ou turvação visual súbita']
     },
     {
+      termo: 'hipertensao_resistente',
+      sinonimos: ['har', 'hipertensao secundaria', 'pressao resistente', 'hipertensao refrataria'],
+      diagnostico: 'Hipertensão Arterial Resistente / Secundária',
+      cid10: 'I15.9',
+      ciap2: 'K87',
+      categoria: 'Cardiovascular',
+      modeloEf: 'has_rotina',
+      estratificavel: true,
+      alarmes: ['Crise hipertensiva com lesão aguda de órgão-alvo (encefalopatia, edema agudo de pulmão)']
+    },
+    {
+      termo: 'insuficiencia_cardiaca',
+      sinonimos: ['ic', 'icc', 'insuficiencia cardiaca congestiva', 'coracao fraco', 'coracao crescido', 'dispneia paroxistica noturna', 'ortopneia'],
+      diagnostico: 'Insuficiência Cardíaca Congestiva Não Especificada',
+      cid10: 'I50.9',
+      ciap2: 'K77',
+      categoria: 'Cardiovascular',
+      modeloEf: 'has_rotina',
+      estratificavel: true,
+      alarmes: ['Ganho de peso rápido > 2kg em 3 dias com anasarca', 'Dispneia em repouso e turgência jugular a 45°']
+    },
+    {
+      termo: 'doenca_coronariana',
+      sinonimos: ['dac', 'angina', 'angina estavel', 'dor no peito', 'isquemia miocardica', 'coronariopatia', 'precordialgia aos esforcos'],
+      diagnostico: 'Doença Arterial Coronariana / Angina Estável',
+      cid10: 'I20.9',
+      ciap2: 'K74',
+      categoria: 'Cardiovascular',
+      modeloEf: 'has_rotina',
+      estratificavel: true,
+      alarmes: ['Dor torácica típica em repouso com duração > 20 min (suspeita de SCA/IAM)', 'Sincope associada ao esforço']
+    },
+    {
+      termo: 'fibrilacao_atrial',
+      sinonimos: ['fa', 'fibrilacao atrial', 'flutter', 'arritmia', 'palpitacoes', 'coracao acelerado', 'ritmo irregular'],
+      diagnostico: 'Fibrilação Atrial e Flutter Não Especificados',
+      cid10: 'I48.9',
+      ciap2: 'K78',
+      categoria: 'Cardiovascular',
+      modeloEf: 'has_rotina',
+      estratificavel: true,
+      alarmes: ['Frequência ventricular sustentada > 150 bpm com hipotensão ou dispneia súbita', 'Déficit neurológico focal (suspeita de AVC embólico)']
+    },
+    {
+      termo: 'varizes_mmii',
+      sinonimos: ['varizes', 'insuficiencia venosa', 'peso nas pernas', 'edema de mmii', 'veias dilatadas', 'varizes com edema'],
+      diagnostico: 'Varizes dos Membros Inferiores sem Úlcera',
+      cid10: 'I83.9',
+      ciap2: 'K95',
+      categoria: 'Cardiovascular',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Edema unilateral assimétrico com empastamento de panturrilha (suspeita de TVP)', 'Abertura de úlcera com sinais flogísticos graves']
+    },
+    {
+      termo: 'hipotensao_postural',
+      sinonimos: ['pressao baixa', 'tontura ao levantar', 'hipotensao ortostatica', 'queda de pressao', 'lipotimia'],
+      diagnostico: 'Hipotensão Ortostática / Postural',
+      cid10: 'I95.1',
+      ciap2: 'K88',
+      categoria: 'Cardiovascular',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Síncope com trauma cranioencefálico', 'Queda pressórica associada a melena ou hematêmese']
+    },
+    {
+      termo: 'daop',
+      sinonimos: ['daop', 'doenca arterial periferica', 'claudicacao intermitente', 'dor na panturrilha ao caminhar', 'isquemia periferica'],
+      diagnostico: 'Doença Vascular Periférica Não Especificada (DAOP)',
+      cid10: 'I73.9',
+      ciap2: 'K92',
+      categoria: 'Cardiovascular',
+      modeloEf: 'checkup_geral',
+      estratificavel: true,
+      alarmes: ['Dor em repouso no membro com extremidade fria, pálida e ausência de pulsos (isquemia crítica aguda)']
+    },
+
+    // --- METABÓLICO & ENDÓCRINO (CIAP-2: T) ---
+    {
       termo: 'diabetes_tipo_2',
-      sinonimos: ['dm2', 'dm 2', 'diabetes', 'diabetes tipo 2', 'diabetes mellitus tipo 2', 'glicemia alta'],
+      sinonimos: ['dm2', 'dm 2', 'diabetes', 'diabetes tipo 2', 'diabetes mellitus tipo 2', 'glicemia alta', 'acucar no sangue'],
       diagnostico: 'Diabetes Mellitus Tipo 2 sem complicações agudas',
       cid10: 'E11.9',
       ciap2: 'T90',
       categoria: 'Metabólico',
+      modeloEf: 'dm_rotina',
       estratificavel: true,
-      alarmes: ['Glicemia > 300 mg/dL com sintomas cetóticos (náuseas, vômitos, dor abdominal)', 'Lesão ulcerada ou bolhosa em pés', 'Rebaixamento de consciência ou confusão mental']
+      alarmes: ['Glicemia > 300 mg/dL com sintomas cetóticos (náuseas, vômitos, dor abdominal)', 'Lesão ulcerada ou bolhosa em pés (pé diabético)', 'Rebaixamento de consciência ou confusão mental']
     },
     {
       termo: 'diabetes_tipo_1',
-      sinonimos: ['dm1', 'dm 1', 'diabetes tipo 1', 'diabetes mellitus tipo 1', 'insulino dependente'],
+      sinonimos: ['dm1', 'dm 1', 'diabetes tipo 1', 'diabetes mellitus tipo 1', 'insulino dependente', 'diabetes juvenil'],
       diagnostico: 'Diabetes Mellitus Tipo 1',
       cid10: 'E10.9',
       ciap2: 'T89',
       categoria: 'Metabólico',
+      modeloEf: 'dm_rotina',
       estratificavel: true,
-      alarmes: ['Cetoacidose diabética (polipneia de Kussmaul, hálito cetônico, vômitos, desidratação)', 'Hipoglicemia grave sintomática']
+      alarmes: ['Cetoacidose diabética (polipneia de Kussmaul, hálito cetônico, vômitos, desidratação)', 'Hipoglicemia grave sintomática < 54 mg/dL']
+    },
+    {
+      termo: 'diabetes_gestacional',
+      sinonimos: ['dmg', 'diabetes na gestacao', 'diabetes gestacional', 'glicemia de jejum alterada na gestante'],
+      diagnostico: 'Diabetes Mellitus que Surge na Gravidez (DMG)',
+      cid10: 'O24.4',
+      ciap2: 'W85',
+      categoria: 'Metabólico',
+      modeloEf: 'dm_rotina',
+      estratificavel: true,
+      alarmes: ['Glicemia capilar de jejum persistentemente > 100 mg/dL ou pós-prandial > 140 mg/dL apesar da dieta', 'Polidrâmnio ou macrossomia fetal']
+    },
+    {
+      termo: 'pre_diabetes',
+      sinonimos: ['prediabetes', 'glicemia de jejum alterada', 'resistencia a insulina', 'intolerancia a glicose'],
+      diagnostico: 'Glicemia de Jejum Alterada / Pré-Diabetes',
+      cid10: 'R73.0',
+      ciap2: 'T90',
+      categoria: 'Metabólico',
+      modeloEf: 'dm_rotina',
+      estratificavel: true,
+      alarmes: ['Progressão rápida para sintomas cardinais de DM (poliúria, polidipsia, perda ponderal inexplicada)']
     },
     {
       termo: 'dislipidemia',
-      sinonimos: ['colesterol alto', 'colesterol', 'hipercolesterolemia', 'triglicerideos altos', 'hipertrigliceridemia'],
-      diagnostico: 'Dislipidemia Mista / Hipercolesterolemia Pura',
+      sinonimos: ['colesterol alto', 'colesterol', 'hipercolesterolemia', 'ldl alto', 'gordura no sangue'],
+      diagnostico: 'Hipercolesterolemia Pura / Dislipidemia',
       cid10: 'E78.0',
       ciap2: 'T93',
       categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
       estratificavel: true,
-      alarmes: ['Dor em panturrilha ou membros aos esforços (claudicação)', 'Dor precordial']
+      alarmes: ['Xantomas tendíneos ou arco corneano prematuro sugerindo hipercolesterolemia familiar grave', 'Dor precordial em esforço']
+    },
+    {
+      termo: 'hipertrigliceridemia',
+      sinonimos: ['triglicerideos altos', 'triglicerides', 'dislipidemia mista'],
+      diagnostico: 'Hipertrigliceridemia Pura / Mista',
+      cid10: 'E78.2',
+      ciap2: 'T93',
+      categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
+      estratificavel: true,
+      alarmes: ['Triglicerídeos > 500 a 1000 mg/dL com dor abdominal em faixa (risco iminente de pancreatite aguda)']
     },
     {
       termo: 'obesidade',
-      sinonimos: ['sobrepeso', 'excesso de peso', 'imc alto'],
-      diagnostico: 'Obesidade não especificada',
+      sinonimos: ['sobrepeso', 'excesso de peso', 'imc alto', 'ganho de peso excessivo'],
+      diagnostico: 'Obesidade Não Especificada',
       cid10: 'E66.9',
       ciap2: 'T82',
       categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
       estratificavel: false,
-      alarmes: ['Dispneia paroxística noturna ou apneia obstrutiva grave']
+      alarmes: ['Apneia obstrutiva do sono grave com hipersonolência diurna severa', 'Dispneia progressiva aos mínimos esforços']
     },
     {
       termo: 'hipotireoidismo',
-      sinonimos: ['tireoide', 'tsh alto', 't4 livre baixo', 'hipo tireoidismo'],
-      diagnostico: 'Hipotireoidismo primário não especificado',
+      sinonimos: ['tireoide', 'tsh alto', 't4 livre baixo', 'hipo tireoidismo', 'hashimoto', 'tireoidite'],
+      diagnostico: 'Hipotireoidismo Primário Não Especificado',
       cid10: 'E03.9',
       ciap2: 'T86',
       categoria: 'Endócrino',
+      modeloEf: 'checkup_geral',
       estratificavel: false,
-      alarmes: ['Bradicardia severa < 45 bpm', 'Mixedema com sonolência extrema']
+      alarmes: ['Bradicardia severa < 45 bpm', 'Mixedema com sonolência extrema, hipotermia ou derrames cavitários']
     },
     {
+      termo: 'hipertireoidismo',
+      sinonimos: ['hipertireoidismo', 'doenca de graves', 'tireotoxicose', 'tsh baixo', 't4 alto', 'bocio'],
+      diagnostico: 'Tireotoxicose com ou sem Bócio / Hipertireoidismo',
+      cid10: 'E05.9',
+      ciap2: 'T85',
+      categoria: 'Endócrino',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Tempestade tireoidiana (febre alta, taquicardia desproporcional, delirium ou insuficiência cardíaca de alto débito)']
+    },
+    {
+      termo: 'gota_articular',
+      sinonimos: ['gota', 'acido urico alto', 'crise de gota', 'podagra', 'inflamacao no halux', 'artrite gotosa'],
+      diagnostico: 'Gota Úrica Idiopática / Podagra',
+      cid10: 'M10.9',
+      ciap2: 'T92',
+      categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sinais de artrite séptica concomitante (febre alta, toxemia, drenagem purulenta periarticular)']
+    },
+    {
+      termo: 'osteoporose',
+      sinonimos: ['osteoporose', 'densitometria alterada', 'desmineralizacao ossea', 'osteopenia severa'],
+      diagnostico: 'Osteoporose Não Especificada sem Fratura Patológica',
+      cid10: 'M81.0',
+      ciap2: 'L95',
+      categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Dor óssea aguda após queda leve sugerindo fratura de colo de fêmur ou colapso vertebral']
+    },
+    {
+      termo: 'deficiencia_vitamina_d',
+      sinonimos: ['hipovitaminose d', 'vitamina d baixa', 'falta de vitamina d', 'insuficiencia de vitamina d'],
+      diagnostico: 'Deficiência de Vitamina D Não Especificada',
+      cid10: 'E55.9',
+      ciap2: 'T91',
+      categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Hipocalcemia sintomática (tetania, parestesias periorais, sinais de Chvostek/Trousseau)']
+    },
+    {
+      termo: 'deficiencia_vitamina_b12',
+      sinonimos: ['b12 baixa', 'falta de vitamina b12', 'cobalamina baixa', 'anemia perniciosa'],
+      diagnostico: 'Deficiência de Vitamina B12 Não Especificada',
+      cid10: 'E53.8',
+      ciap2: 'B81',
+      categoria: 'Metabólico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Degeneração combinada subaguda da medula (ataxia de marcha, perda de propriocepção e sensibilidade vibratória)']
+    },
+
+    // --- RESPIRATÓRIO (CIAP-2: R) ---
+    {
       termo: 'resfriado_comum',
-      sinonimos: ['resfriado', 'gripe', 'ivas', 'coriza', 'rinofaringite'],
+      sinonimos: ['resfriado', 'gripe', 'ivas', 'coriza', 'rinofaringite', 'nariz escorrendo', 'congestao nasal'],
       diagnostico: 'Rinofaringite Aguda (Resfriado Comum)',
       cid10: 'J00',
       ciap2: 'R74',
       categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
-      alarmes: ['Falta de ar / esforço respiratório', 'Febre persistente > 72h', 'Prostração ou confusão']
+      alarmes: ['Falta de ar / esforço respiratório', 'Febre persistente > 72h', 'Prostração severa ou confusão']
+    },
+    {
+      termo: 'ivas_geral',
+      sinonimos: ['infeccao respiratoria alta', 'virose respiratoria', 'catarro', 'obstrucao nasal', 'quadro gripal'],
+      diagnostico: 'Infecção Aguda das Vias Aéreas Superiores Não Especificada',
+      cid10: 'J06.9',
+      ciap2: 'R74',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Estridor laríngeo ou tiragem intercostal', 'Dessaturação SpO2 < 93%']
     },
     {
       termo: 'faringite_amigdalite',
-      sinonimos: ['dor de garganta', 'amigdalite', 'faringite', 'odinofagia'],
-      diagnostico: 'Faringoamigdalite Aguda não especificada',
+      sinonimos: ['dor de garganta', 'amigdalite', 'faringite', 'odinofagia', 'garganta inflamada'],
+      diagnostico: 'Faringoamigdalite Aguda Não Especificada',
       cid10: 'J02.9',
       ciap2: 'R74',
       categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
       alarmes: ['Trismo (dificuldade de abrir a boca)', 'Sialorreia (incapacidade de deglutir saliva)', 'Desvio de úvula (suspeita de abscesso periamigdaliano)']
     },
     {
+      termo: 'amigdalite_estreptococica',
+      sinonimos: ['amigdalite bacteriana', 'placas na garganta', 'pus na garganta', 'faringite estreptococica', 'centor positivo'],
+      diagnostico: 'Faringite Estreptocócica Bacteriana',
+      cid10: 'J02.0',
+      ciap2: 'R72',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Abscesso retrofaríngeo ou periamigdaliano', 'Estridor e dificuldade respiratória progressiva']
+    },
+    {
+      termo: 'sinusite_aguda',
+      sinonimos: ['sinusite', 'rinossinusite', 'dor na face', 'pressao facial', 'secrecao nasal purulenta', 'dor nos seios da face'],
+      diagnostico: 'Sinusite Aguda Não Especificada',
+      cid10: 'J01.9',
+      ciap2: 'R75',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Edema ou hiperemia periorbitária (suspeita de celulite orbitária)', 'Cefaleia frontal refratária com rigidez de nuca']
+    },
+    {
+      termo: 'sinusite_cronica',
+      sinonimos: ['sinusite cronica', 'gotejamento pos nasal', 'congestao facial cronica'],
+      diagnostico: 'Sinusite Crônica Não Especificada',
+      cid10: 'J32.9',
+      ciap2: 'R75',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Epistaxe recorrente unilateral persistente ou deformidade facial']
+    },
+    {
       termo: 'rinite_alergica',
-      sinonimos: ['rinite', 'espirros', 'prurido nasal', 'coriza alergica'],
-      diagnostico: 'Rinite Alérgica não especificada',
+      sinonimos: ['rinite', 'espirros', 'prurido nasal', 'coriza alergica', 'coceira no nariz'],
+      diagnostico: 'Rinite Alérgica Não Especificada',
       cid10: 'J30.4',
       ciap2: 'R97',
       categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
       alarmes: ['Broncoespasmo ou estridor laríngeo associado']
     },
     {
       termo: 'asma_bronquica',
-      sinonimos: ['asma', 'bronquite alergica', 'chiado no peito', 'sibilancia'],
-      diagnostico: 'Asma brônquica não especificada',
+      sinonimos: ['asma', 'bronquite alergica', 'chiado no peito', 'sibilancia', 'falta de ar asmatica'],
+      diagnostico: 'Asma Brônquica Não Especificada',
       cid10: 'J45.9',
       ciap2: 'R96',
       categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
       alarmes: ['Fala entrecortada por falta de ar', 'Uso de musculatura acessória', 'SpO2 < 92%', 'Tórax silencioso à ausculta']
     },
     {
       termo: 'dpoc',
-      sinonimos: ['doenca pulmonar obstrutiva cronica', 'enfisema', 'bronquite cronica'],
-      diagnostico: 'Doença Pulmonar Obstrutiva Crônica não especificada',
+      sinonimos: ['doenca pulmonar obstrutiva cronica', 'enfisema', 'bronquite cronica', 'pulmao de fumante'],
+      diagnostico: 'Doença Pulmonar Obstrutiva Crônica Não Especificada',
       cid10: 'J44.9',
       ciap2: 'R95',
       categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
-      alarmes: ['Aumento súbito de volume/purulência do escarro e dispneia (descompensação Anthonisen)', 'Cianose ou confusão mental']
+      alarmes: ['Aumento súbito de volume/purulência do escarro e dispneia (descompensação Anthonisen)', 'Cianose ou sonolência com hipercapnia']
     },
     {
-      termo: 'dispepsia_gastrite',
-      sinonimos: ['gastrite', 'queimacao no estomago', 'dor de estomago', 'dispepsia', 'azia'],
-      diagnostico: 'Dispepsia Funcional / Gastrite não especificada',
-      cid10: 'K30',
-      ciap2: 'D87',
-      categoria: 'Gastrointestinal',
+      termo: 'bronquite_aguda',
+      sinonimos: ['bronquite', 'tosse com catarro', 'infeccao bronquica', 'catarro no peito'],
+      diagnostico: 'Bronquite Aguda Não Especificada',
+      cid10: 'J20.9',
+      ciap2: 'R78',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
       estratificavel: false,
-      alarmes: ['Hematêmese ou melena', 'Vômitos incoercíveis', 'Perda ponderal não intencional', 'Disfagia progressiva']
+      alarmes: ['Febre persistente > 38.5°C por mais de 5 dias', 'Dispneia progressiva com SpO2 em queda']
     },
+    {
+      termo: 'pneumonia_pac',
+      sinonimos: ['pneumonia', 'pac', 'infeccao pulmonar', 'febre e tosse com catarro', 'pneumonia adquirida na comunidade'],
+      diagnostico: 'Pneumonia Adquirida na Comunidade / Não Especificada',
+      cid10: 'J18.9',
+      ciap2: 'R81',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Critérios de gravidade CURB-65 >= 2 (Confusão, Ureia > 50, FR >= 30, PAS < 90 ou PAD <= 60)', 'SpO2 < 92% em ar ambiente']
+    },
+    {
+      termo: 'tosse_inespecifica',
+      sinonimos: ['tosse', 'tosse seca', 'pigarro', 'tosse cronica', 'tosse persistente'],
+      diagnostico: 'Tosse Não Especificada',
+      cid10: 'R05',
+      ciap2: 'R05',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Hemoptise (escarro com sangue vivo)', 'Perda de peso inexplicada e sudorese noturna']
+    },
+    {
+      termo: 'influenza_gripe',
+      sinonimos: ['gripe', 'influenza', 'sindrome gripal', 'dor no corpo com febre alta'],
+      diagnostico: 'Influenza (Gripe) com Outras Manifestações Respiratórias',
+      cid10: 'J11.1',
+      ciap2: 'R80',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Sinais de Síndrome Respiratória Aguda Grave (SRAG): dispneia, cianose, hipotensão e SpO2 < 95%']
+    },
+    {
+      termo: 'covid19',
+      sinonimos: ['covid', 'covid 19', 'coronavirus', 'sars cov 2', 'perda de olfato', 'anosmia'],
+      diagnostico: 'COVID-19 / Infecção por Coronavírus SARS-CoV-2',
+      cid10: 'U07.1',
+      ciap2: 'R83',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Dessaturação SpO2 < 94% em ar ambiente ou piora no 7º ao 10º dia do quadro']
+    },
+
+    // --- GASTROINTESTINAL (CIAP-2: D) ---
     {
       termo: 'drge',
-      sinonimos: ['refluxo', 'doenca do refluxo gastroesofagico', 'pirose', 'regurgitacao'],
-      diagnostico: 'Doença do Refluxo Gastroesofágico sem esofagite',
+      sinonimos: ['refluxo', 'doenca do refluxo gastroesofagico', 'pirose', 'regurgitacao', 'queimacao no peito', 'azia'],
+      diagnostico: 'Doença do Refluxo Gastroesofágico sem Esofagite',
       cid10: 'K21.9',
       ciap2: 'D84',
       categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
       estratificavel: false,
-      alarmes: ['Disfagia ou odinofagia persistente', 'Engasgos noturnos com broncoaspiração']
+      alarmes: ['Disfagia ou odinofagia progressiva', 'Engasgos noturnos frequentes com broncoaspiração', 'Perda de peso involuntária']
     },
     {
+      termo: 'dispepsia_funcional',
+      sinonimos: ['dispepsia', 'dor de estomago', 'estomago pesado', 'empachamento', 'ma digestao', 'epigastralgia'],
+      diagnostico: 'Dispepsia Funcional / Epigastralgia',
+      cid10: 'K30',
+      ciap2: 'D87',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Início dos sintomas após os 55 anos sem EDA prévia', 'Anemia ferropriva ou sangue oculto positivo']
+    },
+    {
+      termo: 'gastrite_aguda_cronica',
+      sinonimos: ['gastrite', 'queimacao no estomago', 'dor no estomago', 'gastrite cronica'],
+      diagnostico: 'Gastrite Não Especificada',
+      cid10: 'K29.7',
+      ciap2: 'D87',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Hematêmese (vômito com sangue) ou melena (fezes em borra de café)', 'Vômitos incoercíveis com desidratação']
+    },
+    {
+      termo: 'ulcera_peptica',
+      sinonimos: ['ulcera', 'ulcera gastrica', 'ulcera duodenal', 'ulcera peptica'],
+      diagnostico: 'Úlcera Péptica Não Especificada',
+      cid10: 'K27.9',
+      ciap2: 'D86',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Abdome em tábua e dor súbita intensa (suspeita de perfuração de víscera oca)', 'Hemorragia digestiva ativa']
+    },
+    {
+      termo: 'gastroenterite_geca',
+      sinonimos: ['geca', 'diarreia', 'dor de barriga', 'vomito', 'desinteria', 'gastroenterite infecciosa', 'intoxicacao alimentar'],
+      diagnostico: 'Diarreia e Gastroenterite de Origem Infecciosa Presumível',
+      cid10: 'A09',
+      ciap2: 'D70',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Sinais clínicos de desidratação grave (olhos encovados, turgor muito diminuído, TEC > 3s, anúria)', 'Fezes com sangue vivo e febre alta']
+    },
+    {
+      termo: 'sindrome_intestino_irritavel',
+      sinonimos: ['sii', 'intestino irritavel', 'colica intestinal com alternancia', 'distensao abdominal cronica'],
+      diagnostico: 'Síndrome do Intestino Irritável sem Diarreia',
+      cid10: 'K58.9',
+      ciap2: 'D93',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Sinais de alarme para DII ou neoplasia: sangramento retal, início após 50 anos, diarreia noturna, febre']
+    },
+    {
+      termo: 'constipacao_intestinal',
+      sinonimos: ['constipacao', 'prisao de ventre', 'intestino preso', 'obstipacao', 'fezes ressecadas'],
+      diagnostico: 'Constipação Intestinal Crônica / Obstipação',
+      cid10: 'K59.0',
+      ciap2: 'D12',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Parada de eliminação de gases e fezes com distensão abdominal acentuada (suspeita de fecaloma ou abdome obstrutivo)']
+    },
+    {
+      termo: 'hemorroidas',
+      sinonimos: ['hemorroida', 'sangramento ao evacuar', 'nodulo anal', 'dor anal', 'trombose hemorroidaria'],
+      diagnostico: 'Hemorroidas Sem Complicação',
+      cid10: 'I84.9',
+      ciap2: 'D95',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Trombose hemorroidária externa aguda com necrose cutânea e dor lancinante', 'Sangramento copioso com instabilidade']
+    },
+    {
+      termo: 'fissura_anal',
+      sinonimos: ['fissura anal', 'dor cortante ao evacuar', 'sangue no papel higienico', 'rasgo no anus'],
+      diagnostico: 'Fissura Anal Aguda ou Crônica',
+      cid10: 'K60.2',
+      ciap2: 'D95',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Fissuras atípicas laterais múltiplas sugerindo Doença de Crohn, TB ou infecção sexualmente transmissível']
+    },
+    {
+      termo: 'colelitiase',
+      sinonimos: ['pedra na vesicula', 'calculo biliar', 'colica biliar', 'dor no hipocondrio direito', 'dor apos comida gordurosa'],
+      diagnostico: 'Colelitíase sem Colecistite / Pedra na Vesícula',
+      cid10: 'K80.2',
+      ciap2: 'D98',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Sinal de Murphy positivo e febre (suspeita de colecistite aguda)', 'Icterícia com colúria e acolia fecal (coledocolitíase)']
+    },
+    {
+      termo: 'esteatose_hepatica',
+      sinonimos: ['gordura no figado', 'esteatose', 'figado gorduroso', 'nflad'],
+      diagnostico: 'Degeneração Gordurosa do Fígado (Esteatose Hepática)',
+      cid10: 'K76.0',
+      ciap2: 'D97',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Sinais clínicos de insuficiência hepatocelular (icterícia, ascite, telangiectasias, encefalopatia)']
+    },
+    {
+      termo: 'nausea_vomito',
+      sinonimos: ['nausea', 'vomito', 'enjoo', 'ansia de vomito'],
+      diagnostico: 'Náuseas e Vômitos Inespecíficos',
+      cid10: 'R11',
+      ciap2: 'D09',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Vômitos com aspecto bilioso incoercível ou fecalóide', 'Vômitos em jato precedidos de cefaleia súbita (hipertensão intracraniana)']
+    },
+    {
+      termo: 'dor_abdominal_inespecifica',
+      sinonimos: ['dor abdominal', 'dor na barriga', 'colica abdominal', 'dor epigastrica inespecifica'],
+      diagnostico: 'Dor Abdominal e Pélvica Não Especificada',
+      cid10: 'R10.4',
+      ciap2: 'D01',
+      categoria: 'Gastrointestinal',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Sinais de peritonismo agudo: descompressão brusca positiva (Blumberg), rigidez em tábua, febre']
+    },
+
+    // --- MUSCULOESQUELÉTICO & REUMATOLOGIA (CIAP-2: L) ---
+    {
       termo: 'lombalgia',
-      sinonimos: ['dor nas costas', 'dor lombar', 'lumbago', 'dor na coluna'],
-      diagnostico: 'Lombalgia mecânico-postural comum',
+      sinonimos: ['dor nas costas', 'dor lombar', 'lumbago', 'dor na coluna', 'mau jeito nas costas', 'coluna travada'],
+      diagnostico: 'Dor Lombar Baixa / Lombalgia Aguda Mecânica',
       cid10: 'M54.5',
       ciap2: 'L03',
       categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
       estratificavel: false,
       alarmes: ['Anestesia em sela (períneo)', 'Incontinência fecal ou retenção urinária aguda (Síndrome da Cauda Equina)', 'Déficit motor agudo (pé caído)', 'Febre com dor lombar inflamatória noturna']
     },
     {
+      termo: 'lombociatalgia',
+      sinonimos: ['dor ciatica', 'ciatico', 'hernia de disco', 'lombociatalgia', 'dor que desce para perna', 'lasegue positivo'],
+      diagnostico: 'Lumbago com Ciática / Lombociatalgia Radicular',
+      cid10: 'M54.4',
+      ciap2: 'L86',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Paresia motora progressiva rápida em membros inferiores', 'Sinais bilaterais com perda esfincteriana']
+    },
+    {
+      termo: 'cervicalgia',
+      sinonimos: ['cervicalgia', 'dor no pescoco', 'torcicolo', 'dor na coluna cervical', 'tensão cervical'],
+      diagnostico: 'Cervicalgia / Torcicolo',
+      cid10: 'M54.2',
+      ciap2: 'L01',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Cervicalgia com irradiação radicular grave associada a perda de força na mão ou choque ao fletir o pescoço (sinal de Lhermitte)']
+    },
+    {
+      termo: 'osteoartrite_joelho',
+      sinonimos: ['artrose', 'gonartrose', 'desgaste no joelho', 'osteoartrose', 'dor no joelho ao andar', 'artrose joelho'],
+      diagnostico: 'Gonartrose (Osteoartrite de Joelho) Não Especificada',
+      cid10: 'M17.9',
+      ciap2: 'L90',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Sinais de artrite séptica (articulação quente, hiperemiada, com derrame volumoso e febre)']
+    },
+    {
+      termo: 'osteoartrite_quadril',
+      sinonimos: ['coxartrose', 'artrose quadril', 'desgaste no quadril', 'dor na virilha ao deambular'],
+      diagnostico: 'Coxartrose (Osteoartrite de Quadril) Não Especificada',
+      cid10: 'M16.9',
+      ciap2: 'L89',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Impossibilidade de apoio e rotação do membro após trauma leve (suspeita de fratura de colo de fêmur)']
+    },
+    {
+      termo: 'tendinite_ombro',
+      sinonimos: ['dor no ombro', 'tendinite ombro', 'manguito rotador', 'bursite ombro', 'ombro doloroso', 'tendinopatia supraespinhal'],
+      diagnostico: 'Síndrome do Manguito Rotador / Ombro Doloroso',
+      cid10: 'M75.1',
+      ciap2: 'L92',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Perda motora súbita de elevação do braço (ruptura aguda maciça de tendão)']
+    },
+    {
+      termo: 'epicondilite',
+      sinonimos: ['epicondilite lateral', 'cotovelo de tenista', 'epicondilite medial', 'dor no cotovelo'],
+      diagnostico: 'Epicondilite Lateral ou Medial',
+      cid10: 'M77.1',
+      ciap2: 'L93',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Derrame articular volumoso no cotovelo com bloqueio mecânico total']
+    },
+    {
+      termo: 'fascite_plantar',
+      sinonimos: ['fascite plantar', 'esporao', 'dor no calcanhar', 'dor na sola do pe', 'dor ao pisar pela manha'],
+      diagnostico: 'Fascite Plantar / Esporão de Calcâneo',
+      cid10: 'M72.2',
+      ciap2: 'L99',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Dor em queimação contínua com perda de sensibilidade sugerindo neuropatia diabética ou vasculite']
+    },
+    {
+      termo: 'tunel_do_carpo',
+      sinonimos: ['tunel do carpo', 'sindrome do tunel do carpo', 'dormencia nos dedos', 'formigamento na mao', 'tinel phalen'],
+      diagnostico: 'Síndrome do Túnel do Carpo',
+      cid10: 'G56.0',
+      ciap2: 'N93',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Atrofia visível da eminência tenar com perda de pinça digital (indicação cirúrgica urgente)']
+    },
+    {
+      termo: 'fibromialgia',
+      sinonimos: ['fibromialgia', 'dor no corpo todo', 'pontos dolorosos', 'tender points', 'dor cronica generalizada'],
+      diagnostico: 'Fibromialgia / Síndrome de Amplificação Dolorosa',
+      cid10: 'M79.7',
+      ciap2: 'L18',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Fraqueza muscular proximal progressiva com elevação expressiva de CPK (suspeita de miosite inflamatória)']
+    },
+    {
+      termo: 'bursite_trocanterica',
+      sinonimos: ['bursite trocanterica', 'bursite no quadril', 'dor na lateral da coxa', 'trocanterite'],
+      diagnostico: 'Bursite Trocantérica / Bursite do Quadril',
+      cid10: 'M70.6',
+      ciap2: 'L99',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Febre e calor intenso local com flutuação sugerindo bursite infecciosa séptica']
+    },
+    {
+      termo: 'entorse_tornozelo',
+      sinonimos: ['entorse tornozelo', 'torcao no pe', 'pisou em falso', 'edema de tornozelo'],
+      diagnostico: 'Entorse e Distensão do Tornozelo',
+      cid10: 'S93.4',
+      ciap2: 'L77',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Critérios de Ottawa positivos: incapacidade de apoiar o peso por 4 passos ou dor óssea à palpação maleolar']
+    },
+    {
+      termo: 'mialgia_contusao',
+      sinonimos: ['mialgia', 'dor muscular', 'contratura muscular', 'dor muscular pos treino'],
+      diagnostico: 'Mialgia / Contratura Muscular',
+      cid10: 'M79.1',
+      ciap2: 'L18',
+      categoria: 'Musculoesquelético',
+      modeloEf: 'lombalgia_postural',
+      estratificavel: false,
+      alarmes: ['Urina escura cor de coca-cola com dor muscular intensa após esforço extremo (suspeita de rabdomiólise)']
+    },
+
+    // --- NEFROLOGIA & UROLOGIA (CIAP-2: U & Y) ---
+    {
+      termo: 'cistite_itu',
+      sinonimos: ['itu', 'infeccao urinaria', 'cistite', 'disuria', 'ardor para urinar', 'xixi ardendo', 'polaciuria'],
+      diagnostico: 'Cistite Aguda Não Complicada (ITU Baixa)',
+      cid10: 'N30.0',
+      ciap2: 'U71',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Febre alta associada a dor lombar em flanco (Giordano positivo - suspeita de pielonefrite)', 'Náuseas e vômitos com prostração']
+    },
+    {
+      termo: 'pielonefrite_aguda',
+      sinonimos: ['pielonefrite', 'infeccao no rim', 'itu alta', 'dor no flanco com febre', 'giordano positivo'],
+      diagnostico: 'Pielonefrite Aguda Não Complicada',
+      cid10: 'N10',
+      ciap2: 'U70',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sinais de sepse urinária: hipotensão, taquicardia, confusão mental, calafrios incontroláveis', 'Gestante com pielonefrite']
+    },
+    {
+      termo: 'calculo_renal',
+      sinonimos: ['calculo renal', 'pedra no rim', 'colica renal', 'colica nefretica', 'nefrolitiase', 'dor nos rins'],
+      diagnostico: 'Cálculo do Rim e do Ureter / Cólica Nefrética',
+      cid10: 'N20.0',
+      ciap2: 'U95',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Cólica renal associada a febre e calafrios (urgência urológica de cálculo obstrutivo infectado)', 'Anúria em rim único']
+    },
+    {
+      termo: 'hiperplasia_prostatica',
+      sinonimos: ['hpb', 'prostata aumentada', 'jato urinario fraco', 'nocturia', 'dificuldade para urinar homem'],
+      diagnostico: 'Hiperplasia Prostática Benigna (HPB)',
+      cid10: 'N40',
+      ciap2: 'Y73',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Retenção urinária aguda com bexigoma doloroso palpável (necessidade de sondagem de alívio/demora)']
+    },
+    {
+      termo: 'prostatite',
+      sinonimos: ['prostatite', 'infeccao na prostata', 'dor no perineo', 'dor ao urinar homem'],
+      diagnostico: 'Prostatite Aguda Não Especificada',
+      cid10: 'N41.9',
+      ciap2: 'Y73',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Febre alta com retenção urinária e toque retal extremamente doloroso (contraindicação a massagem prostática)']
+    },
+    {
+      termo: 'incontinencia_urinaria',
+      sinonimos: ['incontinencia urinaria', 'perda de urina', 'escape de xixi', 'incontinencia de esforco'],
+      diagnostico: 'Incontinência Urinária Não Especificada',
+      cid10: 'R32',
+      ciap2: 'U04',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Incontinência de início abrupto associada a dormência genital e fraqueza de membros inferiores']
+    },
+    {
+      termo: 'hematuria',
+      sinonimos: ['sangue na urina', 'urina vermelha', 'hematuria', 'urina com sangue'],
+      diagnostico: 'Hematúria Não Especificada',
+      cid10: 'R31',
+      ciap2: 'U06',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Hematúria maciça com eliminação de coágulos e retenção urinária', 'Hematúria indolor em tabagista > 50 anos']
+    },
+    {
+      termo: 'doenca_renal_cronica',
+      sinonimos: ['drc', 'insuficiencia renal cronica', 'creatinina alta', 'perda de funcao renal', 'tfg baixa'],
+      diagnostico: 'Doença Renal Crônica Não Especificada',
+      cid10: 'N18.9',
+      ciap2: 'U99',
+      categoria: 'Urológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: true,
+      alarmes: ['Hipercalemia > 6.0 mEq/L com alterações eletrocardiográficas (onda T apiculada)', 'Uremia sintomática (pericardite, asterixe, soluços)']
+    },
+
+    // --- DERMATOLOGIA & ALERGIA (CIAP-2: S) ---
+    {
+      termo: 'dermatite_contato',
+      sinonimos: ['dermatite de contato', 'alergia na pele', 'eczema', 'coceira e vermelhidao', 'dermatite alergica'],
+      diagnostico: 'Dermatite de Contato Não Especificada',
+      cid10: 'L23.9',
+      ciap2: 'S88',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Comprometimento de mucosas oral/ocular com descamação extensa (suspeita de Síndrome de Stevens-Johnson / NET)']
+    },
+    {
+      termo: 'dermatite_atopica',
+      sinonimos: ['dermatite atopica', 'eczema atopico', 'pele ressecada com prurido', 'atopia cutanea'],
+      diagnostico: 'Dermatite Atópica Não Especificada',
+      cid10: 'L20.9',
+      ciap2: 'S87',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Infecção secundária disseminada por herpes simples (Eczema Herpético de Kaposi)']
+    },
+    {
+      termo: 'dermatite_seborreica',
+      sinonimos: ['dermatite seborreica', 'caspa', 'descamacao no couro cabeludo', 'crosta lactea'],
+      diagnostico: 'Dermatite Seborreica Não Especificada',
+      cid10: 'L21.9',
+      ciap2: 'S86',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Eritrodermia esfoliativa generalizada']
+    },
+    {
+      termo: 'urticaria_aguda',
+      sinonimos: ['urticaria', 'placas vermelhas que cocam', 'empolacao', 'reacao alergica aguda', 'angioedema'],
+      diagnostico: 'Urticária Alérgica / Não Especificada',
+      cid10: 'L50.9',
+      ciap2: 'S98',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Edema de glote, rouquidão súbita, estridor ou hipotensão (Anafilaxia com indicação de Adrenalina IM imediata)']
+    },
+    {
+      termo: 'escabiose',
+      sinonimos: ['escabiose', 'sarna', 'coceira noturna', 'pereba', 'sarna humana', 'lesoes interdigitais'],
+      diagnostico: 'Escabiose (Sarna Humana)',
+      cid10: 'B86',
+      ciap2: 'S72',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sarna crostosa/norueguesa em imunossuprimido com risco de infecção bacteriana secundária grave']
+    },
+    {
+      termo: 'pediculose',
+      sinonimos: ['piolho', 'pediculose', 'lendea', 'coceira na cabeca'],
+      diagnostico: 'Pediculose Devida a Pediculus Humanus Capitis',
+      cid10: 'B85.0',
+      ciap2: 'S73',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Impetiginização secundária extensa com adenomegalia occipital supurada']
+    },
+    {
+      termo: 'erisipela_celulite',
+      sinonimos: ['erisipela', 'celulite infecciosa', 'perna vermelha e quente', 'infeccao de pele com febre'],
+      diagnostico: 'Erisipela / Celulite Infecciosa de Membro',
+      cid10: 'A46',
+      ciap2: 'S76',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Dor desproporcional ao exame, crepitação à palpação, bolhas hemorrágicas ou necrose rápida (suspeita de Fasciíte Necrosante)']
+    },
+    {
+      termo: 'herpes_zoster',
+      sinonimos: ['herpes zoster', 'cobreiro', 'vesiculas em dermatomo', 'queimacao na pele em faixa', 'dor em faixa'],
+      diagnostico: 'Herpes Zoster sem Complicações',
+      cid10: 'B02.9',
+      ciap2: 'S70',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Acometimento da ponta do nariz (Sinal de Hutchinson - risco iminente de ceratite por herpes oftálmico)', 'Paralisia facial periférica com otalgia (Síndrome de Ramsay Hunt)']
+    },
+    {
+      termo: 'herpes_simples',
+      sinonimos: ['herpes labial', 'herpes simples', 'vesicula no labio', 'feridinha no labio', 'herpes genital'],
+      diagnostico: 'Infecção pelo Vírus do Herpes Simples Não Especificada',
+      cid10: 'B00.9',
+      ciap2: 'S71',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Lesão ocular com dor e hiperemia sugerindo ceratite herpética dendrítica']
+    },
+    {
+      termo: 'tinea_cutanea',
+      sinonimos: ['tinea', 'micose', 'frieira', 'pe de atleta', 'impigem', 'tinea corporis', 'tinea pedis'],
+      diagnostico: 'Dermatofitose / Tinea Não Especificada (Micose)',
+      cid10: 'B35.9',
+      ciap2: 'S74',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Porta de entrada com sinais de celulite ascendente em membro inferior de diabético']
+    },
+    {
+      termo: 'pitiriase_versicolor',
+      sinonimos: ['pano branco', 'micose de praia', 'pitiriase versicolor', 'manchas claras no tronco'],
+      diagnostico: 'Pitiríase Versicolor (Pano Branco)',
+      cid10: 'B36.0',
+      ciap2: 'S74',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Lesão com perda de sensibilidade térmica e tátil (diagnóstico diferencial obrigatório de Hanseníase)']
+    },
+    {
+      termo: 'onicomicose',
+      sinonimos: ['micose de unha', 'onicomicose', 'unha amarelada e grossa', 'fungo na unha'],
+      diagnostico: 'Onicomicose / Tinea Unguium',
+      cid10: 'B35.1',
+      ciap2: 'S74',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Paroníquia aguda bacteriana associada com secreção purulenta e dor latejante']
+    },
+    {
+      termo: 'acne_vulgar',
+      sinonimos: ['acne', 'espinhas', 'cravos', 'comedoes', 'acne inflamatoria'],
+      diagnostico: 'Acne Vulgar',
+      cid10: 'L70.0',
+      ciap2: 'S96',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Acne fulminans com febre alta e artralgias', 'Cistos volumosos confluentes']
+    },
+    {
+      termo: 'psoriase_vulgar',
+      sinonimos: ['psoriase', 'placas descamativas', 'lesoes em cotovelo e joelho', 'psoriase em placas'],
+      diagnostico: 'Psoríase Vulgar',
+      cid10: 'L40.0',
+      ciap2: 'S91',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Psoríase pustulosa generalizada de von Zumbusch com toxicidade sistêmica', 'Artrite psoriásica mutilante']
+    },
+    {
+      termo: 'abscesso_furunculo',
+      sinonimos: ['furunculo', 'abscesso cutaneo', 'nodulo com pus', 'foliculite profunda'],
+      diagnostico: 'Abscesso Cutâneo, Furúnculo e Antraz',
+      cid10: 'L02.9',
+      ciap2: 'S10',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Furúnculo na região do "triângulo perigoso da face" (risco de trombose do seio cavernoso)']
+    },
+    {
+      termo: 'verruga_viral',
+      sinonimos: ['verruga', 'olho de peixe', 'verruga plantar', 'verruga comum', 'hpv cutaneo'],
+      diagnostico: 'Verrugas de Origem Viral Não Especificadas',
+      cid10: 'B07',
+      ciap2: 'S03',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Lesão com crescimento rápido, sangramento espontâneo ou bordas irregulares (suspeita de CEC verrucoso)']
+    },
+
+    // --- NEUROLOGIA & CEFALEIAS (CIAP-2: N) ---
+    {
       termo: 'cefaleia_tensional',
-      sinonimos: ['cefaleia', 'dor de cabeca', 'cefaleia tipo tensao', 'pressao na cabeca'],
-      diagnostico: 'Cefaleia Tensional Episódica ou Crônica',
+      sinonimos: ['cefaleia', 'dor de cabeca', 'cefaleia tipo tensao', 'pressao na cabeca', 'cefaleia tensional'],
+      diagnostico: 'Cefaleia Tensional Primária',
       cid10: 'G44.2',
       ciap2: 'N95',
       categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
       estratificavel: false,
       alarmes: ['Cefaleia súbita de início explosivo em < 1 min ("pior da vida")', 'Sinais meníngeos (rigidez de nuca)', 'Déficit neurológico focal', 'Início após os 50 anos ou febre com alteração de comportamento']
     },
     {
       termo: 'enxaqueca',
-      sinonimos: ['migranea', 'enxaqueca com aura', 'enxaqueca sem aura', 'hemicrania'],
-      diagnostico: 'Enxaqueca (Migrânea) sem aura',
+      sinonimos: ['migranea', 'enxaqueca com aura', 'enxaqueca sem aura', 'hemicrania', 'dor pulsatil na cabeca', 'enxaqueca'],
+      diagnostico: 'Enxaqueca (Migrânea) sem Aura',
       cid10: 'G43.0',
       ciap2: 'N89',
       categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
       estratificavel: false,
       alarmes: ['Aura atípica com duração > 60 min ou fraqueza motora', 'Mudança drástica no padrão usual de dor']
     },
     {
-      termo: 'cistite_itu',
-      sinonimos: ['itu', 'infeccao urinaria', 'cistite', 'disuria', 'ardor para urinar'],
-      diagnostico: 'Cistite Aguda (Infecção do Trato Urinário Baixa)',
-      cid10: 'N30.0',
-      ciap2: 'U71',
-      categoria: 'Urológico',
+      termo: 'vppb_vertigem',
+      sinonimos: ['vppb', 'vertigem posicional', 'labirintite', 'tontura rotatoria ao virar na cama', 'tontura ao deitar'],
+      diagnostico: 'Vertigem Posicional Paroxística Benigna (VPPB)',
+      cid10: 'H81.1',
+      ciap2: 'N17',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
       estratificavel: false,
-      alarmes: ['Febre alta associada a dor em flanco/lombar (Giordano positivo - suspeita de pielonefrite)', 'Náuseas e vômitos com prostração']
+      alarmes: ['Nistagmo vertical espontâneo que não esgota ou dismetria cerebelar (HINTS positivo para AVC de fossa posterior)']
     },
     {
+      termo: 'labirintite_neuronite',
+      sinonimos: ['labirintite', 'neuronite vestibular', 'tontura constante com nausea e vomito', 'crise labirintica'],
+      diagnostico: 'Transtorno da Função Vestibular / Labirintite',
+      cid10: 'H81.0',
+      ciap2: 'H82',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
+      estratificavel: false,
+      alarmes: ['Perda auditiva súbita unilateral associada ou paralisia de nervos cranianos']
+    },
+    {
+      termo: 'tontura_inespecifica',
+      sinonimos: ['tontura', 'sensacao de desmaio', 'instabilidade ao caminhar', 'desequilibrio'],
+      diagnostico: 'Tontura e Instabilidade Não Especificadas',
+      cid10: 'R42',
+      ciap2: 'N17',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
+      estratificavel: false,
+      alarmes: ['Associação com palpitações rápidas, dor precordial ou perda súbita de consciência']
+    },
+    {
+      termo: 'paralisia_bell',
+      sinonimos: ['paralisia de bell', 'boca torta', 'paralisia facial periferica', 'dificuldade de fechar o olho'],
+      diagnostico: 'Paralisia Facial Periférica (Paralisia de Bell)',
+      cid10: 'G51.0',
+      ciap2: 'N91',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
+      estratificavel: false,
+      alarmes: ['Preservação da musculatura frontal da testa (sinal de paralisia facial central sugerindo AVC)']
+    },
+    {
+      termo: 'tremor_essencial',
+      sinonimos: ['tremor', 'tremor nas maos', 'tremor postural', 'tremedeira ao segurar copo'],
+      diagnostico: 'Tremor Essencial / Postural',
+      cid10: 'G25.0',
+      ciap2: 'N08',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
+      estratificavel: false,
+      alarmes: ['Tremor de repouso assimétrico associado a rigidez em roda denteada e bradicinesia (Parkinsonismo)']
+    },
+    {
+      termo: 'epilepsia',
+      sinonimos: ['epilepsia', 'convulsao', 'crise convulsiva', 'ataque epileptico'],
+      diagnostico: 'Epilepsia Não Especificada',
+      cid10: 'G40.9',
+      ciap2: 'N88',
+      categoria: 'Neurológico',
+      modeloEf: 'cefaleia_neuro',
+      estratificavel: false,
+      alarmes: ['Estado de Mal Epiléptico (crises repetidas sem recuperação da consciência por > 5 min)']
+    },
+
+    // --- SAÚDE MENTAL (CIAP-2: P) ---
+    {
       termo: 'ansiedade_tag',
-      sinonimos: ['ansiedade', 'tag', 'nervosismo', 'crise de ansiedade', 'transtorno ansioso'],
+      sinonimos: ['tag', 'ansiedade', 'nervosismo', 'preocupacao excessiva', 'crise de ansiedade', 'transtorno ansioso'],
       diagnostico: 'Transtorno de Ansiedade Generalizada (TAG)',
       cid10: 'F41.1',
       ciap2: 'P74',
       categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
       estratificavel: false,
-      alarmes: ['Ideação suicida estruturada', 'Surtos psicóticos ou agitação psicomotora intensa']
+      alarmes: ['Ideação suicida estruturada com intenção ou plano', 'Surtos psicóticos ou agitação psicomotora intensa']
     },
     {
-      termo: 'depressao',
-      sinonimos: ['tristeza', 'transtorno depressivo', 'depressao leve', 'depressao moderada'],
-      diagnostico: 'Episódio Depressivo Moderado sem sintomas psicóticos',
-      cid10: 'F32.1',
+      termo: 'transtorno_panico',
+      sinonimos: ['panico', 'ataque de panico', 'crise de panico', 'sensacao de morte iminente', 'taquicardia ansiosa'],
+      diagnostico: 'Transtorno de Pânico (Ansiedade Paroxística Episódica)',
+      cid10: 'F41.0',
+      ciap2: 'P74',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Dor torácica atípica sem investigação cardiovascular prévia em paciente com múltiplos fatores de risco']
+    },
+    {
+      termo: 'depressao_leve_moderada',
+      sinonimos: ['tristeza', 'transtorno depressivo', 'depressao leve', 'depressao moderada', 'desanimo', 'falta de vontade'],
+      diagnostico: 'Episódio Depressivo Leve a Moderado',
+      cid10: 'F32.0',
       ciap2: 'P76',
       categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
       estratificavel: false,
       alarmes: ['Presença de plano ou ideação de autoextermínio (risco iminente)', 'Recusa alimentar severa com desidratação']
     },
     {
-      termo: 'osteoartrite',
-      sinonimos: ['artrose', 'gonartrose', 'desgaste no joelho', 'osteoartrose'],
-      diagnostico: 'Gonartrose (Osteoartrite de Joelho) não especificada',
-      cid10: 'M17.9',
-      ciap2: 'L90',
-      categoria: 'Musculoesquelético',
+      termo: 'depressao_grave',
+      sinonimos: ['depressao', 'depressao grave', 'episodio depressivo grave', 'melancolia severa'],
+      diagnostico: 'Episódio Depressivo Grave sem Sintomas Psicóticos',
+      cid10: 'F32.2',
+      ciap2: 'P76',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
       estratificavel: false,
-      alarmes: ['Sinais de artrite séptica (articulação quente, hiperemiada, com derrame volumoso e febre)']
+      alarmes: ['Comportamento suicida agudo, delírios de ruína ou culpa intensa (urgência psiquiátrica)']
+    },
+    {
+      termo: 'insonia_cronica',
+      sinonimos: ['insonia', 'dificuldade para dormir', 'sono ruim', 'acordar a noite', 'sono nao reparador'],
+      diagnostico: 'Insônia Não Orgânica Crônica',
+      cid10: 'F51.0',
+      ciap2: 'P06',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Uso abusivo e descontrolado de hipnóticos benzodiazepínicos com tolerância rápida']
+    },
+    {
+      termo: 'burnout_esgotamento',
+      sinonimos: ['burnout', 'esgotamento profissional', 'estresse no trabalho', 'exaustao mental'],
+      diagnostico: 'Síndrome de Burnout (Esgotamento Profissional)',
+      cid10: 'Z73.0',
+      ciap2: 'Z05',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Ideação autodestrutiva decorrente de assédio moral severo no trabalho']
+    },
+    {
+      termo: 'transtorno_bipolar',
+      sinonimos: ['bipolaridade', 'transtorno bipolar', 'tab', 'fase maniaca', 'oscilacao de humor'],
+      diagnostico: 'Transtorno Afetivo Bipolar Não Especificado',
+      cid10: 'F31.9',
+      ciap2: 'P73',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Episódio maníaco com gastos impulsivos desmedidos, fuga de ideias e insônia total']
+    },
+    {
+      termo: 'tdah_adulto_crianca',
+      sinonimos: ['tdah', 'deficit de atencao', 'hiperatividade', 'desatencao crônica'],
+      diagnostico: 'Transtorno do Déficit de Atenção com Hiperatividade (TDAH)',
+      cid10: 'F90.0',
+      ciap2: 'P22',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Prejuízo acadêmico/laboral grave associado a abuso secundário de substâncias estimulantes']
+    },
+    {
+      termo: 'tabagismo',
+      sinonimos: ['tabagismo', 'cigarro', 'fumo', 'dependencia de nicotina', 'cessacao do tabagismo'],
+      diagnostico: 'Transtornos Mentais e Comportamentais Devidos ao Uso de Tabaco',
+      cid10: 'F17.2',
+      ciap2: 'P17',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Tosse crônica com hemoptise em fumante de carga tabágica elevada (> 20 anos-maço)']
+    },
+    {
+      termo: 'alcoolismo',
+      sinonimos: ['alcoolismo', 'dependencia de alcool', 'consumo nocivo de alcool', 'etilismo'],
+      diagnostico: 'Uso Nocivo / Dependência de Álcool',
+      cid10: 'F10.2',
+      ciap2: 'P15',
+      categoria: 'Saúde Mental',
+      modeloEf: 'saude_mental',
+      estratificavel: false,
+      alarmes: ['Síndrome de abstinência alcoólica grave (Delirium Tremens com alucinações e convulsões)']
+    },
+
+    // --- DOENÇAS INFECCIOSAS & PARASITÁRIAS (CIAP-2: A) ---
+    {
+      termo: 'dengue_classica',
+      sinonimos: ['dengue', 'dor atras dos olhos', 'febre alta e dor muscular', 'mialgia intensa', 'prova do laco'],
+      diagnostico: 'Dengue Clássica sem Sinais de Alarme',
+      cid10: 'A90',
+      ciap2: 'A77',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sinais de Alarme da Dengue: dor abdominal intensa/contínua, vômitos persistentes, sangramento de mucosas, hipotensão postural, letargia']
+    },
+    {
+      termo: 'chikungunya',
+      sinonimos: ['chikungunya', 'dor nas articulacoes com febre', 'poliartrite febril', 'artrite por chikungunya'],
+      diagnostico: 'Febre de Chikungunya Aguda',
+      cid10: 'A92.0',
+      ciap2: 'A77',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Dor articular incapacitante que impede deambulação com desidratação']
+    },
+    {
+      termo: 'varicela_catapora',
+      sinonimos: ['catapora', 'varicela', 'vesiculas na pele com febre', 'gotas de orvalho'],
+      diagnostico: 'Varicela (Catapora) sem Complicação',
+      cid10: 'B01.9',
+      ciap2: 'A72',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Infecção bacteriana secundária de pele com febre alta persistente ou pneumonia por varicela']
+    },
+    {
+      termo: 'conjuntivite_aguda',
+      sinonimos: ['conjuntivite', 'olho vermelho', 'secrecao ocular', 'olho colado pela manha', 'coceira no olho'],
+      diagnostico: 'Conjuntivite Aguda Não Especificada',
+      cid10: 'H10.9',
+      ciap2: 'F70',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Dor ocular profunda, baixa acuidade visual súbita ou pupila não reativa (suspeita de ceratite, glaucoma agudo ou uveíte)']
+    },
+    {
+      termo: 'parasitose_intestinal',
+      sinonimos: ['vermes', 'verminose', 'parasitose', 'giardiase', 'lombriga', 'ascaridiase', 'amebiase'],
+      diagnostico: 'Parasitose Intestinal Não Especificada',
+      cid10: 'B82.9',
+      ciap2: 'D96',
+      categoria: 'Infeccioso',
+      modeloEf: 'dispepsia_gastro',
+      estratificavel: false,
+      alarmes: ['Obstrução intestinal por bolo de áscaris ou anemia microcítica grave por ancilostomíase']
+    },
+    {
+      termo: 'sifilis_adquirida',
+      sinonimos: ['sifilis', 'cancro duro', 'vdrl positivo', 'treponema', 'ferida genital indolor'],
+      diagnostico: 'Sífilis Adquirida / Precoce Não Especificada',
+      cid10: 'A53.9',
+      ciap2: 'Y70',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Neurossífilis (cefaleia refratária, alteração de comportamento, paralisia de pares cranianos)']
+    },
+    {
+      termo: 'candidiase_vulvovaginal',
+      sinonimos: ['candidiase', 'corrimento branco', 'coceira vaginal', 'leite coalhado', 'prurido vulvar'],
+      diagnostico: 'Candidíase Vulvovaginal',
+      cid10: 'B37.3',
+      ciap2: 'X72',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Candidíase de repetição frequente (> 4 episódios/ano) exigindo rastreio de DM e imunodeficiência']
+    },
+    {
+      termo: 'vaginose_bacteriana',
+      sinonimos: ['vaginose', 'corrimento com cheiro de peixe', 'odor vaginal', 'gardnerella', 'whiff test'],
+      diagnostico: 'Vaginose Bacteriana / Vaginite Aguda',
+      cid10: 'N76.0',
+      ciap2: 'X74',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Associação com febre e dor à palpação de anexos uterinos (suspeita de Doença Inflamatória Pélvica - DIP)']
+    },
+    {
+      termo: 'tuberculose_pulmonar',
+      sinonimos: ['tuberculose', 'tb', 'tosse cronica com escarro', 'sudorese noturna', 'perda de peso e tosse'],
+      diagnostico: 'Tuberculose Pulmonar com Confirmação Bacteriológica ou Clínica',
+      cid10: 'A15.0',
+      ciap2: 'R91',
+      categoria: 'Infeccioso',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Hemoptise maciça (> 200 mL em 24h)', 'Insuficiência respiratória aguda']
+    },
+    {
+      termo: 'hanseniase',
+      sinonimos: ['hanseniase', 'mancha dormente', 'perda de sensibilidade', 'lepra'],
+      diagnostico: 'Hanseníase Não Especificada',
+      cid10: 'A30.9',
+      ciap2: 'S78',
+      categoria: 'Infeccioso',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Neurite aguda com espessamento doloroso de nervos periféricos e perda de força motora rápida (Mão caída / Pé caído)']
+    },
+
+    // --- HEMATOLOGIA (CIAP-2: B) ---
+    {
+      termo: 'anemia_ferropriva',
+      sinonimos: ['anemia', 'falta de ferro', 'ferritina baixa', 'palidez', 'astenia', 'anemia ferropriva'],
+      diagnostico: 'Anemia por Deficiência de Ferro (Ferropriva)',
+      cid10: 'D50.9',
+      ciap2: 'B80',
+      categoria: 'Hematológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Hemoglobina < 7.0 g/dL ou instabilidade hemodinâmica (taquicardia, hipotensão, dispneia em repouso)']
+    },
+    {
+      termo: 'anemia_megaloblastica',
+      sinonimos: ['anemia megaloblastica', 'vcm alto', 'macrocitose', 'deficiencia de acido folico'],
+      diagnostico: 'Anemia Megaloblástica por Deficiência de Cobalamina ou Folato',
+      cid10: 'D51.9',
+      ciap2: 'B81',
+      categoria: 'Hematológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Pancitopenia com febre e sangramentos petequiais']
+    },
+
+    // --- SAÚDE DA MULHER & GINECOLOGIA (CIAP-2: W & X) ---
+    {
+      termo: 'gravidez_confirmada',
+      sinonimos: ['gravidez', 'gestacao', 'prenatal', 'pre natal', 'gestante', 'atraso menstrual', 'beta hcg positivo'],
+      diagnostico: 'Gravidez Confirmada / Acompanhamento de Pré-Natal',
+      cid10: 'Z32.1',
+      ciap2: 'W78',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sangramento vaginal ou dor em cólica intensa (suspeita de abortamento ou prenhez ectópica)', 'PA >= 140/90 mmHg na gestação (suspeita de Pré-eclâmpsia)']
+    },
+    {
+      termo: 'dismenorreia',
+      sinonimos: ['colica menstrual', 'dismenorreia', 'dor na menstruacao', 'dor menstrual'],
+      diagnostico: 'Dismenorreia Primária Não Especificada',
+      cid10: 'N94.6',
+      ciap2: 'X02',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Dismenorreia secundária progressiva incapacitante com dispareunia de profundidade (suspeita de Endometriose)']
+    },
+    {
+      termo: 'climaterio_menopausa',
+      sinonimos: ['menopausa', 'climaterio', 'fogachos', 'calores', 'ondas de calor', 'secura vaginal'],
+      diagnostico: 'Sintomas e Estados Associados à Menopausa / Climatério',
+      cid10: 'N95.1',
+      ciap2: 'X11',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sangramento genital após a menopausa confirmada (alerta vermelho obrigatório para neoplasia endometrial)']
+    },
+    {
+      termo: 'sangramento_uterino_anormal',
+      sinonimos: ['sua', 'sangramento uterino', 'menstruacao excessiva', 'hemorragia uterina', 'hipermenorreia'],
+      diagnostico: 'Sangramento Uterino Anormal (SUA)',
+      cid10: 'N93.9',
+      ciap2: 'X06',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Sangramento volumoso com eliminação de coágulos, taquicardia ou hipotensão ortostática']
+    },
+    {
+      termo: 'ovarios_policisticos',
+      sinonimos: ['sop', 'ovarios policisticos', 'sindrome dos ovarios policisticos', 'hirsutismo', 'irregularidade menstrual'],
+      diagnostico: 'Síndrome dos Ovários Policísticos (SOP)',
+      cid10: 'E28.2',
+      ciap2: 'T99',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Espessamento endometrial acentuado na ultrassonografia com risco de hiperplasia atípica']
+    },
+    {
+      termo: 'planejamento_familiar',
+      sinonimos: ['anticoncepcional', 'pilula', 'diu', 'preservativo', 'anticoncepcao', 'planejamento familiar'],
+      diagnostico: 'Aconselhamento e Prescrição de Métodos Anticoncepcionais',
+      cid10: 'Z30.0',
+      ciap2: 'W11',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Cefaleia com aura ou enxaqueca em usuária de anticoncepcional oral combinado (contraindicação absoluta OMS Categoria 4)']
+    },
+    {
+      termo: 'preventivo_colo_uterino',
+      sinonimos: ['papanicolau', 'preventivo', 'colpocitologia', 'rastreio colo do utero'],
+      diagnostico: 'Exame Ginecológico de Rotina / Rastreamento Citopatológico',
+      cid10: 'Z01.4',
+      ciap2: 'X37',
+      categoria: 'Ginecológico',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Lesão exofítica vegetante visível no colo ou sangramento ao toque']
+    },
+
+    // --- ROTINA, CHECK-UP & PROCEDIMENTOS UBS (CIAP-2: A) ---
+    {
+      termo: 'consulta_rotina_checkup',
+      sinonimos: ['checkup', 'consulta de rotina', 'exame de rotina', 'avaliacao geral', 'exame medico geral'],
+      diagnostico: 'Exame Médico Geral / Consulta de Rotina de Saúde',
+      cid10: 'Z00.0',
+      ciap2: 'A98',
+      categoria: 'Geral',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Descoberta incidental de massa abdominal, linfonodomegalia endurecida e indolor ou perda de peso involuntária']
+    },
+    {
+      termo: 'atestado_aptidao_fisica',
+      sinonimos: ['atestado', 'aptidao fisica', 'academia', 'atestado de saude', 'atestado para academia'],
+      diagnostico: 'Exame de Saúde para Admissão ao Esporte ou Prática Esportiva',
+      cid10: 'Z02.5',
+      ciap2: 'A98',
+      categoria: 'Geral',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['História de síncope aos esforços ou histórico familiar de morte súbita precoce (< 40 anos)']
+    },
+    {
+      termo: 'puericultura',
+      sinonimos: ['puericultura', 'consulta do bebe', 'crescimento e desenvolvimento', 'peso do bebe'],
+      diagnostico: 'Exame de Rotina de Saúde da Criança / Puericultura',
+      cid10: 'Z00.1',
+      ciap2: 'A98',
+      categoria: 'Pediatria',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Perda de peso ou estagnação ponderal em curva do escore Z, fontanela abaulada ou atraso de marcos do neurodesenvolvimento']
+    },
+    {
+      termo: 'remocao_cerume',
+      sinonimos: ['cerume', 'rolha de cera', 'ouvido entupido', 'lavagem de ouvido', 'cerumen'],
+      diagnostico: 'Rolha de Cerúmen Oclusiva',
+      cid10: 'H61.2',
+      ciap2: 'H81',
+      categoria: 'Respiratório',
+      modeloEf: 'respiratorio_ivas',
+      estratificavel: false,
+      alarmes: ['Perfuração timpânica prévia conhecida (contraindicação formal à irrigação otológica com água)']
+    },
+    {
+      termo: 'retirada_pontos',
+      sinonimos: ['retirar pontos', 'retirada de pontos', 'pontos cirurgicos', 'cuidado pos sutura'],
+      diagnostico: 'Cuidados com Suturas Cirúrgicas / Retirada de Pontos',
+      cid10: 'Z48.0',
+      ciap2: 'A98',
+      categoria: 'Procedimento',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Deiscência de ferida operatória com secreção purulenta ou febre']
+    },
+    {
+      termo: 'unha_encravada',
+      sinonimos: ['unha encravada', 'onicocriptose', 'canto da unha inflamado', 'granuloma piogenico na unha'],
+      diagnostico: 'Unha Encravada (Onicocriptose)',
+      cid10: 'L60.0',
+      ciap2: 'S99',
+      categoria: 'Dermatologia',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Pacientes diabéticos ou com insuficiência arterial grave com celulite ascendente no dedo']
+    },
+    {
+      termo: 'escoriacao_machucado',
+      sinonimos: ['machucado', 'escoriacao', 'ralado', 'corte superficial', 'ferida superficial'],
+      diagnostico: 'Traumatismo Superficial Não Especificado / Escoriação',
+      cid10: 'T14.0',
+      ciap2: 'A80',
+      categoria: 'Procedimento',
+      modeloEf: 'checkup_geral',
+      estratificavel: false,
+      alarmes: ['Ferimento perfurocortante profundo contaminado com status vacinal antitetânico desatualizado']
     }
   ];
 
   /**
-   * Busca diagnósticos no catálogo por termo livre ou sinônimo.
+   * Busca diagnósticos no catálogo por termo livre, código CID-10, código CIAP-2,
+   * sigla médica, sintomas ou sinônimos clínicos, com ranking por score de relevância.
    */
   function buscarDiagnostico(termoBusca) {
     if (!termoBusca || typeof termoBusca !== 'string') return [];
     var limpo = termoBusca.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
     if (!limpo) return [];
 
-    return CATALOGO_DIAGNOSTICOS.filter(function(item) {
-      if (item.termo.indexOf(limpo) !== -1 || item.diagnostico.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(limpo) !== -1) {
-        return true;
+    var limpoSemPonto = limpo.replace(/[^a-z0-9]/g, '');
+    var tokens = limpo.split(/\s+/).filter(function(t) { return t.length > 1; });
+
+    var avaliados = [];
+
+    for (var i = 0; i < CATALOGO_DIAGNOSTICOS.length; i++) {
+      var item = CATALOGO_DIAGNOSTICOS[i];
+      var score = 0;
+
+      var cidLimpo = (item.cid10 || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var cidSemPonto = cidLimpo.replace(/[^a-z0-9]/g, '');
+      var ciapLimpo = (item.ciap2 || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var diagLimpo = (item.diagnostico || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var termoLimpo = (item.termo || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+      var catLimpa = (item.categoria || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+
+      // 1. Match exato ou início de código CID-10
+      if (cidLimpo === limpo || (cidSemPonto && cidSemPonto === limpoSemPonto)) {
+        score = Math.max(score, 100);
+      } else if (cidLimpo.indexOf(limpo) === 0 || (cidSemPonto && cidSemPonto.indexOf(limpoSemPonto) === 0)) {
+        score = Math.max(score, 90);
+      } else if (cidLimpo.indexOf(limpo) !== -1 || (cidSemPonto && cidSemPonto.indexOf(limpoSemPonto) !== -1)) {
+        score = Math.max(score, 80);
       }
-      return item.sinonimos.some(function(s) {
-        return s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').indexOf(limpo) !== -1;
-      });
+
+      // 2. Match com código CIAP-2
+      if (ciapLimpo && ciapLimpo === limpo) {
+        score = Math.max(score, 95);
+      } else if (ciapLimpo && ciapLimpo.indexOf(limpo) === 0) {
+        score = Math.max(score, 85);
+      }
+
+      // 3. Match com identificador / sigla
+      if (termoLimpo === limpo) {
+        score = Math.max(score, 95);
+      } else if (termoLimpo.indexOf(limpo) === 0) {
+        score = Math.max(score, 85);
+      }
+
+      // 4. Match com sinônimos / siglas / sintomas
+      if (Array.isArray(item.sinonimos)) {
+        for (var s = 0; s < item.sinonimos.length; s++) {
+          var sin = item.sinonimos[s].toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim();
+          if (sin === limpo) {
+            score = Math.max(score, 95);
+            break;
+          } else if (sin.indexOf(limpo) === 0) {
+            score = Math.max(score, 80);
+          } else if (sin.indexOf(limpo) !== -1) {
+            score = Math.max(score, 65);
+          }
+        }
+      }
+
+      // 5. Match no texto do diagnóstico oficial
+      if (diagLimpo === limpo) {
+        score = Math.max(score, 95);
+      } else if (diagLimpo.indexOf(limpo) === 0) {
+        score = Math.max(score, 85);
+      } else if (diagLimpo.indexOf(limpo) !== -1) {
+        score = Math.max(score, 70);
+      }
+
+      // 6. Match em categoria
+      if (catLimpa.indexOf(limpo) !== -1) {
+        score = Math.max(score, 45);
+      }
+
+      // 7. Multi-token match (se todos os tokens digitados estiverem presentes)
+      if (score === 0 && tokens.length > 1) {
+        var textoGlobal = (item.diagnostico + ' ' + (item.sinonimos || []).join(' ') + ' ' + item.categoria).toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+        var todosPresentes = tokens.every(function(tk) {
+          return textoGlobal.indexOf(tk) !== -1;
+        });
+        if (todosPresentes) {
+          score = 55;
+        }
+      }
+
+      if (score > 0) {
+        avaliados.push({ item: item, score: score });
+      }
+    }
+
+    avaliados.sort(function(a, b) {
+      return b.score - a.score;
     });
+
+    var resultados = avaliados.map(function(a) { return a.item; });
+
+    // Suporte dinâmico: se nenhum resultado no catálogo, mas parece um código CID-10 digitado
+    if (resultados.length === 0 && /^[A-Z][0-9]{2}(\.[0-9]{1,2})?$/i.test(termoBusca.trim())) {
+      var codigoCid = termoBusca.trim().toUpperCase();
+      resultados.push({
+        termo: codigoCid.toLowerCase(),
+        sinonimos: [codigoCid.toLowerCase()],
+        diagnostico: 'Diagnóstico Clínico (Código CID-10 ' + codigoCid + ')',
+        cid10: codigoCid,
+        ciap2: '—',
+        categoria: 'Código Direto',
+        modeloEf: 'checkup_geral',
+        alarmes: []
+      });
+    }
+
+    return resultados;
   }
 
   // 4. ESTRATIFICAÇÃO DE RISCO CARDIOVASCULAR E METABÓLICO (DIRETRIZES SBC / SBD)
@@ -36037,14 +37380,16 @@ var SoapAmbulatorialService = (function() {
       recomendacao: 'Alvo primário ESC 2024 (desde que bem tolerado; se não tolerado, aplicar princípio ALARA)'
     },
     alto_muito_alto_risco: {
-      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
+      meta: '< 130/80 mmHg',
+      meta_esc_2024: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
       populacao: 'Alto ou Muito Alto Risco Cardiovascular, Diabetes Mellitus, Doença Renal Crônica ou Lesão de Órgão-Alvo (LOA)',
       recomendacao: 'Classe I, Nível de Evidência A (Diretrizes ESC 2024 / SBC 2020/2024)'
     },
     baixo_intermediario_risco: {
-      meta: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
+      meta: '< 140/90 mmHg',
+      meta_esc_2024: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
       meta_otimizada: '120 a 129 mmHg se bem tolerado',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
@@ -36057,7 +37402,8 @@ var SoapAmbulatorialService = (function() {
       recomendacao: 'Monitorar hipotensão ortostática; meta primária 120-129 mmHg se tolerado'
     },
     idoso_fragil: {
-      meta: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
+      meta: '< 140/90 mmHg',
+      meta_esc_2024: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
       populacao: 'Idosos frágeis, polimedicados ou muito idosos (>= 80 anos)',
       recomendacao: 'Princípio ALARA (As Low As Reasonably Achievable); evitar reduções excessivas com sintomas'
     }

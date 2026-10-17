@@ -671,17 +671,7 @@ var CentroObstetricoService = (function() {
       nota: '⚠️ NUNCA aplicar ocitocina pura em bolus IV rápido (risco de vasodilatação súbita, hipotensão letal e colapso circulatório).'
     });
 
-    // TXA é adjuvante da resposta inicial; não aguardar falha dos uterotônicos.
-    var oportunoTransamin = tempoDesdePartoMin <= 180;
-    sequenciaUterotonica.push({
-      etapa: 4,
-      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce)',
-      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
-      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP.' : 'Após 3 horas do parto, benefício não demonstrado.',
-      bloqueado: !oportunoTransamin
-    });
-
-    // Passo 3: Metilergometrina (Ergotrate)
+    // Passo 2: Metilergometrina (Ergotrate)
     if (temHas) {
       sequenciaUterotonica.push({
         etapa: 2,
@@ -699,12 +689,22 @@ var CentroObstetricoService = (function() {
       });
     }
 
-    // Passo 4: Misoprostol
+    // Passo 3: Misoprostol
     sequenciaUterotonica.push({
       etapa: 3,
       farmaco: 'Misoprostol 800 mcg (3ª Linha)',
       dose: '800 mcg (4 comprimidos de 200 mcg) via Retal ou Sublingual.',
       nota: 'Absorção rápida e potente tônus miometrial mantido por várias horas.'
+    });
+
+    // Passo 4: Ácido Tranexâmico (Adjuvante Precoce do Pacote E-MOTIVE em até 3h)
+    var oportunoTransamin = tempoDesdePartoMin <= 180;
+    sequenciaUterotonica.push({
+      etapa: 4,
+      farmaco: 'Ácido Tranexâmico 1g IV (adjuvante precoce em até 3h)',
+      dose: oportunoTransamin ? '1 g IV em 10 minutos, iniciar em até 3 horas do parto; repetir 1 g se persistir após 30 minutos ou recidivar em 24 horas.' : 'Não iniciar rotineiramente após 3 horas do parto: benefício não demonstrado.',
+      nota: oportunoTransamin ? 'Administrar em até 3 horas do parto, junto da resposta inicial à HPP (Estudo WOMAN).' : 'Após 3 horas do parto, benefício não demonstrado.',
+      bloqueado: !oportunoTransamin
     });
 
     // 5. Medidas Não Farmacológicas e Cirúrgicas de Resgate

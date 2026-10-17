@@ -15,10 +15,10 @@
 
 ## 🔄 Tarefa Concluída
  
-- [x] **Bloqueio Estrito de Valores Negativos em Sinais Vitais e Antropometria (`estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `index.html`, `cockpit_movel.html`, `src/clinical/soap_service.js`)**:
-    - **Arquivo/Módulo Alvo**: `estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `index.html`, `cockpit_movel.html` e `src/clinical/soap_service.js`.
-    - **Função/Componente/Seletor**: Inputs `#soap-pas`, `#soap-pad`, `#soap-fc`, `#soap-fr`, `#soap-spo2`, `#soap-tax`, `#soap-peso`, `#soap-altura`, funções `configurarListenersEstacaoSoap`, `restaurarRascunhoSoap`, `calcularMetricasReativas`, `enviarParaEstacaoSoap` e `normalizeSoapInputPayload`.
-    - **Comportamento Esperado / Critério de Aceite**: Bloqueio completo da inserção de valores negativos nos campos de sinais vitais e antropometria. Configurado `min="0"` e `max` fisiológico no HTML; interceptação da tecla menos (`-`) no `keydown`; sanitização em tempo real no evento `input`; expurgo de valores negativos salvos no `localStorage`; validação com alerta prévio no envio; e rejeição estrita no backend. Suíte `tests/test_sinais_vitais_nao_negativos.cjs` aprovada com 4/4 testes.
+- [x] **Pipeline Determinístico de Busca Oficial de REMUME (.gov.br) com Extrator de PDF e Gatekeeper Clínico (`src/data/remumes/index.js`, `tests/test_remume_busca_gatekeeper_argon.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `src/data/remumes/index.js` e `tests/test_remume_busca_gatekeeper_argon.cjs`.
+    - **Função/Componente/Seletor**: `_buscarUrlsCandidatasGovBr`, `_ehUrlOficialConfiavel`, `_httpGetBufferSeguro`, `_extrairTextoDeBuffer`, `_extrairTextoDePdfBuffer`, `validarSanidadeClinicaRemume`.
+    - **Comportamento Esperado / Critério de Aceite**: Implementação do mecanismo determinístico de busca restrito a domínios governamentais brasileiros (`.gov.br`), transporte binário resiliente com streaming, parser nativo de PDF via `zlib` FlateDecode e operadores de texto, e Gatekeeper Clínico de Sanidade Farmacológica (Zero Invenção) exigindo vínculo territorial do município, mínimo de 5 de 10 medicamentos âncora da Atenção Primária do SUS e densidade de 15+ medicamentos válidos com dosagem. Suíte dedicada aprovada com 5/5 testes em 0.05s.
  
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

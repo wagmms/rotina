@@ -52,7 +52,7 @@ test('2. validarSanidadeClinicaRemume reprova documento que não menciona o muni
 
   const res = CatalogoRemumeService.validarSanidadeClinicaRemume(textoSemCidade, itens, 'Garrafão do Norte', 'PA');
   assert.strictEqual(res.aprovado, false);
-  assert.match(res.motivo, /vínculo territorial/i);
+  assert.match(res.motivo, /não menciona o município/i);
 });
 
 test('3. validarSanidadeClinicaRemume reprova documento com menos de 5 medicamentos âncora do SUS', () => {

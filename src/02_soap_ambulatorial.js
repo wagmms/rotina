@@ -2041,14 +2041,16 @@ var SoapAmbulatorialService = (function() {
       recomendacao: 'Alvo primário ESC 2024 (desde que bem tolerado; se não tolerado, aplicar princípio ALARA)'
     },
     alto_muito_alto_risco: {
-      meta: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
+      meta: '< 130/80 mmHg',
+      meta_esc_2024: 'PAS 120 a 129 mmHg e PAD 70 a 79 mmHg (< 130/80 mmHg)',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
       populacao: 'Alto ou Muito Alto Risco Cardiovascular, Diabetes Mellitus, Doença Renal Crônica ou Lesão de Órgão-Alvo (LOA)',
       recomendacao: 'Classe I, Nível de Evidência A (Diretrizes ESC 2024 / SBC 2020/2024)'
     },
     baixo_intermediario_risco: {
-      meta: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
+      meta: '< 140/90 mmHg',
+      meta_esc_2024: 'PAS 120 a 129 mmHg (< 130/80 mmHg se bem tolerado; teto < 140/90 mmHg)',
       meta_otimizada: '120 a 129 mmHg se bem tolerado',
       faixa_pas: '120 a 129 mmHg',
       faixa_pad: '70 a 79 mmHg',
@@ -2061,7 +2063,8 @@ var SoapAmbulatorialService = (function() {
       recomendacao: 'Monitorar hipotensão ortostática; meta primária 120-129 mmHg se tolerado'
     },
     idoso_fragil: {
-      meta: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
+      meta: '< 140/90 mmHg',
+      meta_esc_2024: 'PAS 130 a 139 mmHg e PAD < 80 mmHg',
       populacao: 'Idosos frágeis, polimedicados ou muito idosos (>= 80 anos)',
       recomendacao: 'Princípio ALARA (As Low As Reasonably Achievable); evitar reduções excessivas com sintomas'
     }

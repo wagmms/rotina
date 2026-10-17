@@ -244,7 +244,20 @@ async function executarTestes() {
   // 6.3 provocarPreceptorSocratico suporta texto digitado
   assert(htmlMovel.includes('cockpitConversar\', { acao: \'preceptor\''), 'provocarPreceptorSocratico deve chamar cockpitConversar preceptor em cockpit_movel.html.');
   assert(htmlGh.includes('cockpitConversar\', { acao: \'preceptor\''), 'provocarPreceptorSocratico deve chamar cockpitConversar preceptor em gh_cockpit_deploy/index.html.');
-  console.log('  ✓ Arquivos do Cockpit PWA 100% íntegros com blindagem de escapeHtml e síntese de voz fallback.');
+
+  // 6.4 solicitarSabatinaPreceptorPlantao conecta à IA via cockpitConversar
+  assert(htmlMovel.includes('async function solicitarSabatinaPreceptorPlantao('), 'solicitarSabatinaPreceptorPlantao deve existir em cockpit_movel.html.');
+  assert(htmlGh.includes('async function solicitarSabatinaPreceptorPlantao('), 'solicitarSabatinaPreceptorPlantao deve existir em gh_cockpit_deploy/index.html.');
+  assert(htmlGh.includes('Conectado à IA'), 'Card do preceptor deve exibir badge Conectado à IA em gh_cockpit_deploy/index.html.');
+  assert(htmlMovel.includes('Conectado à IA'), 'Card do preceptor deve exibir badge Conectado à IA em cockpit_movel.html.');
+
+  // 6.5 Funções de voz e resposta interativa
+  assert(htmlGh.includes('function ouvirProvocacaoPreceptor()'), 'ouvirProvocacaoPreceptor deve existir em gh_cockpit_deploy/index.html.');
+  assert(htmlGh.includes('function prepararRespostaPreceptor()'), 'prepararRespostaPreceptor deve existir em gh_cockpit_deploy/index.html.');
+  assert(htmlMovel.includes('function ouvirProvocacaoPreceptor()'), 'ouvirProvocacaoPreceptor deve existir em cockpit_movel.html.');
+  assert(htmlMovel.includes('function prepararRespostaPreceptor()'), 'prepararRespostaPreceptor deve existir em cockpit_movel.html.');
+
+  console.log('  ✓ Arquivos do Cockpit PWA 100% íntegros com blindagem de escapeHtml, síntese de voz e sabatina conectada à IA.');
 
   console.log('\n🎉 PARABÉNS! O PRECEPTOR IA DO COCKPIT ESTÁ 100% FUNCIONAL E TESTADO COM SUCESSO!\n');
 }
