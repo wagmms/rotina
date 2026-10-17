@@ -364,7 +364,7 @@ const STATIC_AFFECTED_MAP = {
   'server/runtime.js': [
     'tests/test_server_render.cjs',
     'tests/test_defensivo_telegram_rpc.cjs',
-    'tests/test_autoloop_runner.cjs'
+    'tests/test_test_runner.cjs'
   ],
   'server/validators.js': [
     'tests/test_schemas_validacao_calculadoras.cjs',
@@ -372,16 +372,16 @@ const STATIC_AFFECTED_MAP = {
   ],
   // Scripts do Runner
   'scripts/run_tests.cjs': [
-    'tests/test_autoloop_runner.cjs'
+    'tests/test_test_runner.cjs'
   ],
   'scripts/test_manifest.json': [
-    'tests/test_autoloop_runner.cjs'
+    'tests/test_test_runner.cjs'
   ],
   'scripts/python_test_catalog.py': [
-    'tests/test_autoloop_runner.cjs'
+    'tests/test_test_runner.cjs'
   ],
   'build_master.py': [
-    'tests/test_autoloop_runner.cjs',
+    'tests/test_test_runner.cjs',
     'tests/test_server_render.cjs'
   ],
   'ultra_rotina_master.js': [

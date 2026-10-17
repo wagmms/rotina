@@ -1,5 +1,10 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C86. [x] **Expurgo de Tokens Base64 de Equipe e Modernização Direta da Configuração de Unidade de Saúde (`src/12_experiencia_bot.js`, `src/07a_telegram_router.js`, `tests/test_multi_localidade_whitelabel.cjs`)**:
+    - **Expurgo de Telas e Tokens Inúteis**: Removida a tela de "Compartilhamento de Equipe" que gerava blocos criptográficos em Base64 ilegíveis (`EQP-...`) e o comando `/importar_unidade` como fluxo primário, eliminando ruído e complexidade sem utilidade beira-leito.
+    - **Nova Tela e Fluxo de Unidade de Saúde (`enviarTelaUnidadeSaude`)**: No menu `/perfil`, o botão agora é `[🏥 Unidade / Hospital (/unidade)]`. Ao tocar nele ou digitar `/unidade` sem argumentos, o bot exibe a unidade atual (usada no cabeçalho de receituários e documentos) e instrui de forma direta e limpa como alterá-la (`/unidade UPA 24h Central`, `/unidade Hospital das Clínicas`).
+    - **Validação de Testes**: Suíte `tests/test_multi_localidade_whitelabel.cjs` atualizada e aprovada com zero falhas.
+
 0C85. [x] **Auditoria Integral, Julgamento Crítico (Gemini 4 Argon vs ChatGPT) e Resolução dos 22 Achados de Fronteiras Clínicas, Segurança e RAG (`src/clinical/`, `src/data/remumes/`, `server/`, `estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `tests/test_auditoria_correcoes_aceite.cjs`)**:
     - **Julgamento Comparativo por IA Especializada (`scratch/julgamento_argon.md`)**: Julgamento entre a auditoria própria e a auditoria externa, consolidando 22 achados (15 P1, 7 P2) sem cosmética.
     - **Fronteira Clínica & Segurança Farmacológica (C1–C5)**:

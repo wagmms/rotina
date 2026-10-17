@@ -200,7 +200,7 @@ function testarCatalogoRemumeEAutoPromocao() {
   assert.strictEqual(req.status, 'PENDENTE');
   assert.ok(req.solicitantes.includes('chat_solicitante_1'));
 
-  // Testar Código de Equipe (/unidade e /importar_unidade)
+  // Testar Código de Equipe (legado) e Nova Tela Limpa de Unidade de Saúde (/unidade e ux:perfil:unidade)
   const tokenEquipe = ctx.ConfigService.gerarCodigoUnidade(chatIdBh);
   assert.ok(tokenEquipe.startsWith('EQP-'), 'Código de equipe deve começar com EQP-');
   const chatColega = 'test_chat_colega_907';
@@ -215,7 +215,21 @@ function testarCatalogoRemumeEAutoPromocao() {
   assert.strictEqual(ctxClonado.nome_chamada, 'Fernanda', 'Deve preservar o nome individual da médica');
   assert.strictEqual(ctxClonado.crm, 'CRM/MG 888888', 'Deve preservar o CRM individual da médica');
 
-  console.log('  ✅ 5. Catálogo REMUME, Auto-Promoção para Preset, Solicitação e Código de Equipe validados');
+  // Validar nova tela de Unidade de Saúde (ux:perfil:unidade) sem poluição de token Base64
+  let msgUnidadeEnviada = null;
+  const originalEnviarTelaBot = ctx.enviarTelaBot;
+  ctx.enviarTelaBot = (chat, txt, kb, msgId) => {
+    msgUnidadeEnviada = { chat, txt, kb, msgId };
+    return true;
+  };
+  ctx.tratarCallbackPerfilClinico(chatColega, 'unidade');
+  assert.ok(msgUnidadeEnviada, 'Deve disparar enviarTelaBot para unidade');
+  assert.ok(msgUnidadeEnviada.txt.includes('UNIDADE DE SAÚDE & LOCAL DE ATUAÇÃO'), 'Deve conter título amigável');
+  assert.ok(msgUnidadeEnviada.txt.includes('/unidade Nome do Hospital'), 'Deve orientar comando direto');
+  assert.ok(!msgUnidadeEnviada.txt.includes('EQP-'), 'Não deve exibir código Base64 ou token');
+  ctx.enviarTelaBot = originalEnviarTelaBot;
+
+  console.log('  ✅ 5. Catálogo REMUME, Auto-Promoção para Preset, Solicitação e Tela de Unidade limpa validados');
 }
 
 (async () => {

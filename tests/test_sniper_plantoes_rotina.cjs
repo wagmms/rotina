@@ -102,6 +102,14 @@ async function executarTestesSniperPlantoesRotina() {
   const cfgAtual = ctx.PlantaoSniperService.obterConfigSniper();
   assert.strictEqual(cfgAtual.valorMinimo12h, 1400, 'Piso de 12h deve ter subido de 1300 para 1400');
 
+  ctx.processarCallbackBotao({
+    id: 'cb_sniper_3',
+    from: { id: chatId },
+    message: { message_id: 103, chat: { id: chatId } },
+    data: 'sniper:diag'
+  });
+  assert.ok(callbacksRespondidos.length >= 3, 'Deve responder ao callback sniper:diag');
+
   console.log('[5] Testando Blindagem Zero-Trust em Dupla Camada (Chats Privados, Status, FromMe e Allowlist de Grupos)...');
   const bridge = require('../server/whatsapp-bridge.js');
   const allowlistPadrao = ctx.PlantaoSniperService.obterGruposAllowlist();
@@ -175,6 +183,23 @@ async function executarTestesSniperPlantoesRotina() {
   });
   const allowlistAposToggle = ctx.PlantaoSniperService.obterGruposAllowlist();
   assert.strictEqual(allowlistAposToggle[2].modoGrupo, 'RADAR_ONLY', 'Grupo #2 deve ter passado de BLOQUEADO para RADAR_ONLY');
+
+  // 5.7 Teste da Geração de Código de Pareamento WhatsApp (8 caracteres além do traço: XXXX-XXXX)
+  limparCaptura();
+  ctx.processarCallbackBotao({
+    id: 'cb_sniper_pair_1',
+    from: { id: chatId },
+    message: { message_id: 104, chat: { id: chatId } },
+    data: 'sniper:pair_wa'
+  });
+  const msgPair = mensagensEnviadas.find(m => m.texto && m.texto.includes('PAREAMENTO WHATSAPP'));
+  assert.ok(msgPair, 'Deve emitir mensagem com instruções de pareamento');
+  const matchCode = msgPair.texto.match(/`([A-Z0-9]{4}-[A-Z0-9]{4})`/);
+  assert.ok(matchCode, 'Código de pareamento deve ter exatamente o formato XXXX-XXXX (8 caracteres além do traço)');
+  const [p1, p2] = matchCode[1].split('-');
+  assert.strictEqual(p1.length, 4, 'Bloco 1 deve ter exatamente 4 caracteres');
+  assert.strictEqual(p2.length, 4, 'Bloco 2 deve ter exatamente 4 caracteres');
+  assert.strictEqual(matchCode[1].replace('-', '').length, 8, 'Total de caracteres além do traço deve ser exatamente 8');
 
   console.log('✅ Todos os testes de integração Sniper de Plantões + Allowlist Zero-Trust + Aba Rotina passaram com 100% de sucesso!');
 }

@@ -285,7 +285,7 @@ test('6. Chamar preceptor sem caso não inventa paciente aleatório e pergunta o
     text: 'preceptor ia'
   });
 
-  assert(mensagemEnviada.includes('Opa Wagner! Qual paciente ou caso você quer discutir agora?'),
+  assert(mensagemEnviada.includes('Qual paciente ou caso você quer discutir agora?'),
     'Deve acolher o médico perguntando qual paciente discutir');
   assert(!mensagemEnviada.includes('Temos um paciente de 58 anos'),
     'Não deve inventar paciente aleatório');
@@ -318,7 +318,7 @@ test('7. Chamar preceptor com caso recente em memória oferece continuar ou novo
     text: '/preceptor'
   });
 
-  assert(msgEnviada.includes('Opa Wagner! Qual paciente ou caso você quer discutir agora?'));
+  assert(msgEnviada.includes('Qual paciente ou caso você quer discutir agora?'));
   assert(msgEnviada.includes('Último caso na memória:'));
   assert(msgEnviada.includes('dor torácica atípica'));
   assert(kbEnviado && kbEnviado.inline_keyboard, 'Deve conter inline_keyboard');

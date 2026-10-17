@@ -4890,7 +4890,7 @@ function enviarMenuPerfilClinico(chat, messageId) {
   var botoes = botoesBot([
     [['👨‍⚕️ Nome & Saudação (/nome)', 'ux:perfil:nome'], ['🎓 Papel: Médico / Interno', 'ux:perfil:papel']],
     [['📍 Escolher Cidade / REMUME', 'ux:cidade:menu'], ['🏥 Cenário & Módulos (Checkboxes)', 'ux:cenario:menu']],
-    [['📥 Inserir REMUME da Minha Cidade', 'ux:remume:instrucoes'], ['🔗 Código de Equipe (/unidade)', 'ux:perfil:equipe']],
+    [['📥 Inserir REMUME da Minha Cidade', 'ux:remume:instrucoes'], ['🏥 Unidade / Hospital (/unidade)', 'ux:perfil:unidade']],
     [['🏠 Voltar ao Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -5001,10 +5001,33 @@ function enviarMenuCidadeERemume(chat, messageId) {
   return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
 }
 
+function enviarTelaUnidadeSaude(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var unid = ctx.unidade_saude || 'Unidade de Saúde';
+
+  var texto = '🏥 *UNIDADE DE SAÚDE & LOCAL DE ATUAÇÃO*\n\n' +
+    'O nome da sua Unidade ou Hospital é exibido no cabeçalho das receitas, atestados e relatórios emitidos.\n\n' +
+    '• *Unidade atual:* `' + unid + '`\n\n' +
+    '✍️ *Para alterar, envie o comando com o novo nome:*\n' +
+    '`/unidade Nome do Hospital ou Posto`\n\n' +
+    '💡 *Exemplos rápidos:*\n' +
+    '• `/unidade UPA 24h Central`\n' +
+    '• `/unidade Hospital das Clínicas`\n' +
+    '• `/unidade UBS Jardim América`';
+
+  var botoes = botoesBot([
+    [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
 function tratarCallbackPerfilClinico(chat, v, messageId) {
   if (!v || v === 'menu') return enviarMenuPerfilClinico(chat, messageId);
   if (v === 'nome') return enviarTelaOnboardingNome(chat, messageId);
   if (v === 'papel') return enviarMenuPapelProfissional(chat, messageId);
+  if (v === 'unidade' || v === 'equipe') return enviarTelaUnidadeSaude(chat, messageId);
   if (v.indexOf('pref:') === 0) {
     var novoPref = v.replace('pref:', '').trim();
     if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
@@ -5018,18 +5041,6 @@ function tratarCallbackPerfilClinico(chat, v, messageId) {
       ConfigService.salvarContextoClinico(chat, { papel: novoPapel });
     }
     return enviarMenuPapelProfissional(chat, messageId);
-  }
-  if (v === 'equipe') {
-    var cod = (typeof ConfigService !== 'undefined' && typeof ConfigService.gerarCodigoUnidade === 'function')
-      ? ConfigService.gerarCodigoUnidade(chat)
-      : '';
-    var txtEq = '🔗 *COMPARTILHAMENTO DE UNIDADE E PLANTÃO (EQUIPE)*\n\n' +
-      'Envie o comando abaixo para seus colegas de plantão ou estágio clonarem instantaneamente sua Cidade, Unidade, Cenário e REMUME (sem alterar o Nome ou CRM pessoal deles):\n\n' +
-      '```text\n/importar_unidade ' + cod + '\n```';
-    var kbEq = botoesBot([
-      [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
-    ]);
-    return enviarTelaBot(chat, txtEq, kbEq, messageId);
   }
   return enviarMenuPerfilClinico(chat, messageId);
 }
@@ -5247,6 +5258,7 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuPapelProfissional: enviarMenuPapelProfissional,
     enviarMenuCenarioECheckboxes: enviarMenuCenarioECheckboxes,
     enviarMenuCidadeERemume: enviarMenuCidadeERemume,
+    enviarTelaUnidadeSaude: enviarTelaUnidadeSaude,
     tratarCallbackPerfilClinico: tratarCallbackPerfilClinico,
     tratarCallbackCenarioModulos: tratarCallbackCenarioModulos,
     tratarCallbackCidadeRemume: tratarCallbackCidadeRemume,

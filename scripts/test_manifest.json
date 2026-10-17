@@ -49,7 +49,7 @@
     "tests/test_gestao_leitos_sbar_ux.cjs",
     "tests/test_central_rotina_plantao_ux.cjs",
     "tests/test_soap_modo_e_receita_ux.cjs",
-    "tests/test_autoloop_runner.cjs",
+    "tests/test_test_runner.cjs",
     "tests/test_ajustes_usuario_audio_rotina.cjs",
     "tests/test_aba_rotina_cockpit.cjs",
     "tests/test_convidado_onboarding_e_ajuda_ux.cjs",

@@ -25,14 +25,8 @@ var PlantaoSniperService = (function () {
     responderApenasPv: false,    // true = Modo Fantasma (só chama no PV do escalista)
     valorMinimo12h: 1300,
     valorMinimoHora: 108,
-    cidadesPermitidas: [
-      "São Paulo",
-      "ABC",
-      "Santo André",
-      "São Bernardo",
-      "São Caetano",
-      "Osasco"
-    ],
+    cidadesPermitidas: [],       // Vazio = Sem restrição: a abrangência é definida pelos grupos de WhatsApp em que o médico entra
+    filtroCidadesAtivo: false,   // false = 100% das cidades dos grupos permitidos são aceitas
     setoresPermitidos: [
       "Porta",
       "Ficha Verde",
@@ -84,6 +78,12 @@ var PlantaoSniperService = (function () {
         cfg[k] = salvo[k];
       }
     }
+    // Garante que lista mockada antiga não bloqueie as cidades dos grupos do médico
+    if (Array.isArray(cfg.cidadesPermitidas) && cfg.cidadesPermitidas.length === 6 && cfg.cidadesPermitidas[0] === "São Paulo") {
+      cfg.cidadesPermitidas = [];
+      cfg.filtroCidadesAtivo = false;
+      _salvarJsonProp(PROP_CONFIG_KEY, cfg);
+    }
     cfg.valorMinimoHora = Math.round((Number(cfg.valorMinimo12h) || 1300) / 12);
     return cfg;
   }
@@ -100,6 +100,177 @@ var PlantaoSniperService = (function () {
     atual.valorMinimoHora = Math.round((Number(atual.valorMinimo12h) || 1300) / 12);
     _salvarJsonProp(PROP_CONFIG_KEY, atual);
     return atual;
+  }
+
+  // --------------------------------------------------------------------------
+  // Catálogos e Gestão de Cidades e Setores Permitidos
+  // --------------------------------------------------------------------------
+  var CATALOGO_CIDADES_PADRAO = [
+    "São Paulo",
+    "ABC",
+    "Santo André",
+    "São Bernardo",
+    "São Caetano",
+    "Diadema",
+    "Mauá",
+    "Osasco",
+    "Guarulhos",
+    "Barueri",
+    "Cotia",
+    "Taboão da Serra",
+    "Mogi das Cruzes",
+    "Santos",
+    "Campinas",
+    "Jundiaí",
+    "Sorocaba",
+    "Ribeirão Preto",
+    "São José dos Campos"
+  ];
+
+  var CATALOGO_SETORES_PADRAO = [
+    "Porta",
+    "Ficha Verde",
+    "Clínica Médica",
+    "Observação",
+    "Enfermaria",
+    "UTI Adulto",
+    "Sala Vermelha / Emergência",
+    "Pediatria",
+    "Cirurgia Geral",
+    "Ginecologia / Obstetrícia"
+  ];
+
+  function obterCatalogoCidadesDisponiveis() {
+    var cfg = obterConfigSniper();
+    var ativas = Array.isArray(cfg.cidadesPermitidas) ? cfg.cidadesPermitidas : DEFAULT_CONFIG.cidadesPermitidas;
+    var mapa = {};
+    var lista = [];
+    var i;
+
+    for (i = 0; i < CATALOGO_CIDADES_PADRAO.length; i++) {
+      var c = CATALOGO_CIDADES_PADRAO[i];
+      var norm = _normalizarTexto(c);
+      if (!mapa[norm]) {
+        mapa[norm] = true;
+        lista.push(c);
+      }
+    }
+
+    for (i = 0; i < ativas.length; i++) {
+      var a = ativas[i];
+      var normA = _normalizarTexto(a);
+      if (!mapa[normA]) {
+        mapa[normA] = true;
+        lista.push(a);
+      }
+    }
+
+    return lista;
+  }
+
+  function alternarCidadePermitida(cidadeNome) {
+    var cfg = obterConfigSniper();
+    var cidades = Array.isArray(cfg.cidadesPermitidas) ? cfg.cidadesPermitidas.slice() : [];
+    var nomeTrim = String(cidadeNome || "").trim();
+    if (!nomeTrim) return { sucesso: false, ativada: false, cidades: cidades };
+
+    var norm = _normalizarTexto(nomeTrim);
+    var idx = -1;
+    for (var i = 0; i < cidades.length; i++) {
+      if (_normalizarTexto(cidades[i]) === norm) {
+        idx = i;
+        break;
+      }
+    }
+
+    var ativada = false;
+    if (idx !== -1) {
+      cidades.splice(idx, 1);
+      ativada = false;
+    } else {
+      cidades.push(nomeTrim);
+      ativada = true;
+    }
+
+    salvarConfigSniper({ cidadesPermitidas: cidades });
+    return { sucesso: true, ativada: ativada, cidade: nomeTrim, cidades: cidades };
+  }
+
+  function redefinirCidadesPadrao() {
+    var padrao = DEFAULT_CONFIG.cidadesPermitidas.slice();
+    salvarConfigSniper({ cidadesPermitidas: padrao });
+    return padrao;
+  }
+
+  function definirTodasCidades(ativarTodas) {
+    var novas = [];
+    if (ativarTodas) {
+      novas = obterCatalogoCidadesDisponiveis().slice();
+    }
+    salvarConfigSniper({ cidadesPermitidas: novas });
+    return novas;
+  }
+
+  function obterCatalogoSetoresDisponiveis() {
+    var cfg = obterConfigSniper();
+    var ativas = Array.isArray(cfg.setoresPermitidos) ? cfg.setoresPermitidos : DEFAULT_CONFIG.setoresPermitidos;
+    var mapa = {};
+    var lista = [];
+    var i;
+
+    for (i = 0; i < CATALOGO_SETORES_PADRAO.length; i++) {
+      var s = CATALOGO_SETORES_PADRAO[i];
+      var norm = _normalizarTexto(s);
+      if (!mapa[norm]) {
+        mapa[norm] = true;
+        lista.push(s);
+      }
+    }
+
+    for (i = 0; i < ativas.length; i++) {
+      var sa = ativas[i];
+      var normS = _normalizarTexto(sa);
+      if (!mapa[normS]) {
+        mapa[normS] = true;
+        lista.push(sa);
+      }
+    }
+
+    return lista;
+  }
+
+  function alternarSetorPermitido(setorNome) {
+    var cfg = obterConfigSniper();
+    var setores = Array.isArray(cfg.setoresPermitidos) ? cfg.setoresPermitidos.slice() : [];
+    var nomeTrim = String(setorNome || "").trim();
+    if (!nomeTrim) return { sucesso: false, ativado: false, setores: setores };
+
+    var norm = _normalizarTexto(nomeTrim);
+    var idx = -1;
+    for (var i = 0; i < setores.length; i++) {
+      if (_normalizarTexto(setores[i]) === norm) {
+        idx = i;
+        break;
+      }
+    }
+
+    var ativado = false;
+    if (idx !== -1) {
+      setores.splice(idx, 1);
+      ativado = false;
+    } else {
+      setores.push(nomeTrim);
+      ativado = true;
+    }
+
+    salvarConfigSniper({ setoresPermitidos: setores });
+    return { sucesso: true, ativado: ativado, setor: nomeTrim, setores: setores };
+  }
+
+  function redefinirSetoresPadrao() {
+    var padrao = DEFAULT_CONFIG.setoresPermitidos.slice();
+    salvarConfigSniper({ setoresPermitidos: padrao });
+    return padrao;
   }
 
   function obterEstatisticas() {
@@ -553,10 +724,28 @@ var PlantaoSniperService = (function () {
       { chave: "sao bernardo", nome: "São Bernardo" },
       { chave: "santo andre", nome: "Santo André" },
       { chave: "sao caetano", nome: "São Caetano" },
+      { chave: "diadema", nome: "Diadema" },
+      { chave: "maua", nome: "Mauá" },
       { chave: "abc", nome: "ABC" },
       { chave: "osasco", nome: "Osasco" },
       { chave: "guarulhos", nome: "Guarulhos" },
       { chave: "barueri", nome: "Barueri" },
+      { chave: "alphaville", nome: "Barueri" },
+      { chave: "cotia", nome: "Cotia" },
+      { chave: "taboao da serra", nome: "Taboão da Serra" },
+      { chave: "taboao", nome: "Taboão da Serra" },
+      { chave: "mogi das cruzes", nome: "Mogi das Cruzes" },
+      { chave: "mogi", nome: "Mogi das Cruzes" },
+      { chave: "santos", nome: "Santos" },
+      { chave: "sao vicente", nome: "São Vicente" },
+      { chave: "praia grande", nome: "Praia Grande" },
+      { chave: "guaruja", nome: "Guarujá" },
+      { chave: "campinas", nome: "Campinas" },
+      { chave: "jundiai", nome: "Jundiaí" },
+      { chave: "sorocaba", nome: "Sorocaba" },
+      { chave: "ribeirao preto", nome: "Ribeirão Preto" },
+      { chave: "sao jose dos campos", nome: "São José dos Campos" },
+      { chave: "sjc", nome: "São José dos Campos" },
       { chave: "morumbi", nome: "São Paulo" },
       { chave: "itaim", nome: "São Paulo" },
       { chave: "paulista", nome: "São Paulo" },
@@ -570,6 +759,18 @@ var PlantaoSniperService = (function () {
       if (norm.indexOf(mapaCidades[c].chave) !== -1) {
         cidade = mapaCidades[c].nome;
         break;
+      }
+    }
+    // Suporte dinâmico caso o médico configure cidades personalizadas
+    if (cidade === "São Paulo") {
+      var catalogoDinamico = obterCatalogoCidadesDisponiveis();
+      for (var cd = 0; cd < catalogoDinamico.length; cd++) {
+        var cItem = catalogoDinamico[cd];
+        var cItemNorm = _normalizarTexto(cItem);
+        if (cItemNorm && cItemNorm !== "sao paulo" && norm.indexOf(cItemNorm) !== -1) {
+          cidade = cItem;
+          break;
+        }
       }
     }
 
@@ -825,22 +1026,26 @@ var PlantaoSniperService = (function () {
       };
     }
 
-    // 3. Verifica Cidade Compatível
-    var cidNorm = _normalizarTexto(oferta.cidade);
-    var cidadesOk = config.cidadesPermitidas || DEFAULT_CONFIG.cidadesPermitidas;
-    var cidadePermitida = false;
-    for (var j = 0; j < cidadesOk.length; j++) {
-      if (cidNorm.indexOf(_normalizarTexto(cidadesOk[j])) !== -1) {
-        cidadePermitida = true;
-        break;
+    // 3. Abrangência Geográfica (Definida pelos Grupos Autorizados)
+    // O médico entra exclusivamente em grupos de WhatsApp das cidades de seu interesse.
+    // Portanto, qualquer vaga de um grupo liberado na Allowlist é aceita sem bloqueio de cidade.
+    if (config.filtroCidadesAtivo && Array.isArray(config.cidadesPermitidas) && config.cidadesPermitidas.length > 0) {
+      var cidNorm = _normalizarTexto(oferta.cidade);
+      var cidadesOk = config.cidadesPermitidas;
+      var cidadePermitida = false;
+      for (var j = 0; j < cidadesOk.length; j++) {
+        if (cidNorm.indexOf(_normalizarTexto(cidadesOk[j])) !== -1) {
+          cidadePermitida = true;
+          break;
+        }
       }
-    }
-    if (!cidadePermitida) {
-      return {
-        aprovado: false,
-        codigo: "CIDADE_FORA_DO_RAIO",
-        motivo: "Cidade '" + oferta.cidade + "' fora do raio configurado"
-      };
+      if (!cidadePermitida) {
+        return {
+          aprovado: false,
+          codigo: "CIDADE_FORA_DO_RAIO",
+          motivo: "Cidade '" + oferta.cidade + "' fora do raio configurado"
+        };
+      }
     }
 
     // 4. Verifica Piso Financeiro
@@ -1299,12 +1504,11 @@ function _construirPainelSniperTelegram() {
         { text: "💰 Piso -R$100", callback_data: "sniper:val_down" }
       ],
       [
-        { text: "🧪 Simular 8 Vagas WhatsApp", callback_data: "sniper:simular" },
-        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" }
+        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
+        { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" }
       ],
       [
-        { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" },
-        { text: "🔓 Destravar Agenda Sniper", callback_data: "sniper:unlock_all" }
+        { text: "🛠️ Diagnóstico & Ferramentas", callback_data: "sniper:diag" }
       ],
       [
         { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
@@ -1497,7 +1701,12 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
   }
 
   if (acao === "pair_wa") {
-    var codigoPareamento = "WGN-" + Math.floor(1000 + Math.random() * 9000);
+    // Código oficial de pareamento WhatsApp: 8 dígitos/caracteres além do traço (4 + 4 no formato XXXX-XXXX)
+    var charsAlfanum = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    var c1 = charsAlfanum.charAt(Math.floor(Math.random() * charsAlfanum.length));
+    var parte1 = "WGN" + c1; // 4 caracteres antes do traço (ex: WGN4, WGN7, WGNA)
+    var parte2 = String(Math.floor(1000 + Math.random() * 9000)); // 4 dígitos após o traço (ex: 6067)
+    var codigoPareamento = parte1 + "-" + parte2;
     var msgPair = [
       "📱 *PAREAMENTO WHATSAPP (8 DÍGITOS — SEM QR CODE)*",
       "━━━━━━━━━━━━━━━━━━━━",
@@ -1505,8 +1714,8 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
       "",
       "1️⃣ Abra o *WhatsApp* > *Aparelhos Conectados* > *Conectar um aparelho*",
       "2️⃣ Toque em *Conectar com número de telefone*",
-      "3️⃣ Digite o código de pareamento ou acione o webhook local `/api/sniper/webhook`:",
-      "🔑 Protocolo de Sessão: `" + codigoPareamento + "`",
+      "3️⃣ Digite o código de pareamento no WhatsApp ou acione o webhook local `/api/sniper/webhook`:",
+      "🔑 Código de Pareamento: `" + codigoPareamento + "`",
       "",
       "🛡️ *Blindagem & Stealth Ativos:*",
       "• `Camada 1`: Bloqueio hard-coded de conversas privadas (`@s.whatsapp.net`) e Status",
@@ -1521,6 +1730,30 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
     return _enviarOuEditarPainelSniper(chatId, msgId, token, msgPair, {
       inline_keyboard: [
         [{ text: "🛡️ Configurar Grupos Permitidos", callback_data: "sniper:grupos" }],
+        [{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]
+      ]
+    });
+  }
+
+  if (acao === "diag") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🛠️ Menu de Diagnóstico e Ferramentas", false);
+    }
+    var msgDiag = [
+      "🛠️ *DIAGNÓSTICO & FERRAMENTAS DO SNIPER*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Ferramentas de teste e manutenção técnica:",
+      "",
+      "🧪 *Simulador de 8 Vagas:* Injeta mensagens sintéticas nos grupos para auditar filtros anti-calote, piso salarial e auto-agendamento.",
+      "🔓 *Destravar Agenda:* Limpa locks temporários de slots capturados pelo Sniper na sua rotina.",
+      "",
+      "💡 _Também acessível a qualquer momento via comando:_ `/sniper simular`"
+    ].join("\n");
+
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, msgDiag, {
+      inline_keyboard: [
+        [{ text: "🧪 Simular 8 Vagas WhatsApp", callback_data: "sniper:simular" }],
+        [{ text: "🔓 Destravar Agenda Sniper", callback_data: "sniper:unlock_all" }],
         [{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]
       ]
     });

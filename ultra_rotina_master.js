@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 09:31:21
- * Checksum SHA256: b6dd83098a9bef26
+ * Gerado automaticamente via build_master.py em: 2026-10-17 14:00:09
+ * Checksum SHA256: 07bdc46dfeccc9a7
  * ==============================================================================
  */
 
@@ -565,12 +565,72 @@ var ConfigService = (function() {
       });
     }
 
+    // Espelha campos top-level planos para interoperabilidade total (Telegram Router, SOAP, PDF, Cockpit)
+    ctx.prefixo_tratamento = ctx.profissional.prefixo || "Dr.";
+    ctx.nome_chamada = ctx.profissional.nome_chamada || "Médico(a)";
+    ctx.nome_chamada_configurado = Boolean(ctx.profissional.nome_chamada && ctx.profissional.nome_chamada !== "Médico(a)");
+    ctx.nome_completo_carimbo = ctx.profissional.nome_completo_carimbo || ctx.profissional.saudacao_formal || "Médico(a) Assistente";
+    ctx.papel = ctx.profissional.papel || "MEDICO_CRM";
+    ctx.crm = ctx.profissional.registro_conselho || "";
+    ctx.municipio = (ctx.localidade.municipio_nome && ctx.localidade.municipio_nome !== DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO)
+      ? ctx.localidade.municipio_nome
+      : (ctxBruto.municipio !== undefined ? ctxBruto.municipio : "");
+    ctx.uf = ctx.localidade.uf || "BR";
+    ctx.unidade_saude = ctx.unidade_assistencial.nome_unidade || DEFAULTS.INSTITUICAO_PADRAO;
+    ctx.cenario_assistencial = ctx.unidade_assistencial.cenario_id || DEFAULTS.CENARIO_PADRAO;
+    ctx.sistema_regulacao = ctx.unidade_assistencial.sistema_regulacao || DEFAULTS.SISTEMA_REGULACAO_PADRAO;
+    ctx.remume_slug = ctx.farmacopeia.remume_id || DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO;
+    ctx.notas_ccih = (ctx.regras_locais && ctx.regras_locais.notas_ccih_fluxos) || "";
+
+    var MAPA_CANONICO_PARA_ALIAS = {
+      "protocolos_emergencia": "SALA_VERMELHA",
+      "prescricao_hospitalar": "ENFERMARIA_LEITOS",
+      "evolucao_soap_atestados": "SOAP_PEP",
+      "receituario_remume": "RECEITUARIO_ATESTADOS",
+      "cronicos_rastreio_aps": "FARMACIA_REMUME",
+      "pediatria_mg_kg": "PEDIATRIA_DOSES",
+      "obstetricia_prenatal_lactacao": "GO_OBSTETRICIA",
+      "calculadoras_escores": "CALCULADORAS_ESCORES",
+      "dva_sedacao_iot": "INTOXICACOES",
+      "exames_ecg_gaso_imagem": "PRECEPTOR_EBM"
+    };
+
+    var listaAtivos = [];
+    if (ctx.unidade_assistencial && ctx.unidade_assistencial.modulos_visiveis) {
+      Object.keys(ctx.unidade_assistencial.modulos_visiveis).forEach(function(mk) {
+        if (ctx.unidade_assistencial.modulos_visiveis[mk]) {
+          listaAtivos.push(mk);
+          if (MAPA_CANONICO_PARA_ALIAS[mk] && listaAtivos.indexOf(MAPA_CANONICO_PARA_ALIAS[mk]) === -1) {
+            listaAtivos.push(MAPA_CANONICO_PARA_ALIAS[mk]);
+          }
+        }
+      });
+    }
+    ctx.modulos_ativos = listaAtivos;
+
     return ctx;
   }
+
+  var MAPA_ALIASES_MODULOS = {
+    "SALA_VERMELHA": "protocolos_emergencia",
+    "ENFERMARIA_LEITOS": "prescricao_hospitalar",
+    "SOAP_PEP": "evolucao_soap_atestados",
+    "RECEITUARIO_ATESTADOS": "receituario_remume",
+    "FARMACIA_REMUME": "cronicos_rastreio_aps",
+    "PEDIATRIA_DOSES": "pediatria_mg_kg",
+    "GO_OBSTETRICIA": "obstetricia_prenatal_lactacao",
+    "CALCULADORAS_ESCORES": "calculadoras_escores",
+    "INTOXICACOES": "dva_sedacao_iot",
+    "PRECEPTOR_EBM": "exames_ecg_gaso_imagem"
+  };
 
   function resolverModuloKey(moduloKeyOuIndice) {
     if (moduloKeyOuIndice === undefined || moduloKeyOuIndice === null) return null;
     var str = String(moduloKeyOuIndice).trim();
+    var upper = str.toUpperCase();
+    if (MAPA_ALIASES_MODULOS[upper]) {
+      return MAPA_ALIASES_MODULOS[upper];
+    }
     var num = parseInt(str, 10);
     if (!isNaN(num) && num >= 1 && num <= CATALOGO_MODULOS_CLINICOS.length) {
       return CATALOGO_MODULOS_CLINICOS[num - 1].id;
@@ -784,7 +844,7 @@ var ConfigService = (function() {
       }
 
       // 3. Retorna perfil padrão neutro (Brasil / RENAME / Médico(a) Assistente)
-      var padrao = criarContextoPadrao(chatId || cid);
+      var padrao = normalizarContextoClinico(criarContextoPadrao(chatId || cid), chatId || cid);
       perfisCache[cid] = padrao;
       return clonarObjeto(padrao);
     },
@@ -796,6 +856,56 @@ var ConfigService = (function() {
 
       if (delta.onboarding_concluido !== undefined) {
         atual.onboarding_concluido = Boolean(delta.onboarding_concluido);
+      }
+
+      // Suporte a campos planos (top-level) enviados pelo Router, SOAP ou Cockpit
+      if (delta.prefixo_tratamento !== undefined) atual.profissional.prefixo = delta.prefixo_tratamento;
+      if (delta.nome_chamada !== undefined) atual.profissional.nome_chamada = delta.nome_chamada;
+      if (delta.nome_completo_carimbo !== undefined) atual.profissional.nome_completo_carimbo = delta.nome_completo_carimbo;
+      if (delta.papel !== undefined) atual.profissional.papel = delta.papel;
+      if (delta.crm !== undefined) atual.profissional.registro_conselho = delta.crm;
+
+      if (delta.municipio !== undefined) {
+        atual.localidade.municipio_nome = delta.municipio || DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO;
+      }
+      if (delta.uf !== undefined) {
+        atual.localidade.uf = delta.uf || DEFAULTS.LOCALIDADE_UF_PADRAO;
+      }
+      if (delta.municipio !== undefined || delta.uf !== undefined) {
+        atual.localidade.municipio_slug = gerarSlugMunicipio(atual.localidade.municipio_nome, atual.localidade.uf);
+      }
+
+      if (delta.unidade_saude !== undefined) {
+        atual.unidade_assistencial.nome_unidade = delta.unidade_saude;
+      }
+      if (delta.cenario_assistencial !== undefined) {
+        var cenUp = String(delta.cenario_assistencial).toUpperCase();
+        if (MODULOS_POR_CENARIO[cenUp]) {
+          atual.unidade_assistencial.cenario_id = cenUp;
+          atual.unidade_assistencial.nivel_atencao = cenUp;
+          if (!delta.modulos_ativos) {
+            atual.unidade_assistencial.modulos_visiveis = clonarObjeto(MODULOS_POR_CENARIO[cenUp]);
+          }
+        }
+      }
+      if (delta.sistema_regulacao !== undefined) {
+        atual.unidade_assistencial.sistema_regulacao = delta.sistema_regulacao;
+      }
+      if (Array.isArray(delta.modulos_ativos)) {
+        var novoMapaMod = {};
+        CATALOGO_MODULOS_CLINICOS.forEach(function(m) { novoMapaMod[m.id] = false; });
+        delta.modulos_ativos.forEach(function(item) {
+          var rk = resolverModuloKey(item);
+          if (rk) novoMapaMod[rk] = true;
+        });
+        atual.unidade_assistencial.modulos_visiveis = novoMapaMod;
+      }
+      if (delta.remume_slug !== undefined) {
+        atual.farmacopeia.remume_id = delta.remume_slug;
+        atual.localidade.municipio_slug = delta.remume_slug;
+      }
+      if (delta.notas_ccih !== undefined) {
+        atual.regras_locais.notas_ccih_fluxos = delta.notas_ccih;
       }
 
       if (delta.profissional && typeof delta.profissional === "object") {
@@ -870,6 +980,9 @@ var ConfigService = (function() {
 
       atual.atualizado_em = new Date().toISOString();
       var normalizado = normalizarContextoClinico(atual, chatId || cid);
+      if (delta.municipio !== undefined) {
+        normalizado.municipio = delta.municipio;
+      }
 
       perfisCache[cid] = normalizado;
       escreverJsonDisco("data/profiles/" + cid + ".json", normalizado);
@@ -896,11 +1009,9 @@ var ConfigService = (function() {
     alternarModuloCenario: function(chatId, moduloKeyOuIndice, valorExplicito) {
       var modKey = resolverModuloKey(moduloKeyOuIndice);
       if (!modKey) {
-        return {
-          sucesso: false,
-          erro: "Módulo clínico inválido: " + String(moduloKeyOuIndice),
-          contexto: this.getContextoClinico(chatId)
-        };
+        var ctxFallback = this.getContextoClinico(chatId);
+        ctxFallback.sucesso = false;
+        return ctxFallback;
       }
       var ctx = this.getContextoClinico(chatId);
       var estadoAtual = Boolean(ctx.unidade_assistencial.modulos_visiveis[modKey]);
@@ -923,13 +1034,12 @@ var ConfigService = (function() {
         }
       }
 
-      return {
-        sucesso: true,
-        modulo_id: modKey,
-        modulo_nome: metaModulo ? metaModulo.nome : modKey,
-        ativo: novoEstado,
-        contexto: atualizado
-      };
+      atualizado.sucesso = true;
+      atualizado.modulo_id = modKey;
+      atualizado.modulo_nome = metaModulo ? metaModulo.nome : modKey;
+      atualizado.ativo = novoEstado;
+      atualizado.contexto = clonarObjeto(atualizado);
+      return atualizado;
     },
 
     obterSaudacaoFormal: function(chatId) {
@@ -976,7 +1086,10 @@ var ConfigService = (function() {
 
       // Busca no diretório de presets municipais
       var presetDisco = lerJsonDisco("src/data/remumes/presets/" + slug + ".json", null);
-      if (presetDisco && Array.isArray(presetDisco.itens)) {
+      if (presetDisco && (Array.isArray(presetDisco.itens) || Array.isArray(presetDisco.medicamentos))) {
+        if (!presetDisco.itens && Array.isArray(presetDisco.medicamentos)) {
+          presetDisco.itens = presetDisco.medicamentos;
+        }
         catalogosCache[slug] = presetDisco;
         return clonarObjeto(presetDisco);
       }
@@ -987,7 +1100,7 @@ var ConfigService = (function() {
       if (propPreset) {
         try {
           var parsed = JSON.parse(propPreset);
-          if (parsed && Array.isArray(parsed.itens)) {
+          if (parsed && (Array.isArray(parsed.itens) || Array.isArray(parsed.medicamentos))) {
             catalogosCache[slug] = parsed;
             return clonarObjeto(parsed);
           }
@@ -999,14 +1112,42 @@ var ConfigService = (function() {
 
     /**
      * REGRA CRÍTICA DE AUTO-PROMOÇÃO PARA PRESET GLOBAL:
-     * Sempre que uma REMUME nova de uma cidade for inserida/importada com sucesso
-     * (via CSV, JSON, texto colado ou Web Discovery) com pelo menos 5 itens válidos,
-     * salva automaticamente em `src/data/remumes/presets/<slug>.json` e atualiza
-     * `src/data/remumes/presets/manifest.json` para todos os futuros usuários daquela cidade!
+     * Aceita tanto objeto `{ municipio, uf, itens }` quanto argumentos `(municipio, uf, conteudoBruto, fonte, chatId)`
+     * e delega ao CatalogoRemumeService quando disponível para atualizar `src/data/remumes/presets/<slug>.json` e `manifest.json`.
      */
-    promoverRemumeParaPresetGlobal: function(dadosCatalogo) {
+    promoverRemumeParaPresetGlobal: function(arg1, ufArg, conteudoArg, fonteArg, chatIdArg) {
+      if (typeof arg1 === "string") {
+        var munStr = arg1;
+        var ufStr = ufArg || "BR";
+        var cont = conteudoArg;
+        var fnt = fonteArg || ("Colaboração (" + munStr + ")");
+        if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.importarEPromoverRemume === "function") {
+          var resCat = CatalogoRemumeService.importarEPromoverRemume(munStr, ufStr, cont, fnt);
+          if (resCat && resCat.sucesso && chatIdArg) {
+            this.salvarContextoClinico(chatIdArg, {
+              municipio: munStr,
+              uf: ufStr,
+              remume_slug: resCat.slug
+            });
+          }
+          if (resCat) {
+            resCat.promovido = Boolean(resCat.sucesso);
+            resCat.total_itens = resCat.total || 0;
+          }
+          return resCat;
+        }
+        var linhas = typeof cont === "string" ? cont.split(/\r?\n/).filter(Boolean) : (Array.isArray(cont) ? cont : []);
+        return this.promoverRemumeParaPresetGlobal({
+          municipio: munStr,
+          uf: ufStr,
+          origem: fnt,
+          itens: linhas
+        });
+      }
+
+      var dadosCatalogo = arg1;
       if (!dadosCatalogo || typeof dadosCatalogo !== "object") {
-        return { promovido: false, motivo: "Dados do catálogo ausentes ou inválidos." };
+        return { promovido: false, sucesso: false, motivo: "Dados do catálogo ausentes ou inválidos." };
       }
 
       var municipio = String(dadosCatalogo.municipio || "").trim();
@@ -1017,10 +1158,10 @@ var ConfigService = (function() {
       }
 
       if (!slug || slug === "rename_nacional") {
-        return { promovido: false, motivo: "Município/UF insuficientes para gerar preset municipal." };
+        return { promovido: false, sucesso: false, motivo: "Município/UF insuficientes para gerar preset municipal." };
       }
 
-      var itensBrutos = Array.isArray(dadosCatalogo.itens) ? dadosCatalogo.itens : [];
+      var itensBrutos = Array.isArray(dadosCatalogo.itens) ? dadosCatalogo.itens : (Array.isArray(dadosCatalogo.medicamentos) ? dadosCatalogo.medicamentos : []);
       var itensValidos = [];
       var vistos = {};
 
@@ -1035,21 +1176,22 @@ var ConfigService = (function() {
         }
       }
 
-      if (itensValidos.length < 5) {
+      if (itensValidos.length < 3) {
         return {
           promovido: false,
-          motivo: "O catálogo precisa ter pelo menos 5 medicamentos válidos para promoção a preset global (recebidos: " + itensValidos.length + ")."
+          sucesso: false,
+          motivo: "O catálogo precisa ter pelo menos 3 medicamentos válidos para promoção a preset global (recebidos: " + itensValidos.length + ")."
         };
       }
 
       var nomeExibicao = String(
         dadosCatalogo.nome_exibicao ||
-        ("REMUME " + (municipio || slug) + (uf && uf !== "BR" ? " - " + uf : ""))
+        ("REMUME " + (municipio || slug) + (uf && uf !== "BR" ? " (" + uf + ")" : ""))
       ).trim();
 
       var seloCurto = String(
         dadosCatalogo.selo_curto ||
-        ("🏛️ [REMUME " + (municipio || slug) + (uf && uf !== "BR" ? "/" + uf : "") + "]")
+        ("🟢 [REMUME-" + (uf && uf !== "BR" ? uf : "MUN") + "]")
       ).trim();
 
       var caminhoRelativo = "src/data/remumes/presets/" + slug + ".json";
@@ -1059,18 +1201,19 @@ var ConfigService = (function() {
         municipio: municipio || slug,
         uf: uf || "BR",
         nome_exibicao: nomeExibicao,
+        selo: seloCurto,
         selo_curto: seloCurto,
         origem: String(dadosCatalogo.origem || "IMPORTACAO_COLABORATIVA"),
         atualizado_em: new Date().toISOString(),
         total_itens: itensValidos.length,
-        itens: itensValidos
+        itens: itensValidos,
+        medicamentos: itensValidos
       };
 
       catalogosCache[slug] = catalogoFinal;
       escreverJsonDisco(caminhoRelativo, catalogoFinal);
       salvarPropriedadeScript("REMUME_PRESET_" + slug, JSON.stringify(catalogoFinal));
 
-      // Atualiza o manifest.json de presets
       var manifest = carregarManifestPresets();
       if (!Array.isArray(manifest.presets)) {
         manifest.presets = [];
@@ -1082,10 +1225,12 @@ var ConfigService = (function() {
         municipio: catalogoFinal.municipio,
         uf: catalogoFinal.uf,
         nome_exibicao: nomeExibicao,
+        selo: seloCurto,
         selo_curto: seloCurto,
+        total_medicamentos: itensValidos.length,
         total_itens: itensValidos.length,
         atualizado_em: catalogoFinal.atualizado_em,
-        arquivo: caminhoRelativo
+        arquivo: slug + ".json"
       };
 
       var encontrado = false;
@@ -1107,21 +1252,31 @@ var ConfigService = (function() {
 
       return {
         promovido: true,
+        sucesso: true,
         slug: slug,
         remume_id: slug,
         nome_exibicao: nomeExibicao,
         selo_curto: seloCurto,
+        total: itensValidos.length,
         total_itens: itensValidos.length,
         arquivo: caminhoRelativo,
         catalogo: clonarObjeto(catalogoFinal)
       };
     },
 
-    registrarSolicitacaoRemume: function(chatId, municipio, uf) {
-      var mun = String(municipio || "").trim();
-      var ufNorm = String(uf || "BR").trim().toUpperCase();
+    registrarSolicitacaoRemume: function(arg1, arg2, arg3) {
+      // Aceita tanto (municipio, uf, chatId) quanto (chatId, municipio, uf)
+      var mun, ufNorm, cid;
+      if (arg2 && String(arg2).trim().length === 2 && /^[A-Za-z]{2}$/.test(String(arg2).trim())) {
+        mun = String(arg1 || "").trim();
+        ufNorm = String(arg2 || "BR").trim().toUpperCase();
+        cid = String(arg3 || "default").trim();
+      } else {
+        cid = String(arg1 || "default").trim();
+        mun = String(arg2 || "").trim();
+        ufNorm = String(arg3 || "BR").trim().toUpperCase();
+      }
       var slug = gerarSlugMunicipio(mun, ufNorm);
-      var cid = String(chatId || sanitizarChatId(chatId)).trim();
 
       var lista = this.listarSolicitacoesRemume();
       var existente = null;
@@ -1185,25 +1340,21 @@ var ConfigService = (function() {
       return [];
     },
 
-    aprovarSolicitacaoRemume: function(municipio, uf, itens) {
+    aprovarSolicitacaoRemume: function(municipio, uf, itens, fonte) {
       var mun = String(municipio || "").trim();
       var ufNorm = String(uf || "BR").trim().toUpperCase();
       var slug = gerarSlugMunicipio(mun, ufNorm);
 
-      var promocao = this.promoverRemumeParaPresetGlobal({
-        slug: slug,
-        municipio: mun,
-        uf: ufNorm,
-        origem: "APROVACAO_ADMIN",
-        itens: itens
-      });
+      var promocao = this.promoverRemumeParaPresetGlobal(mun, ufNorm, itens, fonte || "APROVACAO_ADMIN");
 
-      if (!promocao.promovido) {
+      if (!promocao || (!promocao.promovido && !promocao.sucesso)) {
         return {
           aprovado: false,
-          motivo: promocao.motivo,
+          sucesso: false,
+          motivo: promocao ? promocao.motivo : "Falha na promoção",
           slug: slug,
-          solicitantes: []
+          solicitantes: [],
+          solicitantes_notificar: []
         };
       }
 
@@ -1215,7 +1366,7 @@ var ConfigService = (function() {
         if (lista[i].slug === slug) {
           lista[i].status = "APROVADA";
           lista[i].aprovado_em = agora;
-          lista[i].total_itens = promocao.total_itens;
+          lista[i].total_itens = promocao.total_itens || promocao.total;
           if (Array.isArray(lista[i].solicitantes)) {
             solicitantesNotificar = lista[i].solicitantes.slice();
           }
@@ -1226,31 +1377,25 @@ var ConfigService = (function() {
       escreverJsonDisco("data/remume_requests.json", lista);
       salvarPropriedadeScript("REMUME_REQUESTS_QUEUE", JSON.stringify(lista));
 
-      // Atualiza automaticamente a farmacopeia dos solicitantes para usar o novo preset aprovado
       for (var s = 0; s < solicitantesNotificar.length; s++) {
         var chatSolicitante = solicitantesNotificar[s];
         this.salvarContextoClinico(chatSolicitante, {
-          localidade: {
-            uf: ufNorm,
-            municipio_nome: mun || slug,
-            municipio_slug: slug
-          },
-          farmacopeia: {
-            remume_id: slug,
-            remume_nome_exibicao: promocao.nome_exibicao,
-            selo_curto: promocao.selo_curto,
-            fallback_rename_nacional: true
-          }
+          municipio: mun || slug,
+          uf: ufNorm,
+          remume_slug: promocao.slug || slug
         });
       }
 
       return {
         aprovado: true,
-        slug: slug,
+        sucesso: true,
+        slug: promocao.slug || slug,
         nome_exibicao: promocao.nome_exibicao,
         selo_curto: promocao.selo_curto,
-        total_itens: promocao.total_itens,
+        total: promocao.total || promocao.total_itens,
+        total_itens: promocao.total_itens || promocao.total,
         solicitantes: solicitantesNotificar,
+        solicitantes_notificar: solicitantesNotificar,
         catalogo: promocao.catalogo
       };
     },
@@ -1260,84 +1405,51 @@ var ConfigService = (function() {
     // ==========================================================================
     gerarCodigoUnidade: function(chatId) {
       var ctx = this.getContextoClinico(chatId);
-      var uf = removerAcentos(ctx.localidade.uf || "BR").toUpperCase().replace(/[^A-Z]/g, "") || "BR";
-      var nomeUnidade = removerAcentos(ctx.unidade_assistencial.nome_unidade || "UNIDADE")
-        .toUpperCase()
-        .replace(/[^A-Z0-9]+/g, "_")
-        .replace(/^_+|_+$/g, "")
-        .slice(0, 14) || "SUS";
-
-      var hashBase = String(ctx.localidade.municipio_slug || "") + "|" + String(ctx.unidade_assistencial.nome_unidade || "") + "|" + String(ctx.unidade_assistencial.cenario_id || "");
-      var soma = 0;
-      for (var i = 0; i < hashBase.length; i++) {
-        soma = ((soma << 5) - soma + hashBase.charCodeAt(i)) | 0;
-      }
-      var sufixo = Math.abs(soma % 9000 + 1000);
-      var codigo = "EQP-" + uf + "-" + nomeUnidade + "-" + sufixo;
-
-      var pacoteUnidade = {
-        codigo: codigo,
-        criado_em: new Date().toISOString(),
-        criado_por_chat_id: String(chatId || ctx.chat_id),
-        localidade: clonarObjeto(ctx.localidade),
-        unidade_assistencial: clonarObjeto(ctx.unidade_assistencial),
-        farmacopeia: clonarObjeto(ctx.farmacopeia),
-        regras_locais: {
-          notas_ccih_fluxos: (ctx.regras_locais && ctx.regras_locais.notas_ccih_fluxos) || "",
-          codigo_compartilhamento: codigo
-        }
+      var payload = {
+        m: ctx.municipio || "",
+        u: ctx.uf || "BR",
+        un: ctx.unidade_saude || DEFAULTS.INSTITUICAO_PADRAO,
+        c: ctx.cenario_assistencial || DEFAULTS.CENARIO_PADRAO,
+        r: ctx.remume_slug || DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO,
+        sr: ctx.sistema_regulacao || DEFAULTS.SISTEMA_REGULACAO_PADRAO,
+        mod: ctx.modulos_ativos || [],
+        ccih: ctx.notas_ccih || ""
       };
-
-      unidadesCompartilhadasCache[codigo] = pacoteUnidade;
-      escreverJsonDisco("data/shared_units/" + codigo + ".json", pacoteUnidade);
-      salvarPropriedadeScript("SHARED_UNIT_" + codigo, JSON.stringify(pacoteUnidade));
-
-      this.salvarContextoClinico(chatId, {
-        regras_locais: {
-          codigo_compartilhamento: codigo
-        }
-      });
-
-      return pacoteUnidade;
+      var jsonStr = JSON.stringify(payload);
+      var b64 = "";
+      if (typeof Buffer !== "undefined") {
+        b64 = Buffer.from(jsonStr, "utf8").toString("base64url");
+      } else if (typeof Utilities !== "undefined" && Utilities.base64EncodeWebSafe) {
+        b64 = Utilities.base64EncodeWebSafe(jsonStr);
+      }
+      var codigo = "EQP-" + b64;
+      unidadesCompartilhadasCache[codigo] = payload;
+      return codigo;
     },
 
     importarCodigoUnidade: function(chatId, codigoBruto) {
-      var codigo = String(codigoBruto || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
-      if (!codigo) {
-        return { importado: false, motivo: "Código de unidade vazio ou inválido." };
-      }
-
-      var pacote = unidadesCompartilhadasCache[codigo] || lerJsonDisco("data/shared_units/" + codigo + ".json", null);
-      if (!pacote) {
-        var p = carregarPropriedades();
-        if (p["SHARED_UNIT_" + codigo]) {
-          try {
-            pacote = JSON.parse(p["SHARED_UNIT_" + codigo]);
-          } catch (e) {}
+      var limpo = String(codigoBruto || "").trim().replace(/^EQP-/i, "");
+      if (!limpo) return null;
+      try {
+        var jsonStr = "";
+        if (typeof Buffer !== "undefined") {
+          jsonStr = Buffer.from(limpo, "base64url").toString("utf8");
         }
+        var p = JSON.parse(jsonStr);
+        if (!p || typeof p !== "object") return null;
+        return this.salvarContextoClinico(chatId, {
+          municipio: p.m || "",
+          uf: p.u || "BR",
+          unidade_saude: p.un || DEFAULTS.INSTITUICAO_PADRAO,
+          cenario_assistencial: p.c || DEFAULTS.CENARIO_PADRAO,
+          remume_slug: p.r || DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO,
+          sistema_regulacao: p.sr || DEFAULTS.SISTEMA_REGULACAO_PADRAO,
+          modulos_ativos: Array.isArray(p.mod) ? p.mod : undefined,
+          notas_ccih: p.ccih || ""
+        });
+      } catch (e) {
+        return null;
       }
-
-      if (!pacote || typeof pacote !== "object") {
-        return { importado: false, motivo: "Código de equipe/unidade não encontrado: " + codigo };
-      }
-
-      // Clona a localidade, unidade, cenário, módulos, REMUME e notas CCIH,
-      // preservando intactos o nome, prefixo e CRM do médico que está importando!
-      var atualizado = this.salvarContextoClinico(chatId, {
-        localidade: clonarObjeto(pacote.localidade),
-        unidade_assistencial: clonarObjeto(pacote.unidade_assistencial),
-        farmacopeia: clonarObjeto(pacote.farmacopeia),
-        regras_locais: {
-          notas_ccih_fluxos: (pacote.regras_locais && pacote.regras_locais.notas_ccih_fluxos) || "",
-          codigo_compartilhamento: codigo
-        }
-      });
-
-      return {
-        importado: true,
-        codigo: codigo,
-        contexto: atualizado
-      };
     }
   };
 })();
@@ -1958,36 +2070,74 @@ function ehUsuarioTitular(chatId) {
 }
 
 /**
- * Retorna o nome de tratamento do usuário atual (Dr. Wagner para titular, Dr. Vinicius para convidado).
+ * Retorna o nome de tratamento do usuário atual a partir do Contexto Clínico dinâmico (ex: "Dr. Matheus" ou "Dra. Ana").
  */
 function obterNomeTratamentoUsuario(chatId) {
-  if (ehUsuarioTitular(chatId)) {
-    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Dr. Wagner") : "Dr. Wagner";
+  if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+    var ctx = ConfigService.getContextoClinico(chatId);
+    if (ctx && ctx.nome_chamada_configurado && ctx.nome_chamada) {
+      return ((ctx.prefixo_tratamento || "Dr.") + " " + ctx.nome_chamada).trim();
+    }
+    if (ctx && ctx.nome_chamada && ctx.nome_chamada !== "Médico(a)") {
+      return ((ctx.prefixo_tratamento || "Dr.") + " " + ctx.nome_chamada).trim();
+    }
   }
-  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Dr. Vinicius") : "Dr. Vinicius";
+  if (ehUsuarioTitular(chatId)) {
+    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Doutor(a)") : "Doutor(a)";
+  }
+  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Doutor(a)") : "Doutor(a)";
 }
 
 /**
  * Retorna a estrutura do teclado fixo principal (ReplyKeyboardMarkup)
- * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina.
- * Configurado com is_persistent: false para ergonomia mobile perfeita.
+ * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina,
+ * filtrando botões conforme os módulos clínicos habilitados no cenário do usuário.
  */
 function obterTecladoFixoPrincipal(chatId) {
+  var modulosAtivos = null;
+  if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+    var ctx = ConfigService.getContextoClinico(chatId);
+    if (ctx && Array.isArray(ctx.modulos_ativos) && ctx.modulos_ativos.length > 0) {
+      modulosAtivos = ctx.modulos_ativos;
+    }
+  }
+  function modAtivo(id) {
+    if (!modulosAtivos) return true;
+    return modulosAtivos.indexOf(id) !== -1;
+  }
+
+  var candidatos = [];
+  if (modAtivo("SALA_VERMELHA") || modAtivo("INTOXICACOES")) candidatos.push({ text: '🚨 Sala Vermelha' });
+  if (modAtivo("ENFERMARIA_LEITOS")) candidatos.push({ text: '🛏️ Enfermaria' });
+  if (modAtivo("SOAP_PEP") || modAtivo("RECEITUARIO_ATESTADOS")) candidatos.push({ text: '🩺 Ambulatório' });
+  if (modAtivo("FARMACIA_REMUME") || modAtivo("PRECEPTOR_EBM")) candidatos.push({ text: '💊 Consultas de Bolso' });
+  if (modAtivo("PEDIATRIA_DOSES")) candidatos.push({ text: '👶 Pediatria' });
+  if (modAtivo("GO_OBSTETRICIA")) candidatos.push({ text: '🤰 G&O / Maternidade' });
+
+  if (candidatos.length === 0) {
+    candidatos = [
+      { text: '🚨 Sala Vermelha' },
+      { text: '🛏️ Enfermaria' },
+      { text: '🩺 Ambulatório' },
+      { text: '💊 Consultas de Bolso' }
+    ];
+  }
+
+  var linhas = [];
+  for (var i = 0; i < candidatos.length && linhas.length < 2; i += 2) {
+    if (candidatos[i + 1]) {
+      linhas.push([candidatos[i], candidatos[i + 1]]);
+    } else {
+      linhas.push([candidatos[i]]);
+    }
+  }
+  linhas.push([
+    { text: '📅 Minha Rotina' },
+    { text: '⚙️ Central / Menu' }
+  ]);
+
   return {
-    keyboard: [
-      [
-        { text: '🚨 Sala Vermelha' },
-        { text: '🛏️ Enfermaria' }
-      ],
-      [
-        { text: '🩺 Ambulatório' },
-        { text: '💊 Consultas de Bolso' }
-      ],
-      [
-        { text: '📅 Minha Rotina' },
-        { text: '⚙️ Central / Menu' }
-      ]
-    ],
+    keyboard: linhas,
     resize_keyboard: true,
     is_persistent: false
   };
@@ -4038,7 +4188,11 @@ var CalculadorasClinicas = (function () {
         });
       }
 
-      var avisosDal = ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'];
+      var vazao48hMlH = Math.round((def * 1000) / 48);
+      var avisosDal = [
+        'Estimativa: não inclui perdas insensíveis (~30–50 mL/h) nem perdas urinárias/gastrointestinais contínuas.',
+        'Limite de segurança (TdC): corrigir no máximo 0,5 mEq/L/h (teto estrito de 8 a 10 mEq/L em 24 h) na hipernatremia crônica (> 48 h) para prevenir edema cerebral.'
+      ];
       if (lt(peso, 2.0)) {
         avisosDal.unshift('⚠️ Neonato / prematuro (< 2 kg): Água corporal proporcionalmente elevada (~75-80%), mas risco crítico de edema cerebral e hemorragia periventricular na correção rápida. Limitar redução de sódio a 0,5 mEq/L/h.');
       }
@@ -4054,10 +4208,13 @@ var CalculadorasClinicas = (function () {
         secoes: [
           ['ENTRADAS', ['Na atual: ' + fmt(na, 0) + ' mEq/L', 'Na de referência: ' + fmt(alvo, 0) + ' mEq/L', 'Peso: ' + fmt(peso, 1) + ' kg',
                         'Perfil: ' + semAcento(perfil), 'Água corporal estimada: ' + fmt(act, 1) + ' L (fator ' + fmt(fator, 2) + ')']],
-          ['AÇÃO', ['Usar como estimativa inicial de planejamento.', 'Reposição preferencialmente enteral/VO ou SG 5%; checar Na a cada 4–6 h.']]
+          ['AÇÃO', [
+            'Usar como estimativa inicial de déficit de água livre (~' + fmt(vazao48hMlH, 0) + ' mL/h se distribuído em 48 h, somado às perdas insensíveis).',
+            'Reposição preferencialmente enteral/VO (água livre) ou SG 5% IV; dosar Na⁺ sérico a cada 4–6 h.'
+          ]]
         ],
         avisos: avisosDal,
-        dados: { deficitL: defL, actL: actL, fator: fator },
+        dados: { deficitL: defL, actL: actL, fator: fator, vazaoSugerida48hMlH: vazao48hMlH },
         legado: { deficitLitros: defL, aguaCorporalTotal: actL },
         botoes: botoesPadrao(ID, [btn('💧 Abrir planejamento', ID, 'plano'), btn('✏️ Revisar dados', ID, 'editar')])
       });
@@ -4088,7 +4245,11 @@ var CalculadorasClinicas = (function () {
       } else if (caCorr > 10.5) {
         estado = 'PRIORITARIO'; rotulo = 'HIPERCALCEMIA VERDADEIRA';
         statusTexto = 'Hipercalcemia (> 10.5 mg/dL)';
-        conduta = ['Hipercalcemia grave (> 14 mg/dL): Hidratação venosa vigorosa com SF 0.9% e Furosemida.', 'Avaliar Bisfosfonatos (Ácido Zoledrônico) e investigar hiperparatireoidismo / neoplasia.'];
+        conduta = [
+          'Hipercalcemia grave (> 14 mg/dL ou sintomática): 1) Hidratação venosa vigorosa com SF 0,9% (200–300 mL/h) buscando diurese de 100–150 mL/h.',
+          '2) Associar Calcitonina (4 UI/kg SC/IM 12/12h por até 48h — ação rápida em 4–6h) + Bisfosfonato IV (Ácido Zoledrônico 4 mg IV em 15 min — efeito sustentado em 2–4 dias).',
+          '3) NÃO usar Furosemida de rotina antes de restaurar a volemia (agrava espoliação volêmica e reabsorção tubular de Ca²⁺); reservar apenas se sobrecarga hídrica após hidratação.'
+        ];
       } else {
         estado = 'BAIXO'; rotulo = 'CÁLCIO CORRIGIDO NORMAL';
         statusTexto = 'Normocalcemia (8.5 a 10.5 mg/dL)';
@@ -4097,9 +4258,9 @@ var CalculadorasClinicas = (function () {
 
       var avisosCalcio = ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'];
       if (caCorr >= 14.0) {
-        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação e coma. Hidratação imediata com SF 0,9% (200–300 mL/h), Furosemida e Bisfosfonato IV.');
+        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação severa e coma. Iniciar imediatamente SF 0,9% (200–300 mL/h) + Calcitonina + Ácido Zoledrônico IV (Furosemida apenas após euvolemia se congestão).');
       } else if (caCorr < 7.0) {
-        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% IV sob monitorização cardíaca contínua.');
+        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% (10–20 mL diluídos em 100 mL SG 5% IV em 10–20 min) sob monitorização cardíaca contínua + corrigir Hipomagnesemia.');
       }
 
       return sucesso({
@@ -4244,7 +4405,11 @@ var CalculadorasClinicas = (function () {
       var estado, rotulo, conduta;
       if (estagioFinal === 3) {
         estado = 'PRIORITARIO'; rotulo = 'KDIGO ESTÁGIO 3 (GRAVE)';
-        conduta = ['Ajustar rigorosamente doses de antimicrobianos e medicações nefrotóxicas.', 'Monitorar K⁺ e equilíbrio ácido-base a cada 4-6h.', 'Avaliar indicações de Terapia de Substituição Renal (TRS/Hemodiálise).'];
+        conduta = [
+          'Suspender imediatamente nefrotóxicos e ajustar doses de antimicrobianos pela função renal.',
+          'Monitorar K⁺, gasometria venosa/arterial e balanço hídrico rigoroso a cada 4–6h.',
+          'Avaliar Terapia de Substituição Renal (TRS/Hemodiálise) imediata se urgência dialítica (AEIOU: Acidemia refratária pH < 7,15; Eletrólitos/K⁺ > 6,5 mEq/L refratário; Intoxicações dialisáveis; Overload/EAP refratário a diurético; Uremia franca com pericardite ou encefalopatia).'
+        ];
       } else if (estagioFinal === 2) {
         estado = 'ATENCAO'; rotulo = 'KDIGO ESTÁGIO 2 (MODERADO)';
         conduta = ['Suspender todos os nefrotóxicos (AINEs, contraste iodado, etc.).', 'Otimizar perfusão volêmica e PAM alvo ≥ 65 mmHg.', 'Revisar exames e débito urinário de horário.'];
@@ -4366,6 +4531,7 @@ var CalculadorasClinicas = (function () {
         if (gt(agRef, 12)) {
           interpAG = 'Ânion Gap ELEVADO (> 12 mEq/L)';
           secAG.push(interpAG);
+          secAG.push('Etiologias (GOLDMARK): Glicóis, Oxoprolina (paracetamol), L-lactato, D-lactato, Metanol, Aspirina, Renal (uremia), Ketoacidosis (cetoacidose)');
           if (lt(hco3, 24)) {
             delta = (agRef - 12) / (24 - hco3);
             exigirFinito(delta);
@@ -4441,12 +4607,16 @@ var CalculadorasClinicas = (function () {
     noradrenalina: {
       nome: 'Noradrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
       preparos: {
-        padrao: { mg: 16, vol: 250, conc: 64, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); padrão: 4 ampolas (16 mg) em 234 mL SG5% (64 mcg/mL).' },
-        concentrada: { mg: 32, vol: 250, conc: 128, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); concentrada: 8 ampolas (32 mg) em 218 mL SG5% (128 mcg/mL).' }
+        padrao: { mg: 16, vol: 250, conc: 64, ref: 'Ampola: 4 mg/4 mL de norepinefrina base (1 mg/mL); padrão: 4 ampolas (16 mg) em 234 mL SG5% (64 mcg/mL).' },
+        concentrada: { mg: 32, vol: 250, conc: 128, ref: 'Ampola: 4 mg/4 mL de norepinefrina base (1 mg/mL); concentrada: 8 ampolas (32 mg) em 218 mL SG5% (128 mcg/mL).' }
       },
       doses: [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0],
-      acoes: ['Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.', 'Preferir acesso venoso central. Monitorar perfusão periférica e lactato.', 'Dose máxima teórica: geralmente até 3 mcg/kg/min, porém em doses > 0,25-0,5 mcg/kg/min considere associar Vasopressina.'],
-      aviso: '⚠️ ALERTA: Doses acima de 1,0 mcg/kg/min representam vasoplegia severa. Considere associação precoce de Vasopressina (0,03 UI/min) e avaliação de CIRCI (corticoide).'
+      acoes: [
+        'Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.',
+        'Pode ser iniciada em acesso venoso periférico calibroso proximal (ex: fossa antecubital) para não atrasar a restauração da PAM, migrando para acesso central assim que disponível (SSC 2021).',
+        'Em doses ≥ 0,25–0,5 mcg/kg/min, associar Vasopressina (0,03 UI/min) e Hidrocortisona IV (200 mg/dia).'
+      ],
+      aviso: '⚠️ ALERTA: Doses acima de 0,5–1,0 mcg/kg/min representam vasoplegia severa/refratária. Associe precocemente Vasopressina (0,03 UI/min) e Hidrocortisona (50 mg IV 6/6h ou 200 mg/24h contínuo).'
     },
     dobutamina: {
       nome: 'Dobutamina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -4481,8 +4651,12 @@ var CalculadorasClinicas = (function () {
         padrao: { mg: 20, vol: 100, conc: 0.2, ref: 'Ampola: 20 UI/1 mL; padrão: 1 ampola (20 UI) em 99 mL SG5% ou SF (0,2 UI/mL).' }
       },
       doses: [0.01, 0.02, 0.03, 0.04],
-      acoes: ['Dose fixa: 0,03 a 0,04 UI/min (SSC 2021) = 9 a 12 mL/h. NÃO titular como catecolaminas.', 'Iniciar como 2ª linha quando noradrenalina estiver em 0,25–0,5 mcg/kg/min para poupar catecolamina e melhorar perfusão esplâncnica.'],
-      aviso: 'Não titular como catecolamina. Infusão contínua fixa de 0,03 ou 0,04 UI/min.'
+      acoes: [
+        'Dose fixa: 0,03 a 0,04 UI/min (SSC 2021) = 9 a 12 mL/h na BIC. NÃO titular rapidamente como catecolaminas.',
+        'Iniciar como 2ª linha quando Noradrenalina atingir 0,25–0,5 mcg/kg/min (poupador de catecolamina) e associar Hidrocortisona 200 mg/dia IV.',
+        'Desmame: reduzir/suspender a Noradrenalina primeiro ou desmamar gradualmente (0,01 UI/min/h) para evitar hipotensão rebote.'
+      ],
+      aviso: 'Não titular acima de 0,04 UI/min (risco elevado de isquemia mesentérica, coronariana e necrose digital).'
     },
     adrenalina: {
       nome: 'Adrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -4981,6 +5155,150 @@ var CalculadorasClinicas = (function () {
     return null;
   }
 
+  // ═════════════════════════════ TROMBÓLISE NO AVC ISQUÊMICO (ALTEPLASE & TENECTEPLASE) ═════════════════════════════
+
+  /**
+   * Trombólise Endovenosa no AVC Isquêmico Agudo (AHA/ASA / ESO / SBN / Acervo TdC):
+   * - Alteplase (rt-PA, Actilyse® 1 mg/mL): 0,9 mg/kg (teto máximo: 90 mg) -> 10% em bolus IV em 1 min + 90% em BIC por 60 min.
+   * - Tenecteplase (TNK, Metalyse® 5 mg/mL): 0,25 mg/kg (teto máximo ESTRITO no AVC: 25 mg) -> Bolus único IV em 5 a 10 segundos.
+   *   (Estudos AcT, EXTEND-IA TNK, TRACE-2: Classe I, alternativa de escolha especialmente em oclusão de grande vaso / candidato a trombectomia).
+   */
+  function tromboliseAVC(pesoKg, agentePreferencial, pasAtual, padAtual, tempoIctusHoras) {
+    var ID = 'trombolise_avc', NOME = 'Trombólise no AVC Isquêmico Agudo (rt-PA / TNK)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var rawPeso = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.peso : pesoKg;
+      var rawAgente = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.agente || pesoKg.droga) : agentePreferencial;
+      var rawPas = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.pas : pasAtual;
+      var rawPad = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.pad : padAtual;
+      var rawTempo = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.tempoHoras || pesoKg.ictus) : tempoIctusHoras;
+
+      var peso = num(c, rawPeso, 'Peso corporal (kg)', 30, 300);
+      var pas = num(c, rawPas, 'PAS (mmHg)', 50, 320, { opcional: true });
+      var pad = num(c, rawPad, 'PAD (mmHg)', 30, 220, { opcional: true });
+      var tempo = num(c, rawTempo, 'Tempo de ictus (horas)', 0, 24, { opcional: true });
+      if (!pendente(c) && pas !== null && pad !== null && pad >= pas) {
+        c.erros.push('PAD deve ser menor que a PAS');
+      }
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var agNorm = ausente(rawAgente) ? 'ambos' : semAcento(rawAgente);
+      var focoTnk = /tnk|tenecteplase|metalyse/.test(agNorm);
+      var focoRtpa = /rtpa|alteplase|actilyse/.test(agNorm);
+
+      // 1. Cálculo Alteplase (0,9 mg/kg, máx 90 mg | concentração 1 mg/mL)
+      var doseRtpaBruta = peso * 0.9;
+      var tetoRtpaAtingido = gt(doseRtpaBruta, 90);
+      var doseRtpaTotalMg = Math.min(90, arred(doseRtpaBruta, 1));
+      var doseRtpaBolusMg = arred(doseRtpaTotalMg * 0.10, 1);
+      var doseRtpaInfusaoMg = arred(doseRtpaTotalMg - doseRtpaBolusMg, 1);
+
+      // 2. Cálculo Tenecteplase no AVCi (0,25 mg/kg, máx ESTRITO 25 mg | diluição 5 mg/mL)
+      var doseTnkBruta = peso * 0.25;
+      var tetoTnkAtingido = gt(doseTnkBruta, 25);
+      var doseTnkTotalMg = Math.min(25, arred(doseTnkBruta, 1));
+      var volTnkMl = arred(doseTnkTotalMg / 5.0, 1);
+
+      var paBloqueada = (pas !== null && gte(pas, 185)) || (pad !== null && gte(pad, 110));
+      var foraJanelaPadrao = (tempo !== null && gt(tempo, 4.5));
+
+      var estado = (paBloqueada || foraJanelaPadrao) ? 'PRIORITARIO' : 'CALCULO';
+      var rotulo = paBloqueada
+        ? 'BLOQUEIO TEMPORÁRIO · REDUZIR PA (< 185/110 mmHg) ANTES DO BOLUS'
+        : (foraJanelaPadrao ? 'JANELA > 4,5h · EXIGE NEUROIMAGEM AVANÇADA (MISMATCH)' : 'SALA VERMELHA · TROMBÓLISE ENDOVENOSA NO AVCi');
+
+      var principal = focoTnk
+        ? ('Tenecteplase ' + fmt(doseTnkTotalMg, 1) + ' mg (' + fmt(volTnkMl, 1) + ' mL) IV em bolus')
+        : (focoRtpa
+          ? ('Alteplase ' + fmt(doseRtpaTotalMg, 1) + ' mg (Bolus ' + fmt(doseRtpaBolusMg, 1) + ' mg + BIC ' + fmt(doseRtpaInfusaoMg, 1) + ' mg/1h)')
+          : ('rt-PA ' + fmt(doseRtpaTotalMg, 1) + ' mg OU TNK ' + fmt(doseTnkTotalMg, 1) + ' mg'));
+
+      var avisos = [
+        '🚨 TETO CRÍTICO DA TENECTEPLASE NO AVCi: A dose no AVC isquêmico é 0,25 mg/kg com MÁXIMO DE 25 mg (5 mL). NUNCA utilize a tabela de IAMCSST (que vai até 50 mg), pelo risco catastrófico de hemorragia intracraniana.',
+        '💧 INCOMPATIBILIDADE FÍSICO-QUÍMICA (TNK): A Tenecteplase precipita em Soro Glicosado (SG 5%). Lavar o acesso venoso com SF 0,9% antes e após o bolus único de 5–10 segundos.',
+        '🩸 CONTROLE PRESSÓRICO E ANTIAGREGAÇÃO: Manter PA < 185/110 mmHg para iniciar e < 180/105 mmHg nas primeiras 24h pós-trombólise. Proscrito uso de AAS, Heparina ou Anticoagulantes nas primeiras 24h (liberar apenas após TC de crânio de controle em 24h sem sangramento).'
+      ];
+
+      if (paBloqueada) {
+        avisos.unshift('🛑 PA ATUAL ACIMA DO LIMITE DE SEGURANÇA (' + (pas || '?') + '/' + (pad || '?') + ' mmHg ≥ 185/110 mmHg): NÃO infundir o trombolítico antes de estabilizar a PA abaixo de 185/110 mmHg (opções IV: Metoprolol/Esmolol, Labetalol, Nicardipina ou Nitroprussiato de Sódio titulável).');
+      }
+      if (foraJanelaPadrao) {
+        avisos.unshift('⏱️ TEMPO DE ICTUS > 4,5 HORAS (' + fmt(tempo, 1) + ' h): Fora da janela convencional. A trombólise entre 4,5h e 9h (ou Wake-up Stroke) só é indicada se houver mismatch comprovado em RM (DWI-FLAIR) ou TC Perfusão (estudos WAKE-UP / EXTEND). Avaliar Trombectomia Mecânica até 24h se oclusão de grande vaso.');
+      }
+
+      var secoes = [
+        ['🔴 OPÇÃO 1: TENECTEPLASE (TNK · 0,25 mg/kg · TETO 25 mg)', [
+          'Apresentação: Frasco 40 mg ou 50 mg reconstituído para 5 mg/mL',
+          'Dose Total (Bolus Único IV em 5–10 seg): ' + fmt(doseTnkTotalMg, 1) + ' mg → ' + fmt(volTnkMl, 1) + ' mL IV' + (tetoTnkAtingido ? ' (limitado ao teto máximo de 25 mg para AVCi)' : ''),
+          'Vantagem clínica (TdC / AHA / ESO): Bolus único sem necessidade de bomba de infusão de 1h; facilita transferência rápida ("drip-and-ship") e apresenta maior taxa de recanalização precoce em oclusão de grande vaso (LVO).'
+        ]],
+        ['🔴 OPÇÃO 2: ALTEPLASE (rt-PA · 0,9 mg/kg · TETO 90 mg)', [
+          'Apresentação: Actilyse® 50 mg/50 mL (concentração 1 mg/mL)',
+          'Dose Total Calculada: ' + fmt(doseRtpaTotalMg, 1) + ' mg (' + fmt(doseRtpaTotalMg, 1) + ' mL)' + (tetoRtpaAtingido ? ' (limitado ao teto máximo de 90 mg)' : ''),
+          '1️⃣ Ataque (10% em Bolus IV em 1 min): ' + fmt(doseRtpaBolusMg, 1) + ' mg → ' + fmt(doseRtpaBolusMg, 1) + ' mL IV',
+          '2️⃣ Manutenção (90% em BIC em 60 min): ' + fmt(doseRtpaInfusaoMg, 1) + ' mg → ' + fmt(doseRtpaInfusaoMg, 1) + ' mL/h por 1 hora'
+        ]],
+        ['🟡 VIGILÂNCIA E PROTOCOLO PÓS-TROMBÓLISE (PRIMEIRAS 24H)', [
+          'Aferir PA e NIHSS a cada 15 min nas primeiras 2h, a cada 30 min nas 6h seguintes e a cada 1h até completar 24h.',
+          'Alvo pressórico: Antes do bolus < 185/110 mmHg | Primeiras 24h pós-bolus < 180/105 mmHg.',
+          'Não passar SNE, SVD ou punção arterial/central nas primeiras 24h (salvo estrita emergência).',
+          'Se piora neurológica aguda (queda ≥ 4 pts no NIHSS) ou cefaleia súbita/vômitos/pico hipertensivo: suspender infusão imediatamente, colher fibrinogênio/TP/TTPa e realizar TC de crânio de urgência.'
+        ]]
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: estado,
+        rotulo: rotulo,
+        principal: principal,
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          pesoKg: peso,
+          paBloqueada: paBloqueada,
+          foraJanelaPadrao: foraJanelaPadrao,
+          alteplase: {
+            doseTotalMg: doseRtpaTotalMg,
+            bolus10PctMg: doseRtpaBolusMg,
+            bolus10PctMl: doseRtpaBolusMg,
+            infusao90PctMg: doseRtpaInfusaoMg,
+            vazaoInfusao1hMlH: doseRtpaInfusaoMg,
+            tetoMaximoAtingido: tetoRtpaAtingido
+          },
+          tenecteplase: {
+            doseTotalMg: doseTnkTotalMg,
+            volumeBolusMl: volTnkMl,
+            concentracaoMgMl: 5,
+            tetoMaximoAtingido: tetoTnkAtingido
+          }
+        },
+        legado: {
+          pesoKg: peso,
+          alteplaseTotalMg: doseRtpaTotalMg,
+          alteplaseBolusMg: doseRtpaBolusMg,
+          alteplaseInfusaoMg: doseRtpaInfusaoMg,
+          tenecteplaseBolusMg: doseTnkTotalMg,
+          tenecteplaseBolusMl: volTnkMl
+        },
+        botoes: botoesEmergencia(ID, [btn('✏️ Revisar dados', ID, 'editar')])
+      });
+    });
+  }
+
+  function calcularTrombolisePorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var t = semAcento(texto);
+    if (!/\b(?:trombolis\w*|alteplase|rtpa|actilyse|tenecteplase|tnk|metalyse)\b/.test(t)) return null;
+    var mPeso = t.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/);
+    if (!mPeso) return null;
+    var peso = parseFloat(mPeso[1].replace(',', '.'));
+    var agente = 'ambos';
+    if (/\b(?:tenecteplase|tnk|metalyse)\b/.test(t) && !/\b(?:alteplase|rtpa|actilyse)\b/.test(t)) agente = 'tenecteplase';
+    else if (/\b(?:alteplase|rtpa|actilyse)\b/.test(t) && !/\b(?:tenecteplase|tnk|metalyse)\b/.test(t)) agente = 'alteplase';
+    return tromboliseAVC(peso, agente);
+  }
+
   /**
    * MELD (Model for End-Stage Liver Disease - UNOS / Kamath et al. 2007) e MELD-Na (OPTN 2016)
    */
@@ -5037,7 +5355,10 @@ var CalculadorasClinicas = (function () {
           ]],
           ['PROGNÓSTICO ESTIMADO', [mortalidade3m, 'Critério regulador de fila de transplante hepático no Brasil e UNOS.']]
         ],
-        avisos: ['MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL.'],
+        avisos: [
+          'MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL (regra UNOS / SNT Brasil).',
+          'Nota TdC / AASLD: O escore MELD 3.0 contemporâneo incorpora Albumina sérica e Sexo feminino (com teto de Cr em 3,0 mg/dL), reduzindo a disparidade de alocação em mulheres na fila de transplante.'
+        ],
         dados: { meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, dialise: dialise },
         legado: { pontuacao: meldArred, meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, mortalidade: mortalidade3m }
       });
@@ -6015,6 +6336,9 @@ var CalculadorasClinicas = (function () {
     r = API.ajusteRenalAntimicrobiano('vancomicina', 40); ok(r.ok && /24h/.test(r.dados.doseAjustada), 'Vancomicina CrCl 40 24h');
     r = API.ajusteRenalAntimicrobiano('polimixina b', 10); ok(r.ok && /NÃO REDUZIR DOSE/.test(r.dados.doseAjustada), 'Polimixina B sem redução');
     r = API.calcularAjusteRenalPorTextoLivre('ajuste meropenem clcr 25'); ok(r && r.ok && r.dados.doseAjustada.indexOf('12h') !== -1, 'Ajuste livre Meropenem CrCl 25');
+    r = API.tromboliseAVC(80); ok(r.ok && r.dados.alteplase.doseTotalMg === 72 && r.dados.alteplase.bolus10PctMg === 7.2 && r.dados.tenecteplase.doseTotalMg === 20 && r.dados.tenecteplase.volumeBolusMl === 4, 'Trombólise AVC 80 kg (rtPA 72mg / TNK 20mg)');
+    r = API.tromboliseAVC(120); ok(r.ok && r.dados.alteplase.doseTotalMg === 90 && r.dados.tenecteplase.doseTotalMg === 25, 'Trombólise AVC 120 kg respeita tetos máximos (rtPA 90mg / TNK 25mg)');
+    r = API.tromboliseAVC(70, 'tnk', 190, 115); ok(r.ok && r.dados.paBloqueada === true, 'Trombólise AVC detecta bloqueio pressórico >= 185/110');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -6382,6 +6706,8 @@ var CalculadorasClinicas = (function () {
     fib4: fib4,
     parkland: parkland,
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
+    tromboliseAVC: tromboliseAVC,
+    calcularTrombolisePorTextoLivre: calcularTrombolisePorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     auditarInfusaoUti: function (p) {
       if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);
@@ -23017,9 +23343,16 @@ var NeurologiaAvcService = (function() {
     } else {
       if (tempoSintomasHoras > 3.0 && tempoSintomasHoras <= 4.5) {
         janela = "3_a_4.5h";
-        // Critérios adicionais para 3 a 4.5h (ECASS III)
+        // Critérios adicionais para 3 a 4.5h (ECASS III / AHA-ASA 2019-2023 / ESO):
         var criteriosExclusao45 = [];
-        if (idade > 80) criteriosExclusao45.push("Idade > 80 anos");
+        if (idade > 80) {
+          if (params.ignorarIdadeAvancada || params.diretrizContemporanea) {
+            contraRelativas.push("Idade > 80 anos na janela de 3 a 4,5h (elegível pelas diretrizes AHA/ASA 2019/2023 e ESO se mRS prévio favorável)");
+            alertasClinicos.push("💡 Idade > 80 anos (Janela 3–4,5h): Diretrizes AHA/ASA e ESO recomendam a trombólise IV se benefício superar risco.");
+          } else {
+            criteriosExclusao45.push("Idade > 80 anos (critério histórico estrito ECASS III; diretrizes contemporâneas AHA/ASA e ESO consideram elegível se mRS favorável)");
+          }
+        }
         if (params.usoAnticoagulanteOral) criteriosExclusao45.push("Uso de anticoagulante oral (qualquer RNI)");
         if (nihss !== undefined && nihss > 25) criteriosExclusao45.push("AVC grave (NIHSS > 25)");
         if (params.historicoAvcEDiabetes) criteriosExclusao45.push("Histórico prévio de AVC e Diabetes");
@@ -23050,7 +23383,7 @@ var NeurologiaAvcService = (function() {
     }
 
     if (elegivel) {
-      mensagem = "Paciente ELEGÍVEL para Trombólise IV (Alteplase) na janela de até 4.5h.";
+      mensagem = "Paciente ELEGÍVEL para Trombólise IV (Tenecteplase ou Alteplase) na janela de até 4.5h.";
       if (contraRelativas.length > 0) {
         mensagem += " ATENÇÃO: Avaliar risco/benefício devido a contraindicações relativas: " + contraRelativas.join(", ");
       }
@@ -23072,7 +23405,7 @@ var NeurologiaAvcService = (function() {
         // Cálculo Tenecteplase (Metalyse / TNK): 0.25 mg/kg em bolus único, máx 25 mg
         var maxPesoTnk = Math.min(pesoKg, 100);
         var doseTotalTnk = Math.min(maxPesoTnk * 0.25, 25.0).toFixed(1);
-        posologiaTenecteplase = `Tenecteplase (0,25 mg/kg, máx 25 mg). Dose Única: ${doseTotalTnk} mg em bolus IV direto durante 5 a 10 segundos.`;
+        posologiaTenecteplase = `Tenecteplase (0,25 mg/kg, máx 25 mg). Dose Única: ${doseTotalTnk} mg em bolus IV direto durante 5 a 10 segundos. ATENÇÃO: Incompatível com SG 5% (precipita) — lavar acesso exclusivamente com SF 0,9% antes e após o bolus.`;
       }
     }
 
@@ -23252,13 +23585,15 @@ var NeurologiaAvcService = (function() {
       if (e.posologiaTenecteplase) {
         t.push("⭐ *1ª ESCOLHA / PREFERENCIAL: TENECTEPLASE (TNK):*");
         t.push(`👉 ${e.posologiaTenecteplase}`);
-        t.push("  ↳ _Bolus IV direto em 5–10s; sem necessidade de BIC; menor risco de interrupção e padrão-ouro para transferência/transporte (AHA/ESO 2024)._");
+        t.push("  ↳ _Bolus IV único em 5–10s; dispensa BIC de 1h; padrão-ouro para oclusão de grande vaso e transferência (drip-and-ship) para trombectomia (AHA/ESO/TdC)._");
+        t.push("  ↳ ⚠️ _INCOMPATIBILIDADE FÍSICA: Precipita em Soro Glicosado 5% (SG 5%). Lavar acesso exclusivamente com SF 0,9%._");
         t.push("");
       }
 
       if (e.posologiaAlteplase) {
         t.push("🔄 *ALTERNATIVA PADRÃO: ALTEPLASE (rtPA):*");
         t.push(`👉 ${e.posologiaAlteplase}`);
+        t.push("  ↳ _Proibido AAS, clopidogrel ou anticoagulantes nas primeiras 24h pós-trombólise (aguardar TC de crânio de controle em 24h)._");
         t.push("");
       }
 
@@ -36432,11 +36767,19 @@ var SoapAmbulatorialService = (function() {
     }
     if (!nomeCarimbo) nomeCarimbo = 'Médico(a) Assistente';
 
-    var crmStr = dados.medicoCrm || (prof.registro_conselho ? ('CRM/' + (prof.uf_conselho || loc.uf || 'BR') + ' ' + prof.registro_conselho) : 'CRM');
+    var regBruto = String(prof.registro_conselho || '').trim();
+    var crmFormatado = 'CRM';
+    if (regBruto) {
+      crmFormatado = /^CRM/i.test(regBruto)
+        ? regBruto
+        : ('CRM/' + (prof.uf_conselho || loc.uf || 'BR') + ' ' + regBruto);
+    }
+    var crmStr = dados.medicoCrm || crmFormatado;
     var munNome = loc.municipio_nome && loc.municipio_nome !== 'Brasil (Padrão Nacional)'
       ? (loc.municipio_nome + (loc.uf && loc.uf !== 'BR' ? ' - ' + loc.uf : ''))
       : 'Localidade';
     var cidade = dados.cidade || munNome;
+    var unidadeSaude = dados.unidadeSaude || unid.nome_unidade || 'Unidade de Saúde / SUS';
     var regulacao = dados.sistemaRegulacao || unid.sistema_regulacao || 'SISREG';
 
     return {
@@ -36444,6 +36787,7 @@ var SoapAmbulatorialService = (function() {
       medico: nomeCarimbo,
       crm: crmStr,
       cidade: cidade,
+      unidadeSaude: unidadeSaude,
       regulacao: regulacao
     };
   }
@@ -36459,12 +36803,13 @@ var SoapAmbulatorialService = (function() {
       '======================================================================',
       '                       RECEITUÁRIO MÉDICO AMBULATORIAL                ',
       '======================================================================',
+      'Unidade: ' + infoAss.unidadeSaude + ' | Local: ' + infoAss.cidade,
       'Paciente: ' + paciente,
       'Data: ' + dataStr,
       '----------------------------------------------------------------------'
     ];
 
-    var itens = dados.itens || dados.medicamentos || [];
+    var itens = dados.itens || dados.medicamentos || dados.prescricaoMedicamentosa || [];
     if (!itens.length && dados.textoLivre) {
       linhas.push(dados.textoLivre);
     } else {
@@ -36484,7 +36829,7 @@ var SoapAmbulatorialService = (function() {
           var qtd = m.quantidade ? ' -------------------- ' + m.quantidade : '';
           linhas.push(numItem + ') ' + nomeApres + qtd);
           if (m.posologia) {
-            var poso = '   Tomar ' + m.posologia;
+            var poso = /^tomar\s/i.test(m.posologia) ? ('   ' + m.posologia) : ('   Tomar ' + m.posologia);
             if (m.horarios) poso += ' (Horários sugeridos: ' + m.horarios + ')';
             if (m.duracao) poso += ' por ' + m.duracao + '.';
             linhas.push(poso);
@@ -36504,8 +36849,10 @@ var SoapAmbulatorialService = (function() {
     }
 
     linhas.push('======================================================================');
+    linhas.push('Local e Data: ' + infoAss.cidade + ', ' + dataStr);
     if (infoAss.ehInterno && !dados.medicoNome) {
-      linhas.push('Assinatura e Carimbo do Médico Responsável: ___________________________');
+      linhas.push('__________________________________________________________');
+      linhas.push('Assinatura e Carimbo do(a) Médico(a) Responsável');
     } else {
       linhas.push('Assinatura e Carimbo Médico: ' + infoAss.medico + ' · ' + infoAss.crm);
     }
@@ -41007,12 +41354,16 @@ function obterItensRemumeRP(chatId) {
  * Mapeia sinônimos comerciais, remove sais e separa monoterapia de associações.
  */
 function consultarRemumeRP(termo, medHslFallback, chatId) {
+  if ((typeof medHslFallback === "string" || typeof medHslFallback === "number") && chatId === undefined) {
+    chatId = medHslFallback;
+    medHslFallback = null;
+  }
   var meta = obterMetadadosRemumeAtiva(chatId);
   var seloPositivo = (meta && meta.selo_curto) ? meta.selo_curto : "🟢 [RENAME/SUS]";
   var nomeRede = (meta && meta.nome_exibicao) ? meta.nome_exibicao : "RENAME Nacional (SUS)";
 
   if (!termo || typeof termo !== "string") {
-    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]", nome_rede: nomeRede };
+    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]", nome_rede: nomeRede, rede: nomeRede };
   }
 
   var termoLimpo = termo.trim().toLowerCase();
@@ -41065,7 +41416,8 @@ function consultarRemumeRP(termo, medHslFallback, chatId) {
       farmaco: termo,
       apresentacoes: aprsFallback,
       selo: seloPositivo,
-      nome_rede: nomeRede
+      nome_rede: nomeRede,
+      rede: nomeRede
     };
   }
 
@@ -41075,7 +41427,8 @@ function consultarRemumeRP(termo, medHslFallback, chatId) {
     farmaco: termo,
     apresentacoes: apresentacoes,
     selo: presente ? seloPositivo : "⚪ [NÃO-REMUME]",
-    nome_rede: nomeRede
+    nome_rede: nomeRede,
+    rede: nomeRede
   };
 }
 var consultarRemumeMunicipal = consultarRemumeRP;
@@ -41227,7 +41580,7 @@ function buscarMedicamentoNoHSL(termo) {
 /**
  * Formata a ficha posológica oficial completa do medicamento para exibição imediata no Telegram.
  */
-function formatarFichaPosologicaHSL(med) {
+function formatarFichaPosologicaHSL(med, chatId) {
   if (!med) return "❌ Medicamento não encontrado no Guia Farmacêutico HSL.";
 
   var linhas = [];
@@ -41235,13 +41588,13 @@ function formatarFichaPosologicaHSL(med) {
   linhas.push("📋 *Fármaco (DCI):* *" + med.farnaco + "*");
   
   var remumeInfo = (typeof consultarRemumeRP === "function")
-    ? consultarRemumeRP(med.farnaco, med)
+    ? consultarRemumeRP(med.farnaco, med, chatId)
     : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
 
   if (remumeInfo.presente) {
     var seloAtivo = remumeInfo.selo || "🟢 [REMUME/RENAME]";
     var nomeRedeAtiva = remumeInfo.nome_rede || "Rede Pública SUS";
-    linhas.push("🏛️ *Status SUS:* " + seloAtivo + " *PADRONIZADO NA REDE (" + nomeRedeAtiva + ")*");
+    linhas.push("🏛️ *Status SUS:* " + seloAtivo + " *PADRONIZADO NA REDE MUNICIPAL / SUS (" + nomeRedeAtiva + ")*");
     if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
       linhas.push("📦 *Apresentações na Rede Pública:*");
       remumeInfo.apresentacoes.forEach(function(apr) {
@@ -41445,158 +41798,170 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
   "sepse": {
     "titulo": "Sepse e Choque Séptico",
     "diretriz_brasileira": "ILAS (Instituto Latino-Americano de Sepse) 2023 / CFM",
-    "diretriz_internacional": "Surviving Sepsis Campaign (SSC) 2021",
-    "conduta_imediata": "1. Reconhecimento precoce (qSOFA ≥ 2 ou alteração de disfunção orgânica: Glasgow, PA, FR).\n" +
+    "diretriz_internacional": "Surviving Sepsis Campaign (SSC) 2021 / Ensaios CLOVERS, ARISE FLUIDS e ANDROMEDA-SHOCK",
+    "conduta_imediata": "1. Reconhecimento precoce (SIRS, NEWS ou MEWS; qSOFA ≥ 2 ou alteração de disfunção orgânica: Glasgow, PA, FR — Nota SSC 2021: qSOFA ≥ 2 é sinal de alerta de gravidade/mortalidade, mas NÃO deve ser usado isoladamente para excluir sepse na triagem).\n" +
       "2. Pacote de 1ª hora (ILAS / SSC):\n" +
-      "   • Coleta de lactato arterial ou venoso imediato.\n" +
-      "   • 2 pares de hemoculturas antes do antimicrobiano (sem atrasar início > 45 min).\n" +
-      "   • Antibioticoterapia de amplo espectro na 1ª hora.\n" +
-      "   • Ressuscitação volêmica: Cristaloide balanceado (Ringer Lactato preferível a SF 0,9%) 30 mL/kg nas primeiras 3h se hipotensão (PAS < 90 ou PAM < 65) ou Lactato ≥ 4 mmol/L (36 mg/dL).\n" +
-      "   • Droga vasoativa de 1ª escolha: Noradrenalina precoce (iniciar se PAM < 65 mesmo durante infusão de cristaloide). Alvo PAM ≥ 65 mmHg.",
-    "divergencia": "🇧🇷 ILAS vs 🌐 SSC: O ILAS reforça que em hospitais brasileiros sem leito imediato de UTI, a noradrenalina em veia periférica calibrosa bem puncionada é fortemente encorajada nas primeiras horas para não atrasar reversão de choque enquanto se providencia CVC. A SSC sugere corticoide (Hidrocortisona 200 mg/dia) se noradrenalina > 0,25 mcg/kg/min por mais de 4h."
+      "   • Coleta de lactato arterial ou venoso imediato + avaliação do Tempo de Enchimento Capilar (TEC alvo ≤ 3 segundos — estudo ANDROMEDA-SHOCK).\n" +
+      "   • 2 pares de hemoculturas (aeróbio/anaeróbio) antes do antimicrobiano (sem atrasar início > 45 min).\n" +
+      "   • Antibioticoterapia de amplo espectro na 1ª hora (idealmente antes do choque instalar).\n" +
+      "   • Ressuscitação volêmica: Cristaloide balanceado (Ringer Lactato preferível a SF 0,9% para evitar acidose hiperclorêmica e lesão renal) 30 mL/kg nas primeiras 3h se hipotensão (PAS < 90 ou PAM < 65) ou Lactato ≥ 4 mmol/L (36 mg/dL), reavaliando fluido-responsividade dinâmica (elevação passiva das pernas, variação de pressão de pulso, POCUS/VExUS).\n" +
+      "   • Droga vasoativa de 1ª escolha: Noradrenalina precoce (iniciar se PAM < 65 mesmo durante infusão de cristaloide — estudos CLOVERS/ARISE FLUIDS). Alvo PAM ≥ 65 mmHg.\n" +
+      "   • Controle do foco infeccioso (drenagem de abscesso, desobstrução biliar/urinária, desbridamento ou retirada de cateter infectado) o mais rápido possível (idealmente em até 6 a 12h).",
+    "divergencia": "🇧🇷 ILAS vs 🌐 SSC: O ILAS e os estudos CLOVERS/ARISE FLUIDS reforçam que a noradrenalina em veia periférica calibrosa proximal (fossa antecubital) bem puncionada é segura e fortemente encorajada nas primeiras horas para não atrasar a reversão do choque enquanto se providencia CVC. A SSC sugere associar Vasopressina (até 0,03 UI/min) e Hidrocortisona 200 mg/dia (50 mg IV 6/6h) se noradrenalina ≥ 0,25 mcg/kg/min por mais de 4h."
   },
   "iam": {
     "titulo": "Síndrome Coronariana Aguda (IAM com e sem supra de ST)",
     "diretriz_brasileira": "Diretrizes SBC (Sociedade Brasileira de Cardiologia) 2021/2023",
-    "diretriz_internacional": "AHA/ACC 2023 / ESC 2023",
-    "conduta_imediata": "1. ECG de 12 derivações em até 10 minutos da admissão.\n" +
+    "diretriz_internacional": "AHA/ACC 2023 / ESC ACS Guidelines 2023",
+    "conduta_imediata": "1. ECG de 12 derivações em até 10 minutos da admissão (rodar V3R-V4R no IAM inferior para avaliar VD e V7-V9 se suspeita de oclusão circunflexa/dorsal; buscar equivalentes de oclusão coronariana aguda [OCA/OMI]: padrão de De Winter, síndrome de Wellens, supra de aVR com infra difuso).\n" +
       "2. Terapia Antiplaquetária Dupla Imediata (DAPT):\n" +
       "   • AAS 200-300 mg mastigável (manutenção 81-100 mg/dia).\n" +
-      "   • Inibidor P2Y12: Ticagrelor 180 mg VO de ataque (manutenção 90 mg 12/12h) OU Clopidogrel 300 mg (600 mg se ICP primária ou 300 mg se trombólise ≤ 75 anos).\n" +
-      "3. Anticoagulação: Enoxaparina 30 mg IV bolus + 1 mg/kg SC 12/12h (se < 75 anos e ClCr > 30) ou HNF.\n" +
-      "4. Alívio de Sintomas e Isquemia:\n" +
+      "   • Inibidor P2Y12: Ticagrelor 180 mg VO de ataque (manutenção 90 mg 12/12h) OU Prasugrel 60 mg (se anatomia conhecida para ICP, sem AIT/AVC prévio, < 75 anos e ≥ 60 kg) OU Clopidogrel 300 mg (600 mg se ICP primária ou 300 mg se trombólise ≤ 75 anos; sem ataque de 300 mg se trombólise > 75 anos, fazendo apenas 75 mg).\n" +
+      "3. Anticoagulação: Enoxaparina 30 mg IV bolus + 1 mg/kg SC 12/12h (se < 75 anos e ClCr > 30; se ≥ 75 anos: 0,75 mg/kg SC 12/12h SEM bolus IV) ou HNF.\n" +
+      "4. Alívio de Sintomas, Oxigênio e Isquemia:\n" +
+      "   • Oxigênio suplementar APENAS se SpO2 < 90% (evitar hiperóxia coronariana — estudo DETO2X-AMI).\n" +
       "   • Nitrato sublingual (Isordil 5 mg) se dor persistente (CONTRAINDICADO se PAS < 90, infarto de VD ou uso de inibidor de PDE5 nas últimas 24-48h).\n" +
-      "   • Morfina 2 a 4 mg IV apenas se dor refratária (evitar de rotina por retardar absorção de P2Y12).\n" +
+      "   • Morfina 2 a 4 mg IV apenas se dor refratária (evitar de rotina por retardar absorção intestinal de inibidores P2Y12).\n" +
       "5. Reperfusão no IAM com Supra:\n" +
       "   • ICP Primária: tempo porta-balão ≤ 90 min (ou ≤ 120 min se transferido).\n" +
-      "   • Trombólise (Tenecteplase/Alteplase): tempo porta-agulha ≤ 30 min se ICP não disponível em 120 min.",
-    "divergencia": "🇧🇷 SBC vs 🌐 ESC/AHA: No Brasil, o Clopidogrel permanece como opção prioritária no SUS pela indisponibilidade frequente de Ticagrelor/Prasugrel na rede pública. Se trombolisado com Tenecteplase, a SBC e o Ministério da Saúde recomendam dose ajustada por peso exato; se idade ≥ 75 anos, meia dose de TNK sem bolus de enoxaparina."
+      "   • Trombólise (Tenecteplase/Alteplase): tempo porta-agulha ≤ 30 min se ICP não disponível em 120 min (avaliar critérios de reperfusão em 60-90 min: queda do supra > 50% e alívio da dor; caso contrário, ICP de resgate + transferência para estratégia fármaco-invasiva em 2 a 24h).",
+    "divergencia": "🇧🇷 SBC vs 🌐 ESC/AHA: No Brasil, o Clopidogrel permanece como opção prioritária no SUS pela indisponibilidade frequente de Ticagrelor/Prasugrel na rede pública. Se trombolisado com Tenecteplase, a SBC e o Ministério da Saúde recomendam dose ajustada por peso exato; se idade ≥ 75 anos (estudo STREAM), fazer meia dose de TNK, Clopidogrel 75 mg sem ataque e enoxaparina 0,75 mg/kg 12/12h sem bolus EV."
   },
   "eap": {
     "titulo": "Edema Agudo de Pulmão (EAP Hipertensivo) e IC Descompensada",
     "diretriz_brasileira": "Diretrizes SBC de Insuficiência Cardíaca 2021/2023",
     "diretriz_internacional": "ESC Heart Failure 2023 / AHA 2022",
-    "conduta_imediata": "1. Oxigenoterapia e VNI Imediata: CPAP (8-10 cmH2O) ou BIPAP (IPAP 12-14, EPAP 6-8) reduzem intubação e mortalidade na primeira hora.\n" +
-      "2. Vasodilatador Venoso de Ação Rápida (EAP Hipertensivo com PAS > 140):\n" +
-      "   • Nitroglicerina (Tridil) IV: iniciar a 10-20 mcg/min e titular a cada 5 min OU Nitroprussiato de Sódio (Nipride) 0,3-0,5 mcg/kg/min se emergência hipertensiva grave.\n" +
-      "3. Diurético de Alça Venoso: Furosemida 20 a 40 mg IV (ou 1 a 2x a dose oral prévia do paciente).\n" +
+    "conduta_imediata": "1. Oxigenoterapia e VNI Imediata: CPAP (8-10 cmH2O) ou BIPAP (IPAP 12-14, EPAP 6-8) reduzem retorno venoso, pós-carga do VE, intubação e mortalidade na primeira hora.\n" +
+      "2. Vasodilatador Venoso de Ação Rápida (EAP Hipertensivo com PAS > 140 — foco na redistribuição volêmica por redução abrupta da pós-carga):\n" +
+      "   • Nitroglicerina (Tridil) IV: iniciar a 10-20 mcg/min e titular rapidamente a cada 3-5 min (até 200 mcg/min) OU Nitroprussiato de Sódio (Nipride) 0,3-0,5 mcg/kg/min se emergência hipertensiva grave / insuficiência mitral ou aórtica aguda.\n" +
+      "3. Diurético de Alça Venoso: Furosemida 20 a 40 mg IV (ou 1 a 2,5x a dose oral diária prévia do paciente; reavaliar débito urinário em 2h ou sódio urinário spot > 50-70 mEq/L).\n" +
       "4. Posição: Cabeceira elevada a 90 graus com pernas pendentes.\n" +
-      "5. Morfina NÃO é recomendada de rotina (aumenta intubação e UTI pela ESC/SBC).",
-    "divergencia": "A SBC e ESC desaconselham formalmente morfina de rotina no EAP. O foco imediato no EAP hipertensivo é a vasodilatação rápida (redução de pós-carga) antes de grandes volumes de diurético."
+      "5. Morfina NÃO é recomendada de rotina (aumenta ventilação mecânica invasiva, internação em UTI e mortalidade — estudo MIMO e diretrizes ESC/SBC).",
+    "divergencia": "A SBC e ESC desaconselham formalmente morfina de rotina no EAP. O foco imediato no EAP hipertensivo (perfil B 'quente e úmido' vascular) é a VNI somada à vasodilatação venosa e arterial rápida (redução de pós-carga) antes de grandes volumes de diurético."
   },
   "cad": {
     "titulo": "Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH)",
     "diretriz_brasileira": "Diretrizes SBD (Sociedade Brasileira de Diabetes) 2023/2024",
-    "diretriz_internacional": "ADA (American Diabetes Association) Standards of Care 2024",
-    "conduta_imediata": "1. Hidratação Venosa (Etapa 1):\n" +
-      "   • SF 0,9% 1000 a 1500 mL na 1ª hora (15-20 mL/kg/h).\n" +
-      "   • Após 1ª hora: avaliar Na corrigido. Se Na normal/alto: trocar para NaCl 0,45% 250-500 mL/h.\n" +
-      "2. Avaliação Mandatória do Potássio ANTES da Insulina (ADA 2024):\n" +
-      "   • Se K < 3,5 mEq/L: NÃO INICIAR INSULINA! Repor KCl 20 a 30 mEq/h até K > 3,5 mEq/L.\n" +
+    "diretriz_internacional": "ADA / EASD Consensus Report on Hyperglycemic Crises 2024",
+    "conduta_imediata": "1. Hidratação Venosa (Etapa 1 — Restabelecimento da Perfusão):\n" +
+      "   • SF 0,9% ou Cristaloide Balanceado (Ringer Lactato — preferido pelo Consenso ADA/SBD 2024 por acelerar resolução da acidose e evitar acidose hiperclorêmica) 1000 a 1500 mL na 1ª hora (15-20 mL/kg/h).\n" +
+      "   • Após 1ª hora: avaliar Na corrigido (somar 1,6 mEq/L para cada 100 mg/dL de glicose acima de 100). Se Na corrigido normal/alto: trocar para NaCl 0,45% 250-500 mL/h.\n" +
+      "2. Avaliação Mandatória do Potássio ANTES da Insulina (ADA/SBD 2024):\n" +
+      "   • Se K < 3,5 mEq/L: NÃO INICIAR INSULINA! Repor KCl 20 a 30 mEq/h até K > 3,5 mEq/L (evita arritmia fatal e parada cardíaca por hipocalemia).\n" +
       "   • Se K 3,5 a 5,2 mEq/L: Iniciar insulina E repor KCl 20-30 mEq por litro de soro de manutenção (Atenção ISMP Brasil: KCl 19,1% [1 mL = 2,56 mEq -> 10 mL = ~25,6 mEq] OU KCl 10% [1 mL = 1,34 mEq -> 10 mL = ~13,4 mEq]. NUNCA administrar KCl puro em bolus venoso!).\n" +
-      "   • Se K > 5,2 mEq/L: Iniciar insulina e NÃO repor potássio (monitorar a cada 2h).\n" +
-      "3. Insulinoterapia:\n" +
+      "   • Se K > 5,2 mEq/L: Iniciar insulina e NÃO repor potássio (monitorar K+ a cada 2h).\n" +
+      "3. Insulinoterapia e Prevenção de Cetoacidose de Rebote:\n" +
       "   • Insulina Regular IV contínua: 0,1 U/kg/h (ou bolus 0,1 U/kg + 0,1 U/kg/h).\n" +
       "   • Meta de queda glicêmica: 50 a 70 mg/dL por hora.\n" +
-      "   • Quando glicemia atingir 200 mg/dL: associar Soro Glicosado a 5% (SG 5%) e reduzir insulina para 0,02-0,05 U/kg/h para evitar hipoglicemia e edema cerebral enquanto fecha o ânion gap.\n" +
-      "4. Bicarbonato: reservado APENAS se pH < 6,9.",
-    "divergencia": "Tanto SBD quanto ADA condenam o uso de bicarbonato se pH ≥ 6,9 (risco de hipocalemia severa, hipóxia tecidual e acidose liquórica paradoxal). Critério de resolução: glicemia < 200 + 2 de: HCO3 ≥ 15, pH venoso > 7,30 e Anion Gap normal (≤ 12)."
+      "   • Quando glicemia atingir 200 mg/dL (na CAD) ou 250-300 mg/dL (no EHH): associar Soro Glicosado a 5% (SG 5%) e reduzir insulina para 0,02-0,05 U/kg/h para evitar hipoglicemia e edema cerebral enquanto fecha o ânion gap e depura o beta-hidroxibutirato.\n" +
+      "   • Alerta CAD Euglicêmica (usuários de iSGLT2 — dapagliflozina/empagliflozina — ou gestantes com glicemia < 200-250 mg/dL): suspender iSGLT2 e iniciar SG 5% ou SG 10% SIMULTANEAMENTE à insulina EV desde a 1ª hora!\n" +
+      "   • Transição da Insulina EV para Subcutânea (SC): Administrar a dose de Insulina Basal SC (NPH ou Glargina) 2 a 4 horas ANTES de desligar a bomba de infusão contínua (BIC) de insulina regular EV (evita cetoacidose de rebote devido à meia-vida plasmática de 4-5 min da insulina EV).\n" +
+      "4. Bicarbonato: reservado APENAS se pH < 6,9 (100 mEq de NaHCO3 em 400 mL de água destilada + 20 mEq KCl em 2h).",
+    "divergencia": "Tanto SBD quanto ADA 2024 condenam o uso de bicarbonato se pH ≥ 6,9 (risco de hipocalemia severa, hipóxia tecidual e acidose liquórica paradoxal). Critério de resolução da CAD (ADA 2024): glicemia < 200 mg/dL + 2 de: HCO3 ≥ 15 a 18 mEq/L, pH venoso > 7,30 e Anion Gap normal (≤ 12 mEq/L) ou beta-hidroxibutirato < 0,6 mmol/L."
   },
   "tep": {
     "titulo": "Tromboembolismo Pulmonar (TEP)",
-    "diretriz_brasileira": "Diretriz SBC / SBACV de Embolia Pulmonar",
+    "diretriz_brasileira": "Diretriz SBC / SBPT de Tromboembolismo Pulmonar 2022",
     "diretriz_internacional": "ESC Pulmonary Embolism Guidelines / CHEST",
-    "conduta_imediata": "1. Estratificação de Risco Imediata:\n" +
-      "   • Alto Risco (Instabilidade Hemodinâmica / Choque / PAS < 90):\n" +
-      "     - Suporte ventilatório e hemodinâmico (evitar sobrecarga volêmica, vasopressor precoce: Noradrenalina).\n" +
-      "     - Reperfusão de emergência imediata: Trombólise sistêmica com Alteplase (rtPA 100 mg IV em 2h ou 0,6 mg/kg em 15 min na PCR iminente).\n" +
+    "conduta_imediata": "1. Estratificação de Risco e Diagnóstico:\n" +
+      "   • Em probabilidade pré-teste baixa/intermediária (Wells/Geneva): aplicar D-dímero ajustado pela idade (> 50 anos: idade × 10 ng/mL) ou algoritmo YEARS para evitar angiotomografias desnecessárias.\n" +
+      "   • Alto Risco / TEP Maciço (Instabilidade Hemodinâmica / Choque / PAS < 90 ou queda ≥ 40 mmHg por > 15 min):\n" +
+      "     - Suporte ventilatório e hemodinâmico: EVITAR sobrecarga volêmica agressiva (> 500 mL de cristaloide distende o VD, desvia o septo interventricular para o VE e agrava o choque obstrutivo); iniciar vasopressor precoce (Noradrenalina ± Dobutamina).\n" +
+      "     - Reperfusão de emergência imediata: Trombólise sistêmica com Alteplase (rtPA 100 mg IV em 2h ou 0,6 mg/kg [máx 50 mg] em 15 min na PCR iminente).\n" +
       "     - Anticoagulação imediata com HNF venosa em bolus (80 UI/kg) e infusão (18 UI/kg/h).\n" +
       "   • Risco Intermediário / Baixo (Estável):\n" +
-      "     - Anticoagulação plena com Enoxaparina 1 mg/kg SC 12/12h ou NOACs (Rivaroxabana 15 mg 12/12h 21 dias ou Apixabana 10 mg 12/12h 7 dias).\n" +
-      "     - Escore sPESI para decisão de internação vs alta precoce.",
-    "divergencia": "No SUS/Brasil, Enoxaparina e Varfarina ainda são as mais disponíveis na internação e alta, enquanto no cenário privado e internacional os NOACs (DOACs) são primeira linha isolada."
+      "     - Anticoagulação plena com Enoxaparina 1 mg/kg SC 12/12h ou DOACs/NOACs diretos (Rivaroxabana 15 mg 12/12h por 21 dias seguida de 20 mg/dia OU Apixabana 10 mg 12/12h por 7 dias seguida de 5 mg 12/12h).\n" +
+      "     - Escore sPESI + troponina/BNP e ecocardiograma de VD para diferenciar Risco Intermediário-Alto (monitorar em UTI) de Baixo Risco (elegível para alta precoce).",
+    "divergencia": "No SUS/Brasil, Enoxaparina e Varfarina ainda são amplamente utilizadas pela disponibilidade na rede pública, enquanto no cenário privado e diretrizes ESC/CHEST os DOACs (Apixabana/Rivaroxabana) são primeira linha por menor risco de sangramento maior."
   },
   "dpoc": {
     "titulo": "DPOC Exacerbada",
     "diretriz_brasileira": "Diretrizes SBPT (Sociedade Brasileira de Pneumologia e Tisiologia) 2023",
-    "diretriz_internacional": "GOLD 2024",
-    "conduta_imediata": "1. Broncodilatadores de Ação Rápida:\n" +
-      "   • Salbutamol 4 a 8 jatos com espaçador a cada 20 min na 1ª hora (ou nebulização 2,5-5 mg).\n" +
-      "   • Brometo de Ipratrópio associado a cada 20 min na 1ª hora.\n" +
+    "diretriz_internacional": "GOLD 2024/2025",
+    "conduta_imediata": "1. Broncodilatadores Inalatórios de Ação Rápida (SABA + SAMA):\n" +
+      "   • Salbutamol 4 a 8 jatos com espaçador a cada 20 min na 1ª hora (ou nebulização 2,5-5 mg em ar comprimido/fluxo controlado).\n" +
+      "   • Brometo de Ipratrópio (4-8 jatos ou 0,5 mg nebulizado) associado a cada 20 min na 1ª hora.\n" +
       "2. Corticoterapia Sistêmica Precoce:\n" +
-      "   • Prednisona 40 mg VO 1x/dia por 5 dias (GOLD/SBPT) OU Hidrocortisona 100 mg IV se via oral inviável.\n" +
+      "   • Prednisona 40 mg VO 1x/dia por 5 dias (GOLD/SBPT) OU Hidrocortisona 100-200 mg IV / Metilprednisolona 40 mg IV se via oral inviável.\n" +
       "3. Oxigenoterapia Controlada:\n" +
-      "   • Alvo SpO2: 88% a 92% (evitar hiperóxia que induz efeito Haldane e narcose por CO2).\n" +
-      "4. Ventilação Não Invasiva (VNI):\n" +
-      "   • Primeira linha se acidose respiratória aguda (pH < 7,35 e PaCO2 > 45 mmHg) ou fadiga muscular.\n" +
-      "5. Antibioticoterapia (Critérios de Anthonisen: escarro purulento, aumento de volume, piora da dispneia):\n" +
-      "   • Amoxicilina + Clavulanato 875/125 mg 12/12h por 5-7 dias OU Azitromicina 500 mg/dia por 5 dias.",
-    "divergencia": "A SBPT e o GOLD 2024 reforçam tempo de corticoide curto de apenas 5 dias, eliminando desmames desnecessários."
+      "   • Alvo SpO2: 88% a 92% (evitar hiperóxia que induz efeito Haldane, piora da relação V/Q e narcose hipercápnica por CO2).\n" +
+      "4. Ventilação Não Invasiva (VNI — BiPAP):\n" +
+      "   • Primeira linha mandatória se acidose respiratória aguda (pH ≤ 7,35 e PaCO2 ≥ 45 mmHg), dispneia grave com uso de musculatura acessória ou hipoxemia persistente (reduz IOT e mortalidade em > 50%).\n" +
+      "5. Antibioticoterapia (Critérios de Anthonisen: presença de escarro purulento + aumento do volume do escarro e/ou piora da dispneia, ou necessidade de VNI/IOT):\n" +
+      "   • Amoxicilina + Clavulanato 875/125 mg 12/12h por 5 dias OU Azitromicina 500 mg/dia por 5 dias (ou Levofloxacino 750 mg/dia se risco de Pseudomonas/bronquiectasias).",
+    "divergencia": "A SBPT e o GOLD 2024/2025 reforçam tempo curto de corticoide (apenas 5 dias de Prednisona 40 mg sem necessidade de desmame) e de antibiótico (5 dias)."
   },
   "asma": {
     "titulo": "Crise de Asma Grave no Adulto",
     "diretriz_brasileira": "Diretrizes SBPT para Manejo da Asma",
     "diretriz_internacional": "GINA 2024/2026 Strategy Report",
-    "conduta_imediata": "1. Broncodilatadores de Ação Rápida:\n" +
+    "conduta_imediata": "1. Broncodilatadores de Ação Rápida na Emergência:\n" +
       "   • Salbutamol spray 4 a 10 jatos com espaçador a cada 20 min na 1ª hora (ou nebulização 2,5 a 5 mg).\n" +
-      "   • Brometo de Ipratrópio (0,5 mg nebulizado ou 4 a 8 jatos) associado na 1ª hora em crise moderada a grave.\n" +
+      "   • Brometo de Ipratrópio (0,5 mg nebulizado ou 4 a 8 jatos) associado na 1ª hora em crise moderada a grave (reduz hospitalização).\n" +
       "2. Corticoterapia Sistêmica Precoce (início na 1ª hora):\n" +
-      "   • Prednisona 40 a 50 mg VO por 5 a 7 dias OU Hidrocortisona 200 mg IV se via oral impraticável.\n" +
+      "   • Prednisona 40 a 50 mg VO por 5 a 7 dias OU Hidrocortisona 200 mg IV (ou Metilprednisolona 40 mg IV) se via oral impraticável.\n" +
       "3. Oxigenoterapia Titulada (Alvo GINA):\n" +
-      "   • Alvo SpO₂: 93% a 95% em adultos (em gestantes ≥ 95%). Evitar hipoxemia e evitar hiperóxia excessiva.\n" +
-      "4. Sulfato de Magnésio EV (se má resposta inicial ou crise grave):\n" +
-      "   • Sulfato de Magnésio 2 g IV em 20 minutos (Atenção ISMP Brasil: MgSO4 50% [500 mg/mL -> 2g = 4 mL] OU MgSO4 10% [100 mg/mL -> 2g = 20 mL] diluídos em 100 mL de SF 0,9% ou SG 5%).\n" +
-      "5. Critérios de Alarme (Via Aérea / UTI):\n" +
-      "   • Silêncio respiratório, exaustão, confusão mental ou PaCO₂ normal/elevada (indica falência muscular iminente).",
-    "divergencia": "Diferente da DPOC (alvo 88–92% pelo risco de retenção de CO₂), na Asma o alvo mandatório é SpO₂ 93–95% (GINA 2026)."
+      "   • Alvo SpO₂: 93% a 95% em adultos (em gestantes e cardiopatas ≥ 95%). Evitar hipoxemia e evitar hiperóxia a 100%.\n" +
+      "4. Sulfato de Magnésio EV (se má resposta inicial, PFE < 25-30% ou crise grave/ameaçadora à vida):\n" +
+      "   • Sulfato de Magnésio 2 g IV correr em 20 minutos (Atenção ISMP Brasil: MgSO4 50% [500 mg/mL -> 2g = 4 mL] OU MgSO4 10% [100 mg/mL -> 2g = 20 mL] diluídos em 100 mL de SF 0,9% ou SG 5%).\n" +
+      "5. Critérios de Alarme (Via Aérea / UTI) e Prescrição de Alta (GINA Track 1):\n" +
+      "   • Sinais de falência iminente: Tórax silencioso (silêncio respiratório), exaustão, sonolência/confusão mental ou PaCO₂ normal/elevada (≥ 40-45 mmHg).\n" +
+      "   • Alta Segura (GINA 2024-2026 Track 1): PROSCRITO dar alta apenas com SABA (Salbutamol) isolado! Todo paciente deve receber Corticoide Inalatório (CI) + Formoterol (ex: Budesonida + Formoterol) como terapia de manutenção e alívio anti-inflamatório (AIR/MART), além de completar 5 a 7 dias de Prednisona oral.",
+    "divergencia": "Diferente da DPOC (alvo 88–92% pelo risco de retenção de CO₂), na Asma o alvo mandatório é SpO₂ 93–95% (GINA 2026). O GINA Track 1 aboliu o uso de SABA isolado em todas as etapas da asma pelo risco aumentado de exacerbações fatais."
   },
   "anafilaxia": {
     "titulo": "Anafilaxia e Choque Anafilático",
     "diretriz_brasileira": "ASBAI (Associação Brasileira de Alergia e Imunologia) / CFM",
-    "diretriz_internacional": "WAO (World Allergy Organization) 2020 / EAACI",
+    "diretriz_internacional": "WAO (World Allergy Organization) 2020 / EAACI / AAAAI 2023",
     "conduta_imediata": "1. Droga de 1ª Linha Mandatória (Imediata / Intramuscular):\n" +
-      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral). Dose adulto: 0,5 mg (0,5 mL) IM; dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM. Repetir a cada 5-15 min se refratário. Atenção ISMP: NUNCA usar Adrenalina 1:10.000 (0,1 mg/mL - solução de PCR) para aplicação IM em anafilaxia! Se necessária infusão contínua em choque refratário: 1 ampola 1:1000 (1 mg/1 mL) em 249 mL SG 5% (4 mcg/mL).\n" +
-      "2. Posicionamento e Manejo Hemodinâmico:\n" +
-      "   • Decúbito dorsal com membros inferiores elevados (Trendelenburg/elevação de pernas). NUNCA colocar o paciente sentado ou em pé subitamente (risco de síndrome da veia cava vazia e parada cardíaca).\n" +
-      "   • Oxigenoterapia sob máscara com reservatório (alvo SpO₂ > 95%).\n" +
+      "   • Adrenalina (Epinefrina) 1:1000 (1 mg/mL) IM no vasto lateral da coxa (face anterolateral). Dose adulto: 0,5 mg (0,5 mL) IM; dose pediátrica: 0,01 mg/kg (máx 0,3 mg) IM. Repetir a cada 5-15 min se refratário. Atenção ISMP: NUNCA usar Adrenalina 1:10.000 (0,1 mg/mL - solução diluída de PCR) para aplicação IM em anafilaxia, e NUNCA fazer adrenalina pura EV em bolus fora de PCR! Se necessária infusão contínua em choque refratário: 1 ampola 1:1000 (1 mg/1 mL) em 249 mL SG 5% (4 mcg/mL, iniciando a 0,05-0,1 mcg/kg/min).\n" +
+      "2. Posicionamento Crítico e Manejo Hemodinâmico:\n" +
+      "   • Decúbito dorsal estrito com membros inferiores elevados (Trendelenburg/elevação de pernas; em gestantes, decúbito lateral esquerdo). NUNCA colocar o paciente sentado ou em pé subitamente (risco de síndrome da veia cava vazia / 'empty ventricle syndrome' e parada cardíaca súbita em AESP).\n" +
+      "   • Oxigenoterapia sob máscara com reservatório (alvo SpO₂ > 95%) e IOT precoce se rouquidão progressiva ou estridor laríngeo.\n" +
       "   • Expansão volêmica rápida: SF 0,9% ou Ringer Lactato 20 mL/kg em bolus rápido (adulto: 1.000 a 2.000 mL se hipotensão).\n" +
-      "3. Adjuvantes de 2ª Linha (NÃO substituem adrenalina e NÃO devem atrasá-la):\n" +
-      "   • Anti-histamínicos: Difenidramina 25-50 mg IV ou Prometazina 25 mg IM/IV (alívio de prurido/urticária).\n" +
-      "   • Corticoterapia: Hidrocortisona 200-500 mg IV ou Metilprednisolona 1-2 mg/kg IV (prevenção de reação bifásica tardia).\n" +
-      "   • Broncodilatador inalatório (Salbutamol 4-8 jatos) se broncoespasmo associado.",
-    "divergencia": "🇧🇷 ASBAI vs 🌐 WAO: A via intramuscular no vasto lateral da coxa é a única via de eleição na anafilaxia inicial (pico sérico em ~8 min vs ~34 min no deltoide/SC). O uso isolado de corticoides ou anti-histamínicos sem adrenalina é falha grave e não previne óbito por asfixia ou colapso circulatório."
+      "3. Situação Especial — Refratariedade em Usuários de Betabloqueadores:\n" +
+      "   • Se hipotensão/broncoespasmo refratários à Adrenalina em paciente em uso de betabloqueador: administrar Glucagon 1 a 2 mg IV (ou IM) lento em 5 minutos, seguido de infusão 5-15 mcg/min (ativa a adenilato ciclase independentemente do receptor beta-adrenérgico).\n" +
+      "4. Adjuvantes de 2ª Linha (NÃO substituem adrenalina e NÃO devem atrasá-la) e Observação:\n" +
+      "   • Anti-histamínicos: Difenidramina 25-50 mg IV ou Prometazina 25 mg IM/IV + Fexofenadina/Loratadina VO (alívio exclusivo de prurido/urticária).\n" +
+      "   • Corticoterapia: Hidrocortisona 200-500 mg IV ou Metilprednisolona 1-2 mg/kg IV.\n" +
+      "   • Observação mínima de 4 a 6 horas após resolução completa (ou 12 a 24h em UTI se choque anafilático, broncoespasmo grave ou necessidade de ≥ 2 doses de adrenalina) pelo risco de reação bifásica.",
+    "divergencia": "🇧🇷 ASBAI vs 🌐 WAO/AAAAI: A via intramuscular no vasto lateral da coxa é a única via de eleição na anafilaxia inicial (pico sérico em ~8 min vs ~34 min no deltoide/SC). Diretrizes recentes (AAAAI 2023) destacam que corticoides não previnem de forma confiável a reação bifásica, tornando a adrenalina IM precoce e a observação clínica os verdadeiros pilares de sobrevivência."
   },
   "convulsao": {
     "titulo": "Crise Convulsiva e Estado de Mal Epiléptico (EME)",
     "diretriz_brasileira": "Academia Brasileira de Neurologia (ABN) / Ministério da Saúde",
-    "diretriz_internacional": "AES (American Epilepsy Society) Guideline / Neurocritical Care Society",
+    "diretriz_internacional": "AES (American Epilepsy Society) Guideline / Neurocritical Care Society / ESETT Trial",
     "conduta_imediata": "1. Estabilização Imediata (Minutos 0 a 5):\n" +
-      "   • Proteção de via aérea (decúbito lateral para prevenir aspiração, oxigênio sob máscara), glicemia capilar imediata (se < 70 mg/dL: 4 ampolas de Glicose 50% IV + Tiamina 100 mg se etilista).\n" +
-      "2. 1ª Linha — Benzodiazepínicos (Minutos 5 a 10 se crise > 5 min):\n" +
-      "   • Diazepam 10 mg IV lento (0,2 a 0,3 mg/kg, velocidade máx 2-5 mg/min) puro; pode repetir 1x após 5 minutos se mantiver atividade convulsiva.\n" +
-      "   • Sem acesso venoso imediato: Midazolam 10 mg IM (0,2 mg/kg, máx 10 mg) no deltoide/vasto lateral.\n" +
-      "3. 2ª Linha — Anticonvulsivantes Venosos Não-Sedativos (Minutos 10 a 20):\n" +
-      "   • Fenitoína (Hidantal): Dose de ataque 20 mg/kg IV diluída EXCLUSIVAMENTE em Soro Fisiológico 0,9% (precipita em solução glicosada!) na velocidade máxima de 50 mg/min (risco de hipotensão e arritmias ventriculares graves; monitorização com ECG contínuo).\n" +
-      "   • Alternativas: Levetiracetam 60 mg/kg IV (máx 4.500 mg) ou Valproato de Sódio 40 mg/kg IV.\n" +
-      "4. 3ª Linha — Estado de Mal Refratário (Minutos 20 a 60):\n" +
-      "   • Intubação orotraqueal imediata (IOT) + infusão contínua em bomba de Midazolam (0,2 mg/kg bolus + 0,05-2 mg/kg/h) ou Propofol (1-2 mg/kg bolus + 1-5 mg/kg/h) e transferência para UTI.",
-    "divergencia": "🇧🇷 ABN/SUS vs 🌐 AES: No SUS, a Fenitoína é a droga de 2ª linha universalmente disponível, exigindo diluição estrita apenas em SF 0,9% e infusão em no máx 50 mg/min. No exterior, Levetiracetam IV e Fosfenitoína são mais utilizados pela comodidade."
+      "   • Proteção de via aérea (decúbito lateral para prevenir aspiração, oxigênio sob máscara, não introduzir objetos na boca), glicemia capilar imediata (se < 70 mg/dL: 4 ampolas de Glicose 50% [40 mL] IV precedidas ou acompanhadas de Tiamina 100-500 mg IV se etilista/desnutrido para prevenir encefalopatia de Wernicke).\n" +
+      "2. 1ª Linha — Benzodiazepínicos (Minutos 5 a 10 se crise ≥ 5 min ou crises reentrantes sem recuperação do nível de consciência):\n" +
+      "   • Com acesso venoso: Diazepam 10 mg IV lento (0,15 a 0,2 mg/kg, velocidade máx 2-5 mg/min) puro; pode repetir 1x após 5 minutos.\n" +
+      "   • Sem acesso venoso imediato (1ª escolha pré-hospitalar/emergência — estudo RAMPART): Midazolam 10 mg IM (0,2 mg/kg, máx 10 mg) no vasto lateral/deltoide.\n" +
+      "3. 2ª Linha — Anticonvulsivantes Venosos Não-Sedativos (Minutos 10 a 20 — equivalência comprovada no estudo ESETT):\n" +
+      "   • Fenitoína (Hidantal): Dose de ataque 20 mg/kg IV diluída EXCLUSIVAMENTE em Soro Fisiológico 0,9% (precipita em solução glicosada!) na velocidade máxima de 50 mg/min em adultos (ou 20-25 mg/min em idosos/cardiopatas pelo risco de hipotensão e arritmias ventriculares graves por propilenoglicol; monitorização com ECG contínuo). Dose adicional de 5-10 mg/kg se persistir.\n" +
+      "   • Alternativas de igual eficácia (ESETT Trial — preferíveis em arritmias ou epilepsia generalizada/mioclônica): Levetiracetam 60 mg/kg IV (máx 4.500 mg em 15 min) ou Valproato de Sódio 40 mg/kg IV (máx 3.000 mg em 10-15 min; evitar em gestantes e hepatopatas).\n" +
+      "4. 3ª Linha — Estado de Mal Refratário (Minutos 20 a 60) e Alerta Pós-Ictal:\n" +
+      "   • Intubação orotraqueal imediata (IOT — evitar bloqueadores neuromusculares de longa duração que mascaram convulsões) + infusão contínua em bomba de Midazolam (0,2 mg/kg bolus + 0,05-2 mg/kg/h), Propofol (1-2 mg/kg bolus + 1-5 mg/kg/h) ou Cetamina.\n" +
+      "   • Alerta Neurocrítico: Se os abalos motores cessarem mas o paciente não recuperar a consciência após 20-30 min, suspeitar de Estado de Mal Epiléptico Não Convulsivo (EMENC) e solicitar EEG contínuo de urgência.",
+    "divergencia": "🇧🇷 ABN/SUS vs 🌐 AES/ESETT: No SUS, a Fenitoína é a droga de 2ª linha universalmente disponível, exigindo diluição estrita apenas em SF 0,9% e infusão em no máx 50 mg/min. O ensaio ESETT comprovou eficácia idêntica (~50%) entre Fenitoína/Fosfenitoína, Valproato e Levetiracetam."
   },
   "hda": {
     "titulo": "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)",
     "diretriz_brasileira": "Diretrizes SBH (Sociedade Brasileira de Hepatologia) / FBG (Federação Brasileira de Gastroenterologia)",
-    "diretriz_internacional": "Baveno VII / ACG Upper GI Bleeding Guidelines 2021",
+    "diretriz_internacional": "Baveno VII Consensus / ACG Upper GI Bleeding Guidelines 2021",
     "conduta_imediata": "1. Estabilização e Estratégia Transfusional Restritiva:\n" +
-      "   • 2 acessos venosos calibrosos (14G ou 16G), reposição com Ringer Lactato ou SF 0,9% criteriosa para evitar hipervolemia e agravamento do sangramento varicoso.\n" +
-      "   • Transfusão restritiva de Concentrado de Hemácias: indicar apenas se Hb < 7 g/dL (alvo Hb 7 a 8 g/dL). Em coronariopatas graves sintomáticos, alvo Hb > 8 g/dL.\n" +
-      "2. Supressão Ácida em Alta Dose (Não Varicosa e Indiferenciada):\n" +
+      "   • 2 acessos venosos calibrosos (14G ou 16G), reposição volêmica com Ringer Lactato ou SF 0,9% criteriosa para manter perfusão sem causar hipervolemia (que eleva a pressão portal e desloca o coágulo nas varizes). Proteger via aérea (IOT) se hematêmese maciça ou encefalopatia hepática grau III/IV.\n" +
+      "   • Transfusão restritiva de Concentrado de Hemácias (Baveno VII / ACG): indicar apenas se Hb < 7 g/dL (alvo Hb 7 a 8 g/dL). Em coronariopatas graves ou isquemia aguda, manter alvo Hb ≥ 8 a 9 g/dL.\n" +
+      "2. Supressão Ácida e Procinético Pré-Endoscópico:\n" +
       "   • Omeprazol 80 mg IV em bolus, seguido de infusão contínua 8 mg/h por 72 horas (ou 40 mg IV 12/12h).\n" +
-      "3. Terapia Vasoativa Precoce na Suspeita de HDA Varicosa (Cirrose / Hipertensão Portal):\n" +
-      "   • Terlipressina 2 mg IV bolus 4/4h (ou Octreotide 50 mcg bolus + 50 mcg/h) iniciada imediatamente antes da EDA.\n" +
-      "   • Antibioticoprofilaxia mandatória em cirróticos: Ceftriaxona 1 g IV 1x/dia por 7 dias (reduz infecções bacterianas, ressangramento e mortalidade).\n" +
-      "4. Endoscopia Digestiva Alta (EDA) Precoce:\n" +
-      "   • Realizar EDA diagnóstica e terapêutica em até 12 horas (no máximo 24h) da admissão após estabilização hemodinâmica.",
-    "divergencia": "🇧🇷 FBG/SUS vs 🌐 Baveno VII: No Brasil, Ceftriaxona 1 g/dia é a profilaxia de 1ª linha em cirróticos com HDA devido à alta prevalência de resistência a quinolonas no país. A Terlipressina é o vasoconstritor esplâncnico de escolha na hepatologia brasileira e Baveno VII."
+      "   • Procinético IV 30 a 60 minutos antes da EDA: Eritromicina 250 mg IV (1ª escolha) ou Metoclopramida 10 mg IV para esvaziar coágulos do estômago e melhorar a visão endoscópica.\n" +
+      "3. Terapia Vasoativa e Profilaxia na Suspeita de HDA Varicosa (Cirrose / Hipertensão Portal — Baveno VII):\n" +
+      "   • Vasoconstritor esplâncnico IMEDIATO (antes mesmo da EDA): Terlipressina 2 mg IV bolus 4/4h nas primeiras 24-48h, podendo reduzir para 1 mg 4/4h por 2 a 5 dias (OU Octreotide 50 mcg IV bolus + 50 mcg/h em BIC).\n" +
+      "   • Antibioticoprofilaxia mandatória em todo cirrótico com HDA: Ceftriaxona 1 g IV 1x/dia por até 7 dias (reduz translocação bacteriana/PBE, ressangramento e mortalidade).\n" +
+      "   • Suspender Betabloqueador Não Seletivo (Propranolol/Carvedilol) na fase aguda se PAS < 90 mmHg, PAM < 65 mmHg ou lesão renal aguda (IRA).\n" +
+      "4. Endoscopia Digestiva Alta (EDA) Precoce e Terapia de Resgate:\n" +
+      "   • Realizar EDA diagnóstica e terapêutica (ligadura elástica nas varizes esofágicas; cianoacrilato nas fúndicas; dupla terapia na úlcera Forrest Ia-IIb) em até 12 horas na HDA varicosa e em até 24 horas na não varicosa.\n" +
+      "   • Considerar TIPS precoce ('pre-emptive TIPS' em até 72h) se cirrótico Child-Pugh C (10-13 pontos) ou Child-Pugh B (> 7 pontos) com sangramento ativo na EDA.",
+    "divergencia": "🇧🇷 SBH/FBG vs 🌐 Baveno VII: No Brasil, Ceftriaxona 1 g/dia é a profilaxia de 1ª linha em cirróticos com HDA devido à alta prevalência de resistência a quinolonas (Norfloxacino). Na falta de balão de Sengstaken-Blakemore ou stent metálico autoexpansível em sangramento varicoso refratário, o tamponamento por até 24h serve como ponte obrigatória para nova EDA ou TIPS."
   }
 };
 
@@ -41608,15 +41973,15 @@ function obterProtocoloClinico(termo) {
   var texto = String(termo).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
   var aliases = {
     sepse: /\b(?:sepse|sepsis|choque septico|infeccao grave)\b/g,
-    iam: /\b(?:iam|infarto|sindrome coronariana(?: aguda)?)\b/g,
+    iam: /\b(?:iam|iamcsst|iamssst|infarto|sindrome coronariana(?: aguda)?)\b/g,
     eap: /\b(?:eap|edema agudo (?:de )?pulmao|insuficiencia cardiaca descompensada)\b/g,
-    cad: /\b(?:cad|cetoacidose(?: diabetica)?)\b/g,
+    cad: /\b(?:cad|cetoacidose(?: diabetica| euglicemica)?|estado hiperosmolar)\b/g,
     tep: /\b(?:tep|tromboembolismo pulmonar|embolia pulmonar)\b/g,
     dpoc: /\bdpoc\b/g,
-    asma: /\b(?:asma|crise asmatica)\b/g,
+    asma: /\b(?:asma|crise asmatica|mal asmatico)\b/g,
     anafilaxia: /\b(?:anafilaxia|choque anafilatico|reacao anafilatica|anafilat\w*)\b/g,
     convulsao: /\b(?:convulsao|crise convulsiva|estado de mal epiletico|epilepsia|status epilepticus)\b/g,
-    hda: /\b(?:hda|hemorragia digestiva alta|sangramento digestivo alto|varizes esofagicas sangrantes)\b/g
+    hda: /\b(?:hda|hemorragia digestiva alta|sangramento digestivo alta|sangramento digestivo alto|varizes esofagicas sangrantes|hematemese|melena)\b/g
   };
   // Um protocolo único não representa choques de etiologias diferentes (exceto anafilaxia).
   if (/\b(?:choque (?:hemorragico|cardiogenico|hipovolemico|obstrutivo))\b/.test(texto) && !/\b(?:anafil\w*)\b/.test(texto)) return null;
@@ -44393,7 +44758,7 @@ var IaLocalFallbackService = (function () {
                    ctxLow.indexOf('ferida') !== -1 || ctxLow.indexOf('npuap') !== -1;
 
     var cabecalhoContingencia = [
-      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (IMAGEM MÉDICA FMRP-USP)*',
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (IMAGEM MÉDICA / LAUDO BEIRA-LEITO)*',
       'A leitura de imagens por IA oscilou temporariamente. Para sua segurança, confira o roteiro semiológico oficial ou reenvie a foto em instantes:',
       ''
     ].join('\n');
@@ -44401,7 +44766,7 @@ var IaLocalFallbackService = (function () {
     var rodapeSeguranca = [
       '',
       '---',
-      '📌 *Roteiro de apoio beira-leito (FMRP-USP / CBR). Se preferir, digite a alteração suspeita para conduta imediata.*'
+      '📌 *Roteiro de apoio beira-leito (SBC / CBR / Diretrizes SUS). Se preferir, digite a alteração suspeita para conduta imediata.*'
     ].join('\n');
 
     var corpo = [];
@@ -44413,7 +44778,7 @@ var IaLocalFallbackService = (function () {
         corpo.push('');
       }
 
-      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS FMRP-USP):*');
+      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS SBC):*');
       corpo.push('1. *Ritmo:* Sinusal (onda P positiva em D1, D2, aVF; negativa em aVR, seguida de QRS regular) vs Taqui/Bradiarritmias (FA, Flutter, BAVs).');
       corpo.push('2. *Frequência Cardíaca (FC):* 1500 / mm entre ondas R (se regular) ou complexos em 30 quadrados grandes x 10 (se irregular). Normal: 50 a 100 bpm.');
       corpo.push('3. *Eixo Elétrico (Plano Frontal):* Normal (-30° a +90°). Se D1 (+) e aVF (+): Eixo normal (0° a +90°). Se D1 (+) e aVF (-): Desvio para esquerda (-30° a -90°). Se D1 (-) e aVF (+): Desvio para direita.');
@@ -44426,7 +44791,7 @@ var IaLocalFallbackService = (function () {
       corpo.push('   • Anterior/Septal (V1-V4), Lateral Alta (D1, aVL), Lateral Baixa (V5-V6), Inferior (D2, D3, aVF).');
       corpo.push('   • ⚠️ Se supra em parede inferior (D2, D3, aVF): Rodar obrigatoriamente derivações direitas (V3R, V4R) para descartar IAM de Ventrículo Direito (Nitrato contraindicado!).');
     } else if (ehRx) {
-      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS FMRP-USP):*');
+      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS CBR):*');
       corpo.push('1. *Identificação e Técnica:* Incidência (PA vs AP), penetração correta (visualização sutil dos corpos vertebrais atrás do coração), rotação (clavículas equidistantes das espinhosas) e inspiração (8 a 10 arcos costais posteriores visíveis).');
       corpo.push('2. *Arcabouço Ósseo e Partes Moles:* Fraturas de arcos costais ou clavícula, lesões líticas/blásticas, enfisema subcutâneo (presença de ar dissecando partes moles).');
       corpo.push('3. *Mediastino e Silhueta Cardíaca:* Índice Cardiotorácico (ICT <= 0,50 no PA), contornos aórtico e hilar, desvio de traqueia.');
@@ -44706,6 +45071,57 @@ var IaLocalFallbackService = (function () {
     return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
   }
 
+  /**
+   * Gera perguntas socráticas de segurança crítica baseadas nas pérolas do Tá de Clinicagem (TdC)
+   * e diretrizes 2024-2026 para ancorar o raciocínio clínico na emergência.
+   * @param {string} textoCaso Texto ou termo clínico em discussão
+   * @return {Object|null} Objeto com perolaTdC e perguntaSocratica
+   */
+  function obterAncoraSocraticaTdCEmergencia(textoCaso) {
+    var protocolo = typeof obterProtocoloClinico === "function" ? obterProtocoloClinico(textoCaso) : null;
+    if (!protocolo) return null;
+
+    var mapaSocraticoTdC = {
+      "Sepse e Choque Séptico": {
+        perolaTdC: "SSC 2021 + CLOVERS / ANDROMEDA-SHOCK: qSOFA isolado não serve para triagem; guie a ressuscitação pelo Tempo de Enchimento Capilar (TEC ≤ 3s) e lactato, priorize Ringer Lactato e inicie Noradrenalina periférica precoce se PAM < 65 mmHg sem atrasar o controle de foco (6-12h).",
+        perguntaSocratica: "Qual é o Tempo de Enchimento Capilar (TEC) atual do paciente, qual o foco infeccioso que precisa de controle na 1ª hora e você já considerou iniciar Noradrenalina em veia periférica calibrosa enquanto corre o Ringer Lactato?"
+      },
+      "Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH)": {
+        perolaTdC: "ADA/SBD 2024: NUNCA inicie insulina regular EV antes de checar o Potássio sérico (se K < 3,5 mEq/L, repor K+ antes). Lembre-se de iniciar SG 5% quando a glicemia atingir 200 mg/dL (ou desde a 1ª hora na CAD euglicêmica por iSGLT2) e aplicar insulina basal SC 2 a 4h ANTES de desligar a bomba EV.",
+        perguntaSocratica: "Antes de ligar a bomba de insulina regular EV, qual é o valor do Potássio sérico deste paciente? E quando o ânion gap fechar, qual cuidado na transição para insulina subcutânea evitará a cetoacidose de rebote?"
+      },
+      "Crise de Asma Grave no Adulto": {
+        perolaTdC: "GINA 2024-2026: Alvo de SpO₂ 93-95%, corticoide sistêmico na 1ª hora e Sulfato de Magnésio 2g EV em 20 min se crise grave. Na alta (Track 1), é proscrito prescrever SABA isolado: associe Corticoide Inalatório + Formoterol de alívio (AIR/MART).",
+        perguntaSocratica: "Há algum sinal de falência ventilatória iminente (tórax silencioso ou PaCO₂ normalizando/subindo)? Se a crise for grave, já indicou Sulfato de Magnésio 2g EV e planejou a alta na Track 1 do GINA (CI + Formoterol)?"
+      },
+      "Anafilaxia e Choque Anafilático": {
+        perolaTdC: "WAO/ASBAI: Adrenalina 1:1000 (0,5 mg IM no vasto lateral da coxa) imediata + decúbito dorsal com pernas elevadas (nunca sentar ou levantar subitamente pelo risco de síndrome do ventrículo vazio). Se refratário em usuário de betabloqueador, usar Glucagon 1-2 mg EV.",
+        perguntaSocratica: "A Adrenalina 1:1000 IM no vasto lateral já foi administrada imediatamente com o paciente mantido em decúbito dorsal estrito? Ele faz uso crônico de betabloqueador?"
+      },
+      "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)": {
+        perolaTdC: "Baveno VII: Transfusão restritiva (alvo Hb 7-8 g/dL). Na suspeita de HDA varicosa em cirrótico, iniciar Terlipressina 2 mg EV 4/4h + Ceftriaxona 1g EV/dia ANTES da EDA, associar Eritromicina pré-EDA e suspender betabloqueador se hipotensão ou IRA.",
+        perguntaSocratica: "Há estigmas de hepatopatia crônica/hipertensão portal que exijam Terlipressina + Ceftriaxona imediatas antes da EDA em 12h, mantendo estratégia transfusional restritiva (Hb 7-8 g/dL)?"
+      },
+      "Infarto Agudo do Miocárdio (IAM)": {
+        perolaTdC: "SBC 2024 / AHA: Tempo porta-agulha ≤ 30 min (se trombólise) ou porta-balão ≤ 90 min (se angioplastia primária). AAS mastigado 300 mg + 2º antiplaquetário (Ticagrelor 180 mg ou Clopidogrel 300/600 mg). Morfina de rotina é proscrita.",
+        perguntaSocratica: "Qual é o tempo porta-ECG (meta ≤ 10 min)? Se houver supra de ST, a reperfusão por angioplastia primária está acessível em até 120 min ou está indicada a fibrinólise imediata?"
+      },
+      "Edema Agudo de Pulmão (EAP Cardiogênico)": {
+        perolaTdC: "ESC/SBC 2024: VNI precoce (CPAP/BIPAP com PEEP 5-10 cmH2O) + Vasodilatador venoso/arterial (Nitroglicerina/Nitroprussiato) se PAS > 110 mmHg. Furosemida em bólus (1 a 2x a dose crônica). Evite morfina rotineira.",
+        perguntaSocratica: "A Ventilação Não Invasiva (VNI) já foi instalada e a PAS permite titulação agressiva de vasodilatador EV (Nitroglicerina) para alívio imediato da pós-carga?"
+      },
+      "Crise Convulsiva e Estado de Mal Epiléptico": {
+        perolaTdC: "ABN / AES / ESETT: 0-5 min: Benzodiazepínico (Diazepam 10 mg EV ou Midazolam 10 mg IM). Se refratário aos 5-10 min, repetir 1 dose. 10-20 min: 2ª linha (Levetiracetam 60 mg/kg máx 4500 mg, Valproato 40 mg/kg máx 3000 mg ou Fenitoína 20 mg/kg máx 1500 mg).",
+        perguntaSocratica: "O Benzodiazepínico foi feito na dose e tempo corretos (primeiros 5 min)? Qual anticonvulsivante de 2ª linha (Levetiracetam, Valproato ou Fenitoína) já está em preparo?"
+      }
+    };
+
+    return mapaSocraticoTdC[protocolo.titulo] || {
+      perolaTdC: protocolo.divergencia || "",
+      perguntaSocratica: "Quais são as condutas salvadoras de vida nos primeiros 10 a 60 minutos segundo a diretriz (" + protocolo.diretriz_brasileira + ")?"
+    };
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -44719,6 +45135,7 @@ var IaLocalFallbackService = (function () {
     gerarFallbackAudio: gerarFallbackAudio,
     gerarFallbackMultimodal: gerarFallbackMultimodal,
     executarFallbackLocalOffline: executarFallbackLocalOffline,
+    obterAncoraSocraticaTdCEmergencia: obterAncoraSocraticaTdCEmergencia,
     _iaChamarOllamaNativo: function(arg1, arg2, arg3, arg4, arg5, arg6) {
       if (typeof _iaChamarOllamaNativo === 'function') {
         return _iaChamarOllamaNativo(arg1, arg2, arg3, arg4, arg5, arg6);
@@ -44924,8 +45341,13 @@ function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
   return IaLocalFallbackService.executarFallbackLocalOffline(arg1, arg2, arg3, arg4);
 }
 
+function obterAncoraSocraticaTdCEmergencia(textoCaso) {
+  return IaLocalFallbackService.obterAncoraSocraticaTdCEmergencia(textoCaso);
+}
+
 if (typeof global !== 'undefined') {
   global.executarFallbackLocalOffline = executarFallbackLocalOffline;
+  global.obterAncoraSocraticaTdCEmergencia = obterAncoraSocraticaTdCEmergencia;
   if (typeof _iaChamarOllamaNativo !== 'undefined') {
     global._iaChamarOllamaNativo = _iaChamarOllamaNativo;
   }
@@ -44936,6 +45358,7 @@ if (typeof module !== 'undefined' && module.exports) {
     IaLocalFallbackService: IaLocalFallbackService,
     IaCircuitBreaker: IaCircuitBreaker,
     executarFallbackLocalOffline: executarFallbackLocalOffline,
+    obterAncoraSocraticaTdCEmergencia: obterAncoraSocraticaTdCEmergencia,
     _iaChamarOllamaNativo: (typeof _iaChamarOllamaNativo !== 'undefined' ? _iaChamarOllamaNativo : null)
   };
 }
@@ -44992,7 +45415,7 @@ var IA_INTENCOES_VALIDAS = [
 
 var IA_PERSONA = [
   "PERSONA - ASSISTENTE DE VIDA PESSOAL E CLÍNICO",
-  "- Você é um assistente de IA de apoio a Wagner (estudante de medicina em internato, psicólogo, interessado em psiquiatria).",
+  "- Você é um Copiloto Clínico e Assistente Médico de IA para atendimento, estudo e gestão de rotina hospitalar/ambulatorial.",
   "- Adote a postura de uma preceptoria experiente de hospital universitário: firme, técnica, instigante, densa e acolhedora.",
   "- Você NÃO é médico, NÃO assina prescrições e NÃO substitui a supervisão do preceptor ou da equipe assistente. Não afirme vínculo ou certificação institucional.",
   "- Português do Brasil. Técnico em medicina, simples em assuntos pessoais. Sem bajulação, sarcasmo, bronca ou infantilização.",
@@ -47094,7 +47517,7 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
 
 /**
  * ==============================================================================
- * FLUXO CLÍNICO SOAP EM DOIS TEMPOS (FMRP-USP / AMBULATÓRIO & PRONTO-SOCORRO)
+ * FLUXO CLÍNICO SOAP EM DOIS TEMPOS (AMBULATÓRIO & PRONTO-SOCORRO)
  * ==============================================================================
  * Fase 1: Anamnese organizada (QP, HDA, antecedentes, medicações, alergias) +
  *         Exame Físico inteligente (sistemas normais preenchidos + cobrança dirigida) +
@@ -47844,7 +48267,7 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Memória de cálculo (se pediátrico):* [se por peso: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos; se por idade: dose fixa oficial]",
     "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [conferido ou pendência em 1 linha]",
     "- *Alergias e interações:* [conferido com relato do caso]",
-    "- *Disponibilidade na Rede:* [Item da REMUME Ribeirão Preto / Opção HSL]",
+    "- *Disponibilidade na Rede:* [Item da " + ctxRx.nomeRede + " / Opção HSL]",
     "- Não acrescente seção de fontes ou bibliografia à resposta assistencial."
   ].join("\n");
 
@@ -47865,9 +48288,10 @@ function gerarPrescricaoHospitalarComIA(dadosCaso) {
   try { baseClinica = obterContextoMedicamentosParaIA(dadosCaso); }
   catch (erro) { baseClinica = { remume: "", hsl: "", texto: "Base hospitalar HSL de segurança." }; }
 
+  var ctxHosp = _obterBlocoContextoIaDinamico();
   var promptSistemaHospitalar = [
-    IA_PERSONA, "", IA_VISUAL, "",
-    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI - FMRP-USP).",
+    IA_PERSONA, "", ctxHosp.instrucaoContexto, "", IA_VISUAL, "",
+    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI).",
     "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa, direta e pronta para checagem de enfermagem. Seja telegráfico.",
     "",
     "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR (SINTÉTICA):",
@@ -47955,16 +48379,17 @@ function gerarPassagemPlantaoSBAR(dadosCaso) {
 }
 
 function gerarPitchERoundComIA(dadosCaso) {
+  var ctxPitch = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
-    "MODO: PITCH DO ROUND E PRECEPTORIA SOCRÁTICA (MODELO SNAPPS / FMRP-USP).",
+    IA_PERSONA, "", ctxPitch.instrucaoContexto, "", IA_VISUAL, "",
+    "MODO: PITCH DO ROUND E PRECEPTORIA SOCRÁTICA (MODELO SNAPPS).",
     "Objetivo duplo: 1. Apresentar o paciente em um Pitch Executivo oral de 60 a 90 segundos; 2. Estimular raciocínio diagnóstico e decisão clínica ativa na beira do leito.",
     "REGRAS DE APRESENTAÇÃO:",
     "- O pitch oral deve ser extremamente fluido, profissional e focado no essencial: identificação, motivo de admissão, últimas 24h (estabilidade, balanço hídrico, curva térmica), antimicrobianos em curso e plano do dia.",
     "- Baseado ESTRITAMENTE em fatos informados; lacunas aparecem como 'Não informado'.",
     "- Checklist de leito obrigatório: antimicrobianos (D+?), dispositivos invasivos e profilaxias.",
     "- Sabatina socrática: 3 perguntas discriminantes com objetivo de decisão e fisiopatologia, NUNCA pegadinha.",
-    "- NÃO forneça gabarito de imediato. Peça para Wagner responder no fone ou chat; o feedback vem a seguir.",
+    "- NÃO forneça gabarito de imediato. Peça para " + ctxPitch.saudacao + " responder no fone ou chat; o feedback vem a seguir.",
     "",
     "ESTRUTURA:",
     "\uD83C\uDFA4 *PITCH DO ROUND & SABATINA (60-90s)*",
@@ -48457,12 +48882,13 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     }
   }
 
+  var ctxConv = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
+    IA_PERSONA, "", ctxConv.instrucaoContexto, "", IA_VISUAL, "",
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
     "1. EMERGÊNCIA: se descrever paciente instável ou risco de vida, aplique o modo emergência (ação prioritária na primeira linha, medicação com dose, via, preparo e velocidade, reavaliação, sem perguntas didáticas) e siga a checagem de segurança abaixo.",
     "2. DISCUSSÃO CLÍNICA: hipótese principal, achados que a sustentam, o que não pode ser perdido, próxima decisão e o dado pendente que mudaria a conduta. Tom de preceptor: firme, técnico, acolhedor.",
-    "3. PRECEPTORIA: se Wagner pedir para discutir um caso ou sabatina, avalie o caso real apresentado por ele: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se Wagner apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso ele quer discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se Wagner pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
+    "3. PRECEPTORIA: se " + ctxConv.saudacao + " pedir para discutir um caso ou sabatina, avalie o caso real apresentado: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se " + ctxConv.saudacao + " apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso deseja discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se " + ctxConv.saudacao + " pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
     "4. ROTINA / VIDA PESSOAL / ESTUDO: assertivo, executivo e proativo; resultado e próximo passo primeiro. Conversa simples dispensa estrutura.",
     "",
     "EMBASAMENTO:",
@@ -48476,7 +48902,7 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
 
   var promptUsuario = contextoProtocolo + contextoMedicamentos + textoMensagem;
   if (contextoAnterior) {
-    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
+    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE " + ctxConv.saudacao.toUpperCase() + ":\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
   var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
   return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
@@ -48516,15 +48942,17 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
     }
   }
 
+  var ctxAudioPrec = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
+    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de " + ctxAudioPrec.saudacao + " durante o plantão.",
+    ctxAudioPrec.instrucaoContexto,
     "Gere uma fala concisa, firme e instigante, de 30 a 50 palavras, para ser lida em voz alta.",
     "REGRAS:",
     "1. Texto corrido, SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs.",
     "2. Emergência (ex: pneumotórax, choque, PCR): diga PRIMEIRO a ação prioritária imediata; só depois, uma pergunta curta de checagem.",
     "3. Caso clínico: aponte o achado semiológico discriminante ou o critério de gravidade mais crítico e termine com UMA pergunta de raciocínio.",
     "4. Valide e cobre doses, diluições e metas hemodinâmicas exatas das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL) quando aplicável.",
-    "5. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
+    "5. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que " + ctxAudioPrec.saudacao + " informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante antes de propor condutas definitivas. Somente formule caso fictício se o médico pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
     "6. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
   ].join("\n");
 
@@ -48539,11 +48967,11 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
 }
 
 /**
- * Diálogo socrático contínuo com o Preceptor: avalia a resposta de Wagner à pergunta anterior
+ * Diálogo socrático contínuo com o Preceptor: avalia a resposta do médico à pergunta anterior
  * e propõe o próximo desafio ou conduta clínica. Retorna texto limpo para áudio/TTS.
  */
-function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagner, historicoAnterior) {
-  var textoConsulta = [casoBase, perguntaAnterior, respostaWagner].filter(Boolean).join(" ");
+function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaMedico, historicoAnterior) {
+  var textoConsulta = [casoBase, perguntaAnterior, respostaMedico].filter(Boolean).join(" ");
   var protocoloLocal = (typeof obterProtocoloClinico === "function") ? obterProtocoloClinico(textoConsulta) : null;
   var contextoGrounding = "";
   if (protocoloLocal) {
@@ -48573,12 +49001,14 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     }
   }
 
+  var ctxSocr = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
-    "Wagner acabou de responder a uma pergunta ou provocação que você fez a ele durante a discussão do caso.",
+    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de " + ctxSocr.saudacao + " durante o plantão.",
+    ctxSocr.instrucaoContexto,
+    ctxSocr.saudacao + " acabou de responder a uma pergunta ou provocação que você fez durante a discussão do caso.",
     "",
     "ESTRUTURA OBRIGATÓRIA DA FALA EM 3 MOVIMENTOS CURTOS E INCISIVOS (40 A 70 PALAVRAS):",
-    "1. Veredito direto sobre a resposta de Wagner (validação clara do acerto ou correção firme de segurança);",
+    "1. Veredito direto sobre a resposta de " + ctxSocr.saudacao + " (validação clara do acerto ou correção firme de segurança);",
     "2. Pérola clínica decisional com parâmetro numérico, dose ou meta hemodinâmica exata das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL);",
     "3. Próxima pergunta socrática clinicamente discriminante para tomada de decisão imediata.",
     "",
@@ -48587,7 +49017,7 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     "- SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
     "- Termine com frase completa e UMA pergunta direta.",
     "- Diretrizes brasileiras vigentes como base (SBC, ILAS, AMIB, SBD, Guia HSL).",
-    "- NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
+    "- NUNCA invente dados do paciente. Se a resposta estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
   ].join("\n");
 
   if (contextoGrounding) {
@@ -48601,8 +49031,8 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
   if (historicoAnterior && historicoAnterior.length) {
     partesUsuario.push("HISTÓRICO RECENTE DA DISCUSSÃO:\n" + historicoAnterior);
   }
-  if (perguntaAnterior) partesUsuario.push("SUA ÚLTIMA PERGUNTA A WAGNER:\n" + perguntaAnterior);
-  partesUsuario.push("RESPOSTA DE WAGNER:\n" + respostaWagner);
+  if (perguntaAnterior) partesUsuario.push("SUA ÚLTIMA PERGUNTA:\n" + perguntaAnterior);
+  partesUsuario.push("RESPOSTA DE " + ctxSocr.saudacao.toUpperCase() + ":\n" + respostaMedico);
 
   var r = executarRaciocinioClinico(promptSistema, partesUsuario.join("\n\n"), 350, { thinkingBudget: 0, semThinking: true });
   return r ? _iaTextoFalado(r) : r;
@@ -48656,6 +49086,7 @@ function extrairDadosEventoCalendario(textoMensagem, agoraDataRef) {
 }
 
 function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
+  var ctxCrit = _obterBlocoContextoIaDinamico();
   var promptSistema = [
     "Você é um preceptor experiente de clínica médica fazendo uma sabatina à beira do leito com um interno.",
     "Com base no caso informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico ou decisão de conduta em situação de risco. A pergunta deve exigir que o interno justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
@@ -48671,7 +49102,7 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
     if (/\?\s*$/.test(limpo)) return limpo;
     Logger.log("Crítica socrática incompleta; usando pergunta padrão");
   }
-  return "Wagner, qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";
+  return ctxCrit.saudacao + ", qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";
 }
 
 /**
@@ -49708,7 +50139,7 @@ var RotinaService = {
       for (var i = 0; i < blocos.length; i++) {
         if (blocos[i].categoria === "treino" || blocos[i].id === "treino") {
           blocos[i].status = "descanso";
-          blocos[i].nota = "Descanso total programado pelo Dr. Wagner";
+          blocos[i].nota = "Descanso total programado pelo médico(a)";
           alterado = true;
         }
       }
@@ -49721,7 +50152,7 @@ var RotinaService = {
       for (var it = 0; it < blocos.length; it++) {
         if (blocos[it].categoria === "treino" || blocos[it].id === "treino") {
           blocos[it].status = "pulado";
-          blocos[it].nota = "Cancelado pelo Dr. Wagner";
+          blocos[it].nota = "Cancelado pelo médico(a)";
           achouTreino = true;
           break;
         }
@@ -49737,7 +50168,7 @@ var RotinaService = {
       for (var ie = 0; ie < blocos.length; ie++) {
         if (blocos[ie].categoria === "estudo" || blocos[ie].id === "estudo") {
           blocos[ie].status = "pulado";
-          blocos[ie].nota = "Cancelado pelo Dr. Wagner";
+          blocos[ie].nota = "Cancelado pelo médico(a)";
           alterado = true;
           resumoAcao = "🚫 *Bloco de MedQuest / Estudo pausado hoje.*";
           break;
@@ -49812,7 +50243,7 @@ var RotinaService = {
         if (blocos[iTp].categoria === "treino" || blocos[iTp].id === "treino") {
           blocos[iTp].titulo = "🏃 " + novoTipo.charAt(0).toUpperCase() + novoTipo.slice(1);
           blocos[iTp].status = "pendente";
-          blocos[iTp].nota = "Substituído a pedido do Dr. Wagner";
+          blocos[iTp].nota = "Substituído a pedido do médico(a)";
           alterado = true;
           resumoAcao = "🔄 *Treino modificado:* " + blocos[iTp].titulo;
           break;
@@ -49823,7 +50254,7 @@ var RotinaService = {
     // Fallback com Gemini caso seja texto complexo ou áudio longo
     if (!alterado && typeof chamarModeloComFallback === "function") {
       try {
-        var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico do Dr. Wagner. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
+        var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
           "\"" + instrucao + "\"\n\n" +
           "Lista atual de blocos em JSON:\n" + JSON.stringify(blocos, null, 2) + "\n\n" +
           "Retorne EXCLUSIVAMENTE um array JSON válido contendo os blocos atualizados. Não inclua markdown.";
@@ -50329,7 +50760,7 @@ function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
       "  • 💧 Hidratação imediata e refeição leve antes de deitar.\n" +
       "  • 📵 Notificações não críticas silenciadas até seu despertar.\n\n" +
       "🩺 Se tiver pendência urgente de leito (`/leito`, `/enfermaria`) ou receita pendente (`/rx`), estou na retaguarda.\n" +
-      "👉 Caso contrário: Bom descanso, Dr. Wagner! Sua mente descansada salva vidas amanhã.";
+      "👉 Caso contrário: Bom descanso, " + ((typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(destino) : "Doutor(a)") + "! Sua mente descansada salva vidas amanhã.";
     var kbPosPlantao = {
       inline_keyboard: [
         [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
@@ -50362,8 +50793,9 @@ function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var blocos = RotinaService.obterBlocosDoDia(hoje);
   var timelineFormatada = RotinaService.formatarTimelineMarkdown(blocos, hoje);
   var treinoMsg = obterTreinoDoDia(hoje.getDay(), hoje);
+  var nomeBomDia = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(destino) : "Doutor(a)";
 
-  var msg = "☀️ *Bom dia, Dr. Wagner! Raio-X & Rotina Adaptativa*\n\n" +
+  var msg = "☀️ *Bom dia, " + nomeBomDia + "! Raio-X & Rotina Adaptativa*\n\n" +
             timelineFormatada + "\n\n" +
             "🏋️ *Foco Físico Hoje:* " + treinoMsg + "\n\n" +
             "🩺 *Ferramentas Clínicas:* `/soap`, `/rx`, `/plantao`, `/calc`, `/interacao`\n" +
@@ -51321,9 +51753,13 @@ function rotearComandoTexto(comando, texto, chatId, message) {
 function tratarComandoStatus(chatId) {
   var stRemume = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_REMUME"), false);
   var stInteracoes = checarStatusFonteDrive(ConfigService.get("SPREADSHEET_ID_INTERACOES"), true);
+  var ctxSt = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+    ? ConfigService.getContextoClinico(chatId)
+    : {};
+  var nomeRedeSt = ctxSt.municipio ? ("REMUME " + ctxSt.municipio + (ctxSt.uf ? "/" + ctxSt.uf : "")) : "Catálogo Farmacêutico SUS (RENAME/REMUME)";
   var msgStatus = "⚡ *STATUS DO SISTEMA*\n\n" +
     "• *Modo:* Servidor Oficial Node.js 20+ / Docker (Render 24/7)\n" +
-    "• *REMUME Ribeirão Preto:* " + stRemume + "\n" +
+    "• *" + nomeRedeSt + ":* " + stRemume + "\n" +
     "• *Base de Interações:* " + stInteracoes + "\n" +
     "• *Notion & Calendar:* ✅ Operacionais\n\n" +
     "💡 Digite /menu para voltar ao início ou toque abaixo:";
@@ -51486,28 +51922,36 @@ function rotearComandoSistema(comando, texto, chatId) {
       return enviarManualCompletoComandos(chatId, filtroManual);
     },
     "/start": function() {
+      var ctxStart = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+        ? ConfigService.getContextoClinico(chatId)
+        : null;
+      var nomeSaudacao = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+      var faltaNome = !ctxStart || !ctxStart.nome_chamada_configurado;
+
       if (typeof ehUsuarioTitular === "function" && ehUsuarioTitular(chatId)) {
         if (typeof enviarHubPrincipal === "function") {
-          enviarMensagemComTecladoFixo(chatId, "👋 *Olá, Dr. Wagner!* Use os botões ou envie seu caso por texto/áudio.");
+          enviarMensagemComTecladoFixo(chatId, "👋 *Olá, " + nomeSaudacao + "!* Use os botões ou envie seu caso por texto/áudio." + (faltaNome ? "\n💡 _Dica: Digite `/nome SeuNome` ou `/perfil` para personalizar sua saudação e cidade._" : ""));
           return enviarHubPrincipal(chatId);
         }
         return enviarMensagemComTecladoFixo(chatId, "Use /menu para a Central de Comandos.");
       }
 
-      // Experiência Acolhedora e Didática para Convidado (Dr. Vinicius)
-      var nomeConvidado = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Dr. Vinicius";
-      var msgBoasVindas = "👋 *Olá, " + nomeConvidado + "! Seja muito bem-vindo ao Ultra Rotina.*\n\n" +
-        "Este bot é o seu copiloto médico beira-leito para plantão, enfermaria e ambulatório. Você pode utilizá-lo de 3 maneiras super simples:\n\n" +
-        "📱 *1. Navegação Rápida por Botões:*\n" +
+      // Experiência Acolhedora e Didática com Onboarding de Nome e Realidade Local
+      var msgBoasVindas = "👋 *Olá, " + nomeSaudacao + "! Seja muito bem-vindo(a) ao Ultra Rotina.*\n\n" +
+        "Este bot é o seu copiloto médico beira-leito para plantão, enfermaria e ambulatório. Você pode usar de *3 maneiras super simples*:\n\n" +
+        (faltaNome
+          ? "👨‍⚕️👩‍⚕️ *1º Passo — Como posso te chamar?*\nEnvie `/nome Dr. SeuNome` ou `/nome Dra. SeuNome` (ou toque em *Configurar Nome & Cidade* abaixo) para eu sempre te chamar pelo seu nome e ajustar a REMUME e o cenário do seu serviço!\n\n"
+          : "") +
+        "📱 *Navegação Rápida por Botões:*\n" +
         "Toque nos botões fixos no rodapé ou nos menus da tela para acessar na hora condutas de *Sala Vermelha*, *Enfermaria*, *Ambulatório* e *Calculadoras*.\n\n" +
-        "🎙️ *2. Fale ou Escreva Como Quiser (Texto ou Áudio):*\n" +
-        "Você NÃO precisa memorizar comandos com barra! Pode ditar um áudio ou escrever o caso clínico com suas próprias palavras (ex: _\"paciente 68 anos dor torácica típica há 1h\"_ ou _\"dose de vancomicina clearance 35\"_).\n\n" +
-        "⚡ *3. Calculadoras & Protocolos Instantâneos:*\n" +
-        "Atalhos diretos para cálculos em segundos (ex: `/gaso`, `/dva`, `/sri`, `/curb65`).\n\n" +
-        "💡 *Como começar:* Toque em um dos botões abaixo para ver o guia rápido, conferir exemplos práticos ou abrir a central de cenários clínicos:";
+        "🎙️ *Fale ou Escreva Como Quiser (Texto ou Áudio):*\n" +
+        "Pode ditar um áudio ou escrever o caso clínico com suas próprias palavras (ex: _\"paciente 68 anos dor torácica típica há 1h\"_ ou _\"dose de vancomicina clearance 35\"_).";
 
       var tecladoBoasVindas = {
         inline_keyboard: [
+          [
+            { text: "⚙️ Configurar Nome, Cidade & Cenário", callback_data: "ux:perfil:menu" }
+          ],
           [
             { text: "🚀 Como Usar em 3 Passos", callback_data: "ux:ajuda:passos" },
             { text: "💡 Exemplos Práticos", callback_data: "ux:ajuda:exemplos" }
@@ -51519,7 +51963,7 @@ function rotearComandoSistema(comando, texto, chatId) {
         ]
       };
 
-      enviarMensagemComTecladoFixo(chatId, "👋 Bem-vindo, " + nomeConvidado + "! Teclado de navegação ativado no rodapé.");
+      enviarMensagemComTecladoFixo(chatId, "👋 Bem-vindo(a), " + nomeSaudacao + "! Teclado de navegação ativado no rodapé.");
       if (typeof enviarMensagemComTecladoParaChat === "function") {
         return enviarMensagemComTecladoParaChat(chatId, msgBoasVindas, tecladoBoasVindas);
       }
@@ -51687,6 +52131,251 @@ function rotearComandoSistema(comando, texto, chatId) {
     "/timeline": function() {
       if (typeof enviarMenuTimeBlocking === "function") return enviarMenuTimeBlocking(chatId, 0);
       return false;
+    },
+    "/perfil": function() {
+      if (typeof enviarMenuPerfilClinico === "function") return enviarMenuPerfilClinico(chatId);
+      return false;
+    },
+    "/nome": function() {
+      var argNome = texto.replace(/^\/nome\s*/i, "").trim();
+      if (!argNome) {
+        if (typeof enviarTelaOnboardingNome === "function") return enviarTelaOnboardingNome(chatId);
+        return enviarMensagemParaChat(chatId, "👨‍⚕️ Envie `/nome SeuNome` (ex: `/nome Dr. Matheus` ou `/nome Dra. Carolina`).");
+      }
+      var pref = null;
+      if (/^dra\.?\s+/i.test(argNome)) {
+        pref = "Dra.";
+        argNome = argNome.replace(/^dra\.?\s+/i, "").trim();
+      } else if (/^dr\.?\s+/i.test(argNome)) {
+        pref = "Dr.";
+        argNome = argNome.replace(/^dr\.?\s+/i, "").trim();
+      }
+      var patchNome = { nome_chamada: argNome, nome_chamada_configurado: true };
+      if (pref) patchNome.prefixo_tratamento = pref;
+      var ctxNovo = (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function")
+        ? ConfigService.salvarContextoClinico(chatId, patchNome)
+        : patchNome;
+      var saudacaoNova = ((ctxNovo.prefixo_tratamento || "Dr.") + " " + ctxNovo.nome_chamada).trim();
+      return enviarMensagemComTecladoParaChat(chatId,
+        "✅ *Identificação atualizada com sucesso!*\n\n" +
+        "A partir de agora sempre te chamarei de *" + saudacaoNova + "*.\n\n" +
+        "💡 _Para configurar seu carimbo completo de receitas PDF, envie `/carimbo Nome Completo | CRM/UF 123456` ou abra `/perfil`._",
+        { inline_keyboard: [[{ text: "⚙️ Abrir Perfil & Cidade", callback_data: "ux:perfil:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
+      );
+    },
+    "/carimbo": function() {
+      var argCarimbo = texto.replace(/^\/carimbo\s*/i, "").trim();
+      if (!argCarimbo) {
+        return enviarMensagemParaChat(chatId, "🖋️ *Carimbo para Receituário PDF*\n\nEnvie no formato:\n`/carimbo Dr. Nome Completo | CRM/SP 123456`\n\n💡 _Se você for Interno(a), selecione o papel de Interno em `/perfil` para emitir receitas sem CRM impresso._");
+      }
+      var partesC = argCarimbo.split("|");
+      var nomeComp = (partesC[0] || "").trim();
+      var crmStr = (partesC[1] || "").trim();
+      var patchC = { nome_completo_carimbo: nomeComp };
+      if (crmStr) patchC.crm = crmStr;
+      if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
+        ConfigService.salvarContextoClinico(chatId, patchC);
+      }
+      return enviarMensagemParaChat(chatId, "✅ *Carimbo de Receituário PDF atualizado:*\n`" + nomeComp + (crmStr ? " · " + crmStr : "") + "`");
+    },
+    "/cenario": function() {
+      if (typeof enviarMenuCenarioECheckboxes === "function") return enviarMenuCenarioECheckboxes(chatId);
+      return false;
+    },
+    "/cidade": function() {
+      var argCid = texto.replace(/^\/cidade\s*/i, "").trim();
+      if (!argCid) {
+        if (typeof enviarMenuCidadeERemume === "function") return enviarMenuCidadeERemume(chatId);
+        return false;
+      }
+      var partesCid = argCid.split(/[-/,]/);
+      var munBusca = (partesCid[0] || "").trim();
+      var ufBusca = (partesCid[1] || "").trim().toUpperCase();
+
+      // 1. Verifica se já existe nos presets oficiais (incluindo os auto-promovidos)
+      if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.buscarPresetPorCidade === "function") {
+        var presetEnc = CatalogoRemumeService.buscarPresetPorCidade(munBusca, ufBusca);
+        if (presetEnc && typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
+          ConfigService.salvarContextoClinico(chatId, {
+            municipio: presetEnc.municipio,
+            uf: presetEnc.uf,
+            remume_slug: presetEnc.slug
+          });
+          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
+          return enviarMensagemComTecladoParaChat(chatId,
+            "✅ *Cidade e REMUME ativadas instantaneamente!*\n\n" +
+            "• *Município:* 📍 `" + presetEnc.municipio + " - " + presetEnc.uf + "`\n" +
+            "• *Catálogo:* `" + presetEnc.nome_exibicao + "` (" + presetEnc.total_medicamentos + " medicamentos padronizados)\n\n" +
+            "Todas as suas consultas em `/remume`, `/rx` e `/soap` já estão adaptadas para *" + presetEnc.municipio + "*!",
+            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
+          );
+        }
+      }
+
+      // 2. Se não estiver no preset, realiza busca web verificada anti-alucinação
+      if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.buscarRemumeNaWeb === "function") {
+        var resWeb = CatalogoRemumeService.buscarRemumeNaWeb(munBusca, ufBusca, chatId);
+        if (resWeb && resWeb.encontrado && resWeb.catalogo) {
+          if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
+            ConfigService.salvarContextoClinico(chatId, {
+              municipio: resWeb.catalogo.municipio || munBusca,
+              uf: resWeb.catalogo.uf || ufBusca || "BR",
+              remume_slug: resWeb.slug || "custom"
+            });
+          }
+          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
+          return enviarMensagemComTecladoParaChat(chatId,
+            "🌐✅ *REMUME Oficial localizada na Web e adicionada aos Presets!*\n\n" +
+            "• *Município:* 📍 `" + (resWeb.catalogo.municipio || munBusca) + "`\n" +
+            "• *Medicamentos validados:* `" + (resWeb.catalogo.medicamentos ? resWeb.catalogo.medicamentos.length : 0) + "`\n" +
+            "• *Auto-Promoção:* Esta cidade agora faz parte dos presets oficiais para todos os usuários!",
+            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
+          );
+        }
+      }
+
+      // 3. Fallback Honesto (Zero Invenção) + Botão de Solicitar ao Desenvolvedor
+      if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
+        ConfigService.salvarContextoClinico(chatId, {
+          municipio: munBusca,
+          uf: ufBusca || "BR",
+          remume_slug: "rename_nacional"
+        });
+      }
+      var cbSolicitar = "ux:remume:solicitar:" + munBusca.slice(0, 24).replace(/:/g, "") + ":" + (ufBusca || "BR").slice(0, 2);
+      return enviarMensagemComTecladoParaChat(chatId,
+        "🔎 *Busca de REMUME para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
+        "⚠️ Não foi possível localizar automaticamente um documento oficial atualizado e verificável da REMUME de *" + munBusca + "* na internet (por segurança clínica, o sistema nunca inventa padronizações municipais).\n\n" +
+        "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura.\n\n" +
+        "👇 *O que você deseja fazer?*\n" +
+        "• Toque em **[📩 Solicitar REMUME ao Desenvolvedor]** para priorizarmos a inclusão oficial de *" + munBusca + "*.\n" +
+        "• Ou, se você tiver a lista/PDF em mãos, toque em **[📥 Inserir REMUME Agora]** (ao inserir, ela entra automaticamente nos presets da cidade!).",
+        {
+          inline_keyboard: [
+            [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSolicitar }],
+            [{ text: "📥 Inserir REMUME Agora", callback_data: "ux:remume:instrucoes" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        }
+      );
+    },
+    "/importar_remume": function() {
+      var corpoImp = texto.replace(/^\/importar_remume\s*/i, "").trim();
+      var linhasImp = corpoImp.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
+      if (linhasImp.length < 2) {
+        var primeiraLinha = (linhasImp[0] || "").trim();
+        if (primeiraLinha) {
+          var partesCidPre = primeiraLinha.split(/[-/,]/);
+          var munPre = (partesCidPre[0] || primeiraLinha).trim();
+          var ufPre = (partesCidPre[1] || "").trim().toUpperCase();
+          var cbSol = "ux:remume:solicitar:" + munPre.slice(0, 24).replace(/:/g, "") + ":" + (ufPre || "BR").slice(0, 2);
+          var txtAviso = "⚠️ *Faltou colar a lista de medicamentos de " + munPre + (ufPre ? " - " + ufPre : "") + "!*\n\n" +
+            "Você informou o nome da cidade, mas o comando `/importar_remume` exige que a **relação de medicamentos venha colada na mesma mensagem**, a partir da 2ª linha.\n\n" +
+            "💡 *Como enviar corretamente (copie o modelo abaixo e cole seus remédios):*\n" +
+            "```text\n" +
+            "/importar_remume " + munPre + (ufPre ? " - " + ufPre : "") + "\n" +
+            "Amoxicilina 500mg cápsula\n" +
+            "Dipirona 500mg comprimido\n" +
+            "Losartana 50mg comprimido\n" +
+            "Omeprazol 20mg cápsula\n" +
+            "```\n\n" +
+            "👇 *Outras opções imediatas:*\n" +
+            "• Quer apenas ativar sua cidade no perfil agora? Use `/cidade " + munPre + (ufPre ? " - " + ufPre : "") + "` (você fica protegido pela RENAME Nacional do SUS para receitas e condutas).\n" +
+            "• Não tem a lista em mãos? Toque em **Solicitar ao Desenvolvedor** abaixo para priorizarmos a inclusão oficial!";
+          var kbAviso = {
+            inline_keyboard: [
+              [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSol }],
+              [{ text: "🔙 Escolher Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          };
+          return enviarMensagemComTecladoParaChat(chatId, txtAviso, kbAviso);
+        }
+        if (typeof tratarCallbackSolicitarOuImportarRemume === "function") {
+          return tratarCallbackSolicitarOuImportarRemume(chatId, "instrucoes");
+        }
+        return enviarMensagemParaChat(chatId, "📥 Envie `/importar_remume Cidade - UF` na primeira linha e a lista de medicamentos nas linhas seguintes.");
+      }
+      var cabecalhoCid = linhasImp[0].trim();
+      var partesCab = cabecalhoCid.split(/[-/,]/);
+      var munImp = (partesCab[0] || "Município").trim();
+      var ufImp = (partesCab[1] || "BR").trim().toUpperCase();
+      var textoMeds = linhasImp.slice(1).join("\n");
+
+      if (typeof ConfigService !== "undefined" && typeof ConfigService.promoverRemumeParaPresetGlobal === "function") {
+        var resProm = ConfigService.promoverRemumeParaPresetGlobal(munImp, ufImp, textoMeds, "Colaboração Verificada via Telegram (" + munImp + ")", chatId);
+        if (resProm && resProm.sucesso) {
+          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
+          return enviarMensagemComTecladoParaChat(chatId,
+            "🎉 *REMUME de " + munImp + " (" + ufImp + ") Importada e Promovida para Preset Oficial!*\n\n" +
+            "• *Medicamentos Cadastrados:* `" + resProm.total + "`\n" +
+            "• *Preset Global:* `" + resProm.slug + "`\n\n" +
+            "✅ Sua cidade já está ativa no seu perfil e disponível automaticamente nos presets para todos os outros médicos e internos de *" + munImp + "*!",
+            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "📍 Ver Presets", callback_data: "ux:cidade:menu" }]] }
+          );
+        }
+      }
+      return enviarMensagemParaChat(chatId, "⚠️ Não foi possível extrair medicamentos válidos do texto enviado. Certifique-se de incluir nome e dosagem (ex: `Amoxicilina 500mg cápsula`).");
+    },
+    "/aprovar_remume": function() {
+      if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) {
+        return enviarMensagemParaChat(chatId, "🔒 Comando exclusivo do desenvolvedor para homologação de REMUME.");
+      }
+      var corpoAp = texto.replace(/^\/aprovar_remume\s*/i, "").trim();
+      var linhasAp = corpoAp.split(/\r?\n/);
+      if (linhasAp.length < 2) {
+        return enviarMensagemParaChat(chatId, "👨‍💻 Uso: `/aprovar_remume Cidade - UF` na 1ª linha e os medicamentos nas linhas abaixo.");
+      }
+      var cabAp = linhasAp[0].trim().split(/[-/,]/);
+      var munAp = (cabAp[0] || "").trim();
+      var ufAp = (cabAp[1] || "BR").trim().toUpperCase();
+      var medsAp = linhasAp.slice(1).join("\n");
+
+      var resAp = (typeof ConfigService !== "undefined" && typeof ConfigService.aprovarSolicitacaoRemume === "function")
+        ? ConfigService.aprovarSolicitacaoRemume(munAp, ufAp, medsAp, "Curadoria Oficial Homologada")
+        : null;
+      if (!resAp || !resAp.sucesso) {
+        return enviarMensagemParaChat(chatId, "⚠️ Falha ao aprovar REMUME. Verifique se há medicamentos válidos com concentração.");
+      }
+      if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
+      var notificados = resAp.solicitantes_notificar || [];
+      for (var iN = 0; iN < notificados.length; iN++) {
+        try {
+          enviarMensagemParaChat(notificados[iN],
+            "🎉 *Boa notícia! A REMUME de " + munAp + " (" + ufAp + ") que você solicitou foi adicionada!*\n\n" +
+            "• *Total padronizado:* `" + resAp.total + " medicamentos`\n" +
+            "• Seu perfil já foi vinculado automaticamente ao novo catálogo oficial de *" + munAp + "*!"
+          );
+        } catch (_) {}
+      }
+      return enviarMensagemParaChat(chatId, "✅ REMUME de *" + munAp + " (" + ufAp + ")* homologada no preset `" + resAp.slug + "` (" + resAp.total + " itens). Solicitantes notificados: " + notificados.length);
+    },
+    "/unidade": function() {
+      var argUnid = texto.replace(/^\/unidade\s*/i, "").trim();
+      if (argUnid) {
+        if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
+          ConfigService.salvarContextoClinico(chatId, { unidade_saude: argUnid });
+        }
+        return enviarMensagemParaChat(chatId, "🏥 *Unidade de Saúde atualizada:* `" + argUnid + "`\nEste nome constará no cabeçalho das suas receitas e documentos.");
+      }
+      if (typeof tratarCallbackPerfilClinico === "function") {
+        return tratarCallbackPerfilClinico(chatId, "unidade");
+      }
+      return false;
+    },
+    "/importar_unidade": function() {
+      var tokenEq = texto.replace(/^\/importar_unidade\s*/i, "").trim();
+      if (tokenEq && typeof ConfigService !== "undefined" && typeof ConfigService.importarCodigoUnidade === "function") {
+        var ctxImportado = ConfigService.importarCodigoUnidade(chatId, tokenEq);
+        if (ctxImportado) {
+          return enviarMensagemComTecladoParaChat(chatId,
+            "✅ *Configuração Importada com Sucesso!*\n\n" +
+            "• *Cidade:* `" + (ctxImportado.municipio || "Nacional") + "`\n" +
+            "• *Unidade:* `" + (ctxImportado.unidade_saude || "Unidade de Saúde") + "`\n\n" +
+            "💡 _Dica: Para alterar sua unidade diretamente, envie `/unidade Nome da Unidade`._",
+            { inline_keyboard: [[{ text: "⚙️ Ver Meu Perfil", callback_data: "ux:perfil:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
+          );
+        }
+      }
+      return enviarMensagemParaChat(chatId, "ℹ️ O compartilhamento por código de equipe foi descontinuado para simplificar a experiência. Para definir sua unidade ou hospital, envie `/unidade Nome do Hospital` (ex: `/unidade UPA Central`) ou acesse o menu `/perfil`.");
     }
   };
 
@@ -52343,12 +53032,12 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
   if (comando === "/remume") {
     var termoRemume = texto.replace(/^\/remume\s*/i, "").trim();
     if (termoRemume && typeof consultarRemumeRP === "function") {
-      var consultaRemume = consultarRemumeRP(termoRemume);
+      var consultaRemume = consultarRemumeRP(termoRemume, chatId);
       var textoRemume = consultaRemume.selo + " *" + termoRemume + "*";
       if (consultaRemume.apresentacoes.length) {
         textoRemume += "\n\n• " + consultaRemume.apresentacoes.join("\n• ");
       } else {
-        textoRemume += "\n\nNenhuma apresentação localizada na REMUME-RP consultada.";
+        textoRemume += "\n\nNenhuma apresentação localizada na " + (consultaRemume.rede || "REMUME/RENAME SUS") + " consultada.";
       }
       return { executado: true, resultado: enviarMensagemParaChat(chatId, textoRemume) };
     }
@@ -56104,17 +56793,22 @@ function executarComandoAgendaRotinaAudioInterno_(comando, texto, chatId, messag
   if (comando === "/protocolo") {
     var termoProto = texto.replace(/^\/protocolo\s*/i, "").trim();
     if (!termoProto) {
-      return enviarMensagemParaChat(chatId, "📚 *PROTOCOLOS DE EMERGÊNCIA & DIRETRIZES BRASILEIRAS*\n\nUso: `/protocolo <patologia>`\n💡 *Exemplos:*\n• `/protocolo sepse` (ILAS / SSC)\n• `/protocolo iam` (SBC / AHA)\n• `/protocolo eap` (SBC / ESC)\n• `/protocolo cad` (SBD / ADA)\n• `/protocolo tep` (SBC / ESC)\n• `/protocolo dpoc` (SBPT / GOLD)");
+      return enviarMensagemParaChat(chatId, "📚 *PROTOCOLOS DE EMERGÊNCIA & DIRETRIZES BRASILEIRAS*\n\nUso: `/protocolo <patologia>`\n💡 *Exemplos:*\n• `/protocolo sepse` (ILAS / SSC)\n• `/protocolo iam` (SBC / AHA)\n• `/protocolo eap` (SBC / ESC)\n• `/protocolo cad` (SBD / ADA)\n• `/protocolo tep` (SBC / ESC)\n• `/protocolo dpoc` (SBPT / GOLD)\n• `/protocolo asma` (GINA 2024)\n• `/protocolo anafilaxia` (WAO / ASBAI)\n• `/protocolo convulsao` (ABN / AES)\n• `/protocolo hda` (Baveno VII)");
     }
-    var proto = obterProtocoloClinico(termoProto);
-    if (!proto) {
-      return enviarMensagemParaChat(chatId, "⚠️ Protocolo não cadastrado diretamente. Tente: sepse, iam, eap, cad, tep ou dpoc.");
+    var msgProto = typeof formatarBlocoProtocoloEmergenciaTelegram === "function"
+      ? formatarBlocoProtocoloEmergenciaTelegram(termoProto)
+      : "";
+    if (!msgProto) {
+      var proto = typeof obterProtocoloClinico === "function" ? obterProtocoloClinico(termoProto) : null;
+      if (!proto) {
+        return enviarMensagemParaChat(chatId, "⚠️ Protocolo não cadastrado diretamente. Tente: sepse, iam, eap, cad, tep, dpoc, asma, anafilaxia, convulsao ou hda.");
+      }
+      msgProto = "📋 *" + proto.titulo.toUpperCase() + "*\n\n" +
+        "🇧🇷 *Diretriz Brasileira:* " + proto.diretriz_brasileira + "\n" +
+        "🌐 *Diretriz Internacional:* " + proto.diretriz_internacional + "\n\n" +
+        "⚡ *Conduta Recomendada:*\n" + proto.conduta_imediata + "\n\n" +
+        "⚖️ *Divergência Notável:*\n" + proto.divergencia;
     }
-    var msgProto = "📋 *" + proto.titulo.toUpperCase() + "*\n\n" +
-      "🇧🇷 *Diretriz Brasileira:* " + proto.diretriz_brasileira + "\n" +
-      "🌐 *Diretriz Internacional:* " + proto.diretriz_internacional + "\n\n" +
-      "⚡ *Conduta Recomendada:*\n" + proto.conduta_imediata + "\n\n" +
-      "⚖️ *Divergência Notável:*\n" + proto.divergencia;
     return enviarMensagemParaChat(chatId, msgProto);
   }
 
@@ -56174,6 +56868,7 @@ function processarMensagemTexto(message) {
       }
       var comandosSemBarra = [
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
+        "perfil", "nome", "carimbo", "cidade", "cenario", "unidade", "importar_unidade", "importar_remume", "aprovar_remume",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
@@ -56223,7 +56918,7 @@ function processarMensagemTexto(message) {
       return resAtalho.resultado;
     }
 
-  // Se houver diálogo socrático ativo do Preceptor e Wagner enviou resposta de texto (não comando):
+  // Se houver diálogo socrático ativo do Preceptor e o médico enviou resposta de texto (não comando):
   var diagAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chatId) : null;
   if (diagAtivo && diagAtivo.em_andamento) {
     if (texto.charAt(0) !== "/" && !/^(?:📱|🚨|💊|🏥|📅|📋|🩸|🏁|🎧|🧠|⚙️)/.test(texto)) {
@@ -56752,7 +57447,8 @@ function processarMensagemTexto(message) {
       if (typeof iniciarOuConvidarDiscussaoPreceptor === "function") {
         return iniciarOuConvidarDiscussaoPreceptor(chatId, { ehAudio: false });
       }
-      return enviarMensagemParaChat(chatId, "Opa Wagner! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
+      var nomeVoz = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+      return enviarMensagemParaChat(chatId, "Olá, " + nomeVoz + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.");
     }
     safePutCache(contextoCache, contextoKey, casoAudio, 900);
     return responderPreceptorVozComIA(chatId, casoAudio);
@@ -56979,9 +57675,10 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
   var casoBase = dialogo ? (dialogo.caso_base || "") : "";
   var perguntaAnterior = dialogo ? (dialogo.ultima_pergunta || "") : "";
   var historicoStr = "";
+  var nomeMedicoHist = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Médico(a)";
   if (dialogo && dialogo.historico && dialogo.historico.length > 0) {
     historicoStr = dialogo.historico.slice(-6).map(function(h) {
-      return (h.papel === "preceptor" ? "Preceptor: " : "Wagner: ") + h.texto;
+      return (h.papel === "preceptor" ? "Preceptor: " : (nomeMedicoHist + ": ")) + h.texto;
     }).join("\n");
   }
 
@@ -57242,8 +57939,8 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
     }
   }
 
-  var nomeDoutor = (typeof ehUsuarioTitular === "function" && ehUsuarioTitular(chatId)) ? "Wagner" : ((typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor");
-  var textoConvite = "Opa " + nomeDoutor + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
+  var nomeDoutor = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+  var textoConvite = "Olá, " + nomeDoutor + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
 
   // 2. Prepara estado do preceptor aguardando relato do caso
   salvarDialogoPreceptor(chatId, {
@@ -57354,7 +58051,7 @@ function nomesFarmacosParaValidacao() {
   if (typeof MAPA_SINDROMES_APS !== "undefined") Object.keys(MAPA_SINDROMES_APS).forEach(function(k) {
     MAPA_SINDROMES_APS[k].forEach(adicionar);
   });
-  // Itens canônicos da REMUME Ribeirão Preto (CSV / RAM)
+  // Itens canônicos da REMUME Municipal / RENAME SUS ativa (CSV / RAM)
   if (typeof obterItensRemumeRP === "function") {
     try {
       obterItensRemumeRP().forEach(adicionar);
@@ -57564,8 +58261,10 @@ function montarRascunhoRxESoapAmbulatorial(params) {
     "1) " + nomeLinhaItem + " --- " + qtd,
     "   " + linhaPoso
   ];
+  var seloRede = remume.selo || "REMUME";
+  var nomeRede = remume.rede || "Rede Municipal / RENAME SUS";
   if (remume.presente) {
-    linhasPlano.push("🏛️ Status SUS: 🟢 [REMUME-RP] Padronizado na Rede Municipal (Ribeirão Preto).");
+    linhasPlano.push("🏛️ Status SUS: 🟢 [" + seloRede + "] Padronizado na Rede (" + nomeRede + ").");
     if (remume.apresentacoes && remume.apresentacoes.length > 1) {
       linhasPlano.push("   (Apresentações padronizadas na rede: " + remume.apresentacoes.slice(0, 3).join(", ") + ")");
     }
@@ -58079,6 +58778,44 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
     : "*" + tipoCache.toUpperCase() + " · Resumo Clínico*\n\n" + strResultado;
 
   return entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar);
+}
+
+/**
+ * Formata o protocolo clínico de emergência com destaque para diretrizes BR/Internacional,
+ * pérolas TdC e alertas de segurança medicamentosa (ISMP Brasil).
+ * @param {string} termo Termo ou hipótese clínica consultada
+ * @return {string} Bloco formatado para Telegram ou string vazia
+ */
+function formatarBlocoProtocoloEmergenciaTelegram(termo) {
+  if (typeof obterProtocoloClinico !== "function") return "";
+  var prot = obterProtocoloClinico(termo);
+  if (!prot) return "";
+
+  var ancora = typeof obterAncoraSocraticaTdCEmergencia === "function"
+    ? obterAncoraSocraticaTdCEmergencia(termo)
+    : null;
+
+  var linhas = [
+    "🚨 *PROTOCOLO DE EMERGÊNCIA: " + prot.titulo.toUpperCase() + "*",
+    "🇧🇷 *Diretriz BR:* " + prot.diretriz_brasileira,
+    "🌐 *Diretriz Internacional:* " + prot.diretriz_internacional,
+    "",
+    "⚡ *Conduta Imediata:*",
+    prot.conduta_imediata
+  ];
+
+  if (prot.divergencia) {
+    linhas.push("");
+    linhas.push("⚖️ *Nuances e Divergências (SUS vs Internacional):*");
+    linhas.push(prot.divergencia);
+  }
+
+  if (ancora && ancora.perguntaSocratica) {
+    linhas.push("");
+    linhas.push("🧠 *Check-list do Preceptor (TdC):* _" + ancora.perguntaSocratica + "_");
+  }
+
+  return linhas.join("\n");
 }
 
 
@@ -59556,14 +60293,15 @@ function processarMensagemVoz(message) {
     }
 
     // 2. Fallback multimodal direto caso a transcrição simples retorne vazia
+    var nomeMedVoz = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Médico(a)";
     var promptSistema =
-      "Você é o Copiloto Clínico Sênior e Assistente Pessoal Inteligente do Dr. Wagner (FMRP-USP).\n" +
+      "Você é o Copiloto Clínico Sênior e Assistente Inteligente de " + nomeMedVoz + ".\n" +
       "Você recebeu este áudio gravado diretamente no celular pelo médico nos corredores do hospital ou em trânsito.\n\n" +
       "DIRETRIZES DE PROCESSAMENTO:\n" +
       "1. Se for RELATO CLÍNICO (caso de paciente, anamnese, exame físico, receita, conduta ou passagem de plantão):\n" +
       "   • EXTRAIA minuciosamente os dados clínicos e GERE UM DOCUMENTO ESTRUTURADO em formato SOAP, Receita Ambulatorial ou Passagem SBAR com rigor semiológico.\n" +
       "   • Organize os dados com terminologia clínica clara e padronizada.\n\n" +
-      "2. Se for AGENDAMENTO DE COMPROMISSO (ex: 'marcar plantão amanhã às 7h no HC'):\n" +
+      "2. Se for AGENDAMENTO DE COMPROMISSO (ex: 'marcar plantão amanhã às 7h'):\n" +
       "   • Destaque no topo: [CALENDAR] com Título, Data, Horário de Início e Término.\n\n" +
       "3. Se for RELATO DE HÁBITO CUMPRIDO (ex: 'treinei na academia', 'estudei medquest'):\n" +
       "   • Destaque o cumprimento do hábito.\n\n" +
@@ -59663,7 +60401,7 @@ function processarMensagemFoto(message) {
       : chamarGeminiPoolMultimodal(
           midia.data,
           midia.mime,
-          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
+          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
           caption
         );
 
@@ -59899,13 +60637,22 @@ var CATALOGO_CALCULADORAS = {
     id: "holliday",
     nome: "Holliday-Segar (Hidratação Pediátrica)",
     aliases: ["holliday", "holliday-segar", "holliday segar", "hidratacao", "hidratação", "nutriped"]
+  },
+  trombolise_avc: {
+    id: "trombolise_avc",
+    nome: "Trombólise no AVCi (Alteplase / Tenecteplase)",
+    aliases: [
+      "trombolise", "trombólise", "trombolise avc", "trombólise avc",
+      "trombolise avci", "trombólise avci", "alteplase", "actilyse",
+      "tenecteplase", "metalyse", "rtpa", "tnk"
+    ]
   }
 };
 
 var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
   "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld",
-  "parkland", "dva", "gasometria", "gaso", "holliday"
+  "parkland", "dva", "gasometria", "gaso", "holliday", "trombolise_avc"
 ];
 
 var INDICE_ALIASES_CALCULADORAS = Object.keys(CATALOGO_CALCULADORAS).reduce(function(indice, chave) {
@@ -60085,6 +60832,98 @@ function tentarCalcularDeterministico(texto) {
       }
       return "⚠️ *Calculadora DVA: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("dva");
     }
+  }
+
+  // 0.25. Trombólise no AVC Isquêmico Agudo (Alteplase 0,9 mg/kg / Tenecteplase 0,25 mg/kg)
+  if (identidade === "trombolise_avc" ||
+      /\b(?:tromb[oó]lise(?:\s+avc[i]?)?|alteplase|actilyse|tenecteplase|metalyse|rtpa|tnk)\b/i.test(t)) {
+    var mPesoTromb = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                     t.match(/\bpeso\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i) ||
+                     t.match(/(?:tromb[oó]lise|alteplase|actilyse|tenecteplase|metalyse|rtpa|tnk)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i);
+
+    if (mPesoTromb) {
+      var pesoTrombVal = parseFloat(mPesoTromb[1].replace(",", "."));
+      if (isNaN(pesoTrombVal) || pesoTrombVal <= 0 || pesoTrombVal > 300) {
+        return "⚠️ *Calculadora de Trombólise no AVC: Peso Inválido*\n\nInforme um peso corporal válido em kg (ex: `/calc trombolise 75kg`).";
+      }
+
+      // Extração opcional de janela de tempo (horas) e PA (mmHg)
+      var mTempoTromb = t.match(/(?:tempo|janela|ictus)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*h?/i) ||
+                        t.match(/\b(\d+(?:[.,]\d+)?)\s*(?:h|horas|hrs)\b/i);
+      var tempoHorasTromb = mTempoTromb ? parseFloat(mTempoTromb[1].replace(",", ".")) : null;
+
+      var mPaTromb = t.match(/\b(?:pa|press[ãa]o)\s*[:=]?\s*(\d{2,3})\s*[/xX]\s*(\d{2,3})/i) ||
+                     t.match(/\b(\d{2,3})\s*[/xX]\s*(\d{2,3})\s*mmhg\b/i);
+      var pasTromb = mPaTromb ? Number(mPaTromb[1]) : null;
+      var padTromb = mPaTromb ? Number(mPaTromb[2]) : null;
+
+      // 1) Integração primária com CalculadorasClinicas.tromboliseAVC (Passo 1)
+      if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.tromboliseAVC === "function") {
+        var rTromb = CalculadorasClinicas.tromboliseAVC(pesoTrombVal, 'ambos', pasTromb, padTromb, tempoHorasTromb);
+        if (rTromb && rTromb.ok) {
+          if (rTromb.textoFormatado) return rTromb.textoFormatado;
+          var strTromb = "🧠 *" + (rTromb.nome || "TROMBÓLISE IV NO AVC ISQUÊMICO AGUDO") + "*\n\n";
+          if (rTromb.principal) strTromb += "• *Resumo Posológico:* `" + rTromb.principal + "`\n";
+          if (rTromb.rotulo) strTromb += "• *Janela / Alerta:* " + rTromb.rotulo + "\n";
+          if (rTromb.secoes) {
+            for (var st = 0; st < rTromb.secoes.length; st++) {
+              var secT = rTromb.secoes[st];
+              strTromb += "\n*" + secT[0] + ":*\n";
+              var itensT = Array.isArray(secT[1]) ? secT[1] : [secT[1]];
+              for (var itt = 0; itt < itensT.length; itt++) {
+                strTromb += "  • " + itensT[itt] + "\n";
+              }
+            }
+          }
+          return strTromb;
+        } else if (rTromb && rTromb.erro) {
+          return "⚠️ *Trombólise no AVC:* " + rTromb.erro;
+        }
+      }
+
+      // 2) Fallback determinístico em RAM (AHA/ASA & ESO / TdC)
+      var pesoEfetivo = Math.min(pesoTrombVal, 100);
+      var rtpaTotal = (pesoEfetivo * 0.9).toFixed(1);
+      var rtpaBolus = (rtpaTotal * 0.1).toFixed(1);
+      var rtpaInfusao = (rtpaTotal * 0.9).toFixed(1);
+      var tnkTotal = Math.min(pesoEfetivo * 0.25, 25.0).toFixed(1);
+
+      var txtAvcTromb = "🧠 *TROMBÓLISE IV NO AVC ISQUÊMICO AGUDO (AHA/ASA & ESO)*\n\n" +
+        "• *Peso Informado:* `" + pesoTrombVal + " kg`" + (pesoTrombVal > 100 ? " *(Teto posológico: 100 kg)*" : "") + "\n";
+
+      if (tempoHorasTromb !== null) {
+        txtAvcTromb += "• *Tempo de Ictus:* `" + tempoHorasTromb + "h` " +
+          (tempoHorasTromb <= 4.5
+            ? "✅ *(Dentro da janela padrão ≤ 4,5h)*"
+            : "⚠️ *(> 4,5h: exige neuroimagem avançada de mismatch DWI-FLAIR/Perfusão até 9h ou Trombectomia até 24h)*") + "\n";
+      }
+      if (pasTromb !== null && padTromb !== null) {
+        txtAvcTromb += "• *PA Informada:* `" + pasTromb + "/" + padTromb + " mmHg` " +
+          ((pasTromb >= 185 || padTromb >= 110)
+            ? "⛔ *(REDUZIR PA PARA < 185/110 mmHg ANTES DO BOLUS!)*"
+            : "✅ *(PA apta para início da trombólise < 185/110 mmHg)*") + "\n";
+      }
+
+      txtAvcTromb += "\n⭐ *OPÇÃO 1: TENECTEPLASE (Metalyse® — 0,25 mg/kg, máx. 25 mg)*\n" +
+        "  • *Dose Única (Bolus IV):* `" + tnkTotal + " mg` em *5 a 10 segundos*\n" +
+        "  • *Vantagem Clínica:* Dispensa BIC de 1h; primeira escolha em Oclusão de Grande Vaso (*drip-and-ship* para trombectomia).\n" +
+        "  • ⚠️ *Incompatibilidade Crítica:* **PRECIPITA em Soro Glicosado 5% (SG 5%)**. Lavar o acesso venoso (*flush*) exclusivamente com **SF 0,9%** antes e após o bolus.\n" +
+        "  • ⛔ *Atenção:* Nunca usar dose de IAM (50 mg). Teto no AVCi = **25 mg**.\n\n" +
+        "🔄 *OPÇÃO 2: ALTEPLASE (Actilyse® — 0,9 mg/kg, máx. 90 mg)*\n" +
+        "  • *Dose Total:* `" + rtpaTotal + " mg`\n" +
+        "  • *Bolus IV (10%):* `" + rtpaBolus + " mg` em *1 minuto*\n" +
+        "  • *Infusão Contínua (90%):* `" + rtpaInfusao + " mg` em BIC por *60 minutos* (lavar equipo com SF 0,9% ao término)\n\n" +
+        "🛡️ *METAS PRESSÓRICAS E SEGURANÇA PÓS-TROMBÓLISE:*\n" +
+        "  • *Alvo Pré-Trombólise:* PA < 185/110 mmHg\n" +
+        "  • *Alvo Pós-Trombólise (primeiras 24h):* PA < 180/105 mmHg (aferir 15/15 min nas primeiras 2h; 30/30 min das 2–8h; 1/1h das 8–24h)\n" +
+        "  • *Antitrombóticos:* **PROIBIDO** AAS, clopidogrel, heparinas ou DOACs nas primeiras **24h** (aguardar TC de crânio de controle em 24h).\n" +
+        "  • *Exclusão de Mímico:* Confirmar glicemia capilar ≥ 50 mg/dL antes do bolus.";
+
+      return txtAvcTromb;
+    }
+
+    return "⚠️ *Calculadora de Trombólise no AVC: Peso Não Informado*\n\n" +
+      obterInstrucoesCalculadora("trombolise_avc");
   }
 
   // Ajuste Renal de Antimicrobianos
@@ -60958,6 +61797,25 @@ function obterInstrucoesCalculadora(tipo) {
       "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
+  if (t.indexOf("TROMBOLISE") !== -1 || t.indexOf("TROMBÓLISE") !== -1 ||
+      t.indexOf("ALTEPLASE") !== -1 || t.indexOf("TENECTEPLASE") !== -1 ||
+      t.indexOf("ACTILYSE") !== -1 || t.indexOf("METALYSE") !== -1 ||
+      t.indexOf("RTPA") !== -1 || t.indexOf("TNK") !== -1) {
+    return "📐 *CALCULADORA: TROMBÓLISE IV NO AVC ISQUÊMICO (rtPA / TNK)*\n\n" +
+      "Dados necessários para o cálculo determinístico:\n" +
+      "• Peso corporal estimado ou aferido (kg)\n" +
+      "• Tempo de início dos sintomas / ictus em horas (opcional)\n" +
+      "• Pressão Arterial atual em mmHg (opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc trombolise avc\n" +
+      "Peso: [ ] kg\n" +
+      "Tempo: [ ] h\n" +
+      "PA: [ ]x[ ] mmHg\n" +
+      "```\n" +
+      "*(Ou envie direto: `/calc trombolise 75kg`)*";
+  }
+
   if (t.indexOf("NIHSS") !== -1) {
     return "📐 *CALCULADORA: NIHSS (Escala de AVC Isquêmico)*\n\n" +
       "Dados estritamente necessários para o cálculo:\n" +
@@ -61127,9 +61985,9 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
     teclado = [
       [{"text": "Glasgow-P", "callback_data": "calc_Glasgow"}, {"text": "NIHSS (AVC)", "callback_data": "calc_NIHSS"}],
-      [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
-      [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
-      [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "Trombólise AVC (rtPA/TNK)", "callback_data": "calc_Trombolise_AVC"}, {"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}],
+      [{"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}, {"text": "Child-Pugh", "callback_data": "calc_Child"}],
+      [{"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
       [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }
@@ -63438,7 +64296,7 @@ function doGet(e) {
             template.cockpitSession = tokenCockpit;
           }
           return (template ? template.evaluate() : HtmlService.createHtmlOutputFromFile(arquivoHtml))
-            .setTitle("Cockpit Móvel — Wagner Moraes")
+            .setTitle("Cockpit Clínico Móvel")
             .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover")
             .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
         } catch (eFile) {
@@ -63447,7 +64305,7 @@ function doGet(e) {
             tmplBio.cockpitSession = tokenCockpit || "";
           }
           return (tmplBio ? tmplBio.evaluate() : HtmlService.createHtmlOutputFromFile("ComposicaoCorporal"))
-            .setTitle("Cockpit Móvel — Wagner Moraes")
+            .setTitle("Cockpit Clínico Móvel")
             .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover")
             .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
         }
@@ -66523,6 +67381,13 @@ function enviarTelaAmbAtestado(chat, messageId) {
 function tratarCallbackAmbAtestado(chat, valor, messageId) {
   var textoAtestado = "";
   if (valor === 'comp') {
+    var ctxAmb = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+      ? ConfigService.getContextoClinico(chat)
+      : { municipio: "Local", uf: "BR", nome_completo_carimbo: "Médico(a) Assistente", crm: "CRM" };
+    var locData = (ctxAmb.municipio ? (ctxAmb.municipio + (ctxAmb.uf ? " - " + ctxAmb.uf : "")) : "Local") + ", " + new Date().toLocaleDateString('pt-BR') + ".";
+    var linhaAss = (ctxAmb.papel === "INTERNO_ACADEMICO")
+      ? "Médico(a) Responsável (Carimbo e CRM)"
+      : ((ctxAmb.nome_completo_carimbo || "Médico(a) Assistente") + " · " + (ctxAmb.crm || "CRM"));
     textoAtestado = "======================================================================\n" +
       "                    DECLARAÇÃO DE COMPARECIMENTO MÉDICO               \n" +
       "======================================================================\n\n" +
@@ -66531,9 +67396,9 @@ function tratarCallbackAmbAtestado(chat, valor, messageId) {
       "Documento: [RG / CPF / Documento]\n\n" +
       "Compareceu a esta unidade de saúde nesta data, permanecendo em atendimento\n" +
       "médico ambulatorial sob meus cuidados profissionais no período das [   ]h às [   ]h.\n\n" +
-      "Local e Data: Ribeirão Preto - SP, " + new Date().toLocaleDateString('pt-BR') + ".\n\n" +
+      "Local e Data: " + locData + "\n\n" +
       "__________________________________________________________\n" +
-      "Dr. Wagner Moraes · CRM/SP\n" +
+      linhaAss + "\n" +
       "======================================================================";
   } else {
     var diasNum = parseInt(valor.replace('d', ''), 10) || 1;
@@ -67162,20 +68027,44 @@ function tratarCallbackBolsoHSL(chat, acao, messageId) {
 /* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
 
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : null;
+  var modulos = (ctx && Array.isArray(ctx.modulos_ativos) && ctx.modulos_ativos.length > 0) ? ctx.modulos_ativos : null;
+  function modAtivo(id) {
+    if (!modulos) return true;
+    return modulos.indexOf(id) !== -1;
+  }
+
+  var nomeSaudacao = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
+  var seloLoc = (ctx && ctx.municipio) ? ('📍 ' + ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : '🇧🇷 RENAME Nacional (SUS)';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n' +
+    '👨‍⚕️ *' + nomeSaudacao + '* · ' + seloLoc + '\n' +
+    'Selecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
-  var linha3 = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat))
-    ? [['💊 Consultas Bolso', 'ux:hub:bolso'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
-    : [['💊 Consultas Bolso', 'ux:hub:bolso'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
+  var pares = [];
+  if (modAtivo('SALA_VERMELHA') || modAtivo('INTOXICACOES')) pares.push(['🚨 Sala Vermelha', 'ux:hub:sala']);
+  if (modAtivo('ENFERMARIA_LEITOS')) pares.push(['🛏️ Enfermaria', 'ux:hub:enf']);
+  if (modAtivo('SOAP_PEP') || modAtivo('RECEITUARIO_ATESTADOS')) pares.push(['🩺 Ambulatório', 'ux:hub:amb']);
+  if (modAtivo('GO_OBSTETRICIA')) pares.push(['🤰 Hub G&O', 'ux:rotina:go']);
+  if (modAtivo('FARMACIA_REMUME') || modAtivo('PRECEPTOR_EBM')) pares.push(['💊 Consultas Bolso', 'ux:hub:bolso']);
+  if (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat)) {
+    pares.push(['📅 Rotina & Estudo', 'ux:hub:rotina']);
+  } else if (modAtivo('CALCULADORAS_ESCORES')) {
+    pares.push(['🩸 Gasometria', 'ux:iniciar:gaso']);
+  }
 
-  var botoes = [
-    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
-    [['🩺 Ambulatório', 'ux:hub:amb'], ['🤰 Hub G&O', 'ux:rotina:go']],
-    linha3,
-    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Mini App', web_app: { url: urlApp } }],
-    [['🧹 Novo Paciente', 'ux:novo:soap']]
-  ];
+  var botoes = [];
+  for (var i = 0; i < pares.length; i += 2) {
+    if (pares[i + 1]) {
+      botoes.push([pares[i], pares[i + 1]]);
+    } else {
+      botoes.push([pares[i]]);
+    }
+  }
+  botoes.push([['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Mini App', web_app: { url: urlApp } }]);
+  botoes.push([['⚙️ Perfil & Cidade', 'ux:perfil:menu'], ['🧹 Novo Paciente', 'ux:novo:soap']]);
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
 }
@@ -68692,7 +69581,7 @@ function tratarCallbackGOLactacao(chat, v, messageId) {
   var ck = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ck, textoRes, 21600);
 
-  var msgCorpo = "🤱 *SEGURANÇA NA LACTAÇÃO (FMRP-USP / MS):*\n\n```text\n" + textoRes + "\n```";
+  var msgCorpo = "🤱 *SEGURANÇA NA LACTAÇÃO (HALE / LACMED / MS):*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
     [['📋 Copiar Guia', 'ux:copiar:' + ck]],
     [['🔴 Contraindicados', 'go_lactacao:red'], ['🟡 Cautela', 'go_lactacao:yel']],
@@ -68983,7 +69872,7 @@ function tratarEntradaUX(message) {
   var state = modoBot(chat);
   var dialogoAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chat) : null;
   if (dialogoAtivo && dialogoAtivo.em_andamento) {
-    // Diálogo socrático ativo: não redireciona nem adiciona prefixo /soap à resposta de Wagner
+    // Diálogo socrático ativo: não redireciona nem adiciona prefixo /soap à resposta do médico
     return false;
   }
 
@@ -69982,6 +70871,14 @@ function tratarCallbackUX(cb) {
       return tratarCallbackChecklist(chat, v, msgId);
     } else if (op === 'tb') {
       return tratarCallbackTimeBlocking(chat, v, msgId);
+    } else if (op === 'perfil') {
+      return tratarCallbackPerfilClinico(chat, v, msgId);
+    } else if (op === 'cenario') {
+      return tratarCallbackCenarioModulos(chat, v, msgId);
+    } else if (op === 'cidade') {
+      return tratarCallbackCidadeRemume(chat, v, msgId);
+    } else if (op === 'remume') {
+      return tratarCallbackSolicitarOuImportarRemume(chat, v, msgId);
     } else {
       enviarMensagemParaChat(chat, 'Ação não reconhecida. Reabra o menu.');
     }
@@ -69990,6 +70887,337 @@ function tratarCallbackUX(cb) {
     try { enviarMensagemParaChat(chat, 'Não consegui concluir essa ação. Tente novamente ou use /cancelar.'); } catch (e2) {}
   }
   return true;
+}
+
+// ============================================================================
+// CENTRAL DE PERFIL, NOME, CIDADE, CENÁRIO (CHECKBOXES) E AUTOATENDIMENTO REMUME
+// ============================================================================
+
+function enviarTelaOnboardingNome(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : { prefixo_tratamento: 'Dr.', nome_chamada: 'Médico(a)' };
+  var prefAtual = ctx.prefixo_tratamento || 'Dr.';
+  var nomeAtual = (ctx.nome_chamada && ctx.nome_chamada !== 'Médico(a)') ? (prefAtual + ' ' + ctx.nome_chamada) : 'Não definido';
+
+  var texto = '👨‍⚕️👩‍⚕️ *IDENTIFICAÇÃO E SAUDAÇÃO PERSONALIZADA*\n\n' +
+    'Como você prefere que eu te chame durante os plantões e atendimentos?\n' +
+    '• *Atual:* `' + nomeAtual + '`\n\n' +
+    '1️⃣ Escolha seu prefixo abaixo (`Dr.` ou `Dra.`):\n' +
+    '2️⃣ Digite ou envie: `/nome SeuNome` (ex: `/nome Matheus` ou `/nome Dra. Carolina`)\n\n' +
+    '💡 *Para carimbo de receitas (Médico/Residente):*\n' +
+    'Envie `/carimbo Nome Completo | CRM/UF 123456`';
+
+  var botoes = botoesBot([
+    [
+      [(prefAtual === 'Dr.' ? '✅ ' : '') + '👨‍⚕️ Dr.', 'ux:perfil:pref:Dr.'],
+      [(prefAtual === 'Dra.' ? '✅ ' : '') + '👩‍⚕️ Dra.', 'ux:perfil:pref:Dra.']
+    ],
+    [['⚙️ Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuPerfilClinico(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var saudacao = ((ctx.prefixo_tratamento || 'Dr.') + ' ' + (ctx.nome_chamada || 'Médico(a)')).trim();
+  var mapaPapel = {
+    'MEDICO_CRM': '👨‍⚕️ Médico(a) com CRM',
+    'RESIDENTE': '🏥 Médico(a) Residente',
+    'INTERNO_ACADEMICO': '🎓 Interno(a) / Acadêmico(a) (Receita sem CRM impresso)'
+  };
+  var mapaCenario = {
+    'APS_UBS': '🩺 UBS / Saúde da Família (APS)',
+    'URGENCIA_UPA_24H': '🚑 UPA 24h / Pronto Atendimento',
+    'SALA_VERMELHA': '🚨 Sala Vermelha / Emergência & UTI',
+    'ENFERMARIA': '🛏️ Enfermaria / Clínica Médica',
+    'MATERNIDADE_GO': '🤰 Maternidade / Centro Obstétrico (G&O)',
+    'PEDIATRIA': '👶 Pronto-Socorro / Ala Pediátrica'
+  };
+  var papelTxt = mapaPapel[ctx.papel] || ctx.papel || 'Médico(a) com CRM';
+  var cenTxt = mapaCenario[ctx.cenario_assistencial] || ctx.cenario_assistencial || 'UPA 24h';
+  var cidTxt = ctx.municipio ? (ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : 'Nacional (RENAME SUS)';
+  var totalMod = Array.isArray(ctx.modulos_ativos) ? ctx.modulos_ativos.length : 10;
+
+  var texto = '⚙️ *CONFIGURAÇÃO DE PERFIL & REALIDADE LOCAL*\n\n' +
+    '• *Saudação no Chat:* `' + saudacao + '`\n' +
+    '• *Atuação / Receituário:* ' + papelTxt + '\n' +
+    '• *Carimbo PDF:* `' + (ctx.papel === 'INTERNO_ACADEMICO' ? 'Em branco para preceptor assinar' : ((ctx.nome_completo_carimbo || '-') + ' · ' + (ctx.crm || 'Sem CRM'))) + '`\n' +
+    '• *Cidade / REMUME:* 📍 `' + cidTxt + '` (`' + (ctx.remume_slug || 'rename_nacional') + '`)\n' +
+    '• *Unidade / Serviço:* 🏥 `' + (ctx.unidade_saude || 'Unidade de Saúde') + '`\n' +
+    '• *Cenário Assistencial:* ' + cenTxt + ' (`' + totalMod + '/10 módulos visíveis`)\n\n' +
+    'Selecione abaixo o que deseja personalizar em 1 toque:';
+
+  var botoes = botoesBot([
+    [['👨‍⚕️ Nome & Saudação (/nome)', 'ux:perfil:nome'], ['🎓 Papel: Médico / Interno', 'ux:perfil:papel']],
+    [['📍 Escolher Cidade / REMUME', 'ux:cidade:menu'], ['🏥 Cenário & Módulos (Checkboxes)', 'ux:cenario:menu']],
+    [['📥 Inserir REMUME da Minha Cidade', 'ux:remume:instrucoes'], ['🏥 Unidade / Hospital (/unidade)', 'ux:perfil:unidade']],
+    [['🏠 Voltar ao Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuPapelProfissional(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var p = ctx.papel || 'MEDICO_CRM';
+  var texto = '🎓 *PAPEL PROFISSIONAL & REGRA DE RECEITUÁRIO PDF*\n\n' +
+    'Escolha seu perfil de atuação atual:\n\n' +
+    '• *Médico(a) com CRM / Residente:* O Receituário PDF (100% preto `#000000`) sai com seu Nome Completo e CRM impressos na linha de assinatura.\n' +
+    '• *Interno(a) / Acadêmico(a):* O Receituário PDF é emitido *sem nome de médico e sem CRM impressos*, deixando a linha limpa para o médico preceptor carimbar e assinar.';
+
+  var botoes = botoesBot([
+    [[(p === 'MEDICO_CRM' ? '✅ ' : '') + '👨‍⚕️ Médico(a) com CRM', 'ux:perfil:setpapel:MEDICO_CRM']],
+    [[(p === 'RESIDENTE' ? '✅ ' : '') + '🏥 Médico(a) Residente', 'ux:perfil:setpapel:RESIDENTE']],
+    [[(p === 'INTERNO_ACADEMICO' ? '✅ ' : '') + '🎓 Interno(a) / Acadêmico(a)', 'ux:perfil:setpapel:INTERNO_ACADEMICO']],
+    [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuCenarioECheckboxes(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var cen = ctx.cenario_assistencial || 'URGENCIA_UPA_24H';
+  var ativos = Array.isArray(ctx.modulos_ativos) ? ctx.modulos_ativos : [];
+  var catalogo = (typeof ConfigService !== 'undefined' && Array.isArray(ConfigService.CATALOGO_MODULOS_CLINICOS))
+    ? ConfigService.CATALOGO_MODULOS_CLINICOS
+    : [];
+
+  var texto = '🏥 *CENÁRIO ASSISTENCIAL & VISIBILIDADE DE MÓDULOS*\n\n' +
+    '1️⃣ *Escolha seu cenário principal* para pré-marcar os módulos recomendados:\n' +
+    '2️⃣ *Ou marque/desmarque livremente (`✅` / `⬜`)* quais módulos você quer exibir nos seus menus e no Cockpit.\n\n' +
+    '🛡️ _Nota de Segurança:_ Módulos desmarcados (`⬜`) ficam ocultos apenas nos menus visuais para deixar sua tela mais limpa, mas continuam 100% acessíveis se você digitar o comando direto numa emergência.';
+
+  var linhas = [
+    [
+      [(cen === 'APS_UBS' ? '🎯 ' : '') + '🩺 UBS / APS', 'ux:cenario:preset:APS_UBS'],
+      [(cen === 'URGENCIA_UPA_24H' ? '🎯 ' : '') + '🚑 UPA 24h', 'ux:cenario:preset:URGENCIA_UPA_24H']
+    ],
+    [
+      [(cen === 'SALA_VERMELHA' ? '🎯 ' : '') + '🚨 Sala Vermelha', 'ux:cenario:preset:SALA_VERMELHA'],
+      [(cen === 'ENFERMARIA' ? '🎯 ' : '') + '🛏️ Enfermaria', 'ux:cenario:preset:ENFERMARIA']
+    ],
+    [
+      [(cen === 'MATERNIDADE_GO' ? '🎯 ' : '') + '🤰 Maternidade G&O', 'ux:cenario:preset:MATERNIDADE_GO'],
+      [(cen === 'PEDIATRIA' ? '🎯 ' : '') + '👶 Pediatria', 'ux:cenario:preset:PEDIATRIA']
+    ]
+  ];
+
+  // Checkboxes dos 10 módulos clínicos em 2 colunas
+  for (var i = 0; i < catalogo.length; i += 2) {
+    var m1 = catalogo[i];
+    var chk1 = (ativos.indexOf(m1.id) !== -1) ? '✅ ' : '⬜ ';
+    var row = [[chk1 + m1.nome, 'ux:cenario:toggle:' + m1.id]];
+    if (catalogo[i + 1]) {
+      var m2 = catalogo[i + 1];
+      var chk2 = (ativos.indexOf(m2.id) !== -1) ? '✅ ' : '⬜ ';
+      row.push([chk2 + m2.nome, 'ux:cenario:toggle:' + m2.id]);
+    }
+    linhas.push(row);
+  }
+
+  linhas.push([['☑️ Marcar Todos (10/10)', 'ux:cenario:todos'], ['✔️ Aceitar & Salvar', 'ux:cenario:confirmar']]);
+  linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
+}
+
+function enviarMenuCidadeERemume(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var presets = (typeof CatalogoRemumeService !== 'undefined' && typeof CatalogoRemumeService.listarPresets === 'function')
+    ? CatalogoRemumeService.listarPresets()
+    : [];
+  var slugAtual = ctx.remume_slug || 'rename_nacional';
+
+  var texto = '📍 *ESCOLHER CIDADE & CATÁLOGO REMUME (SUS)*\n\n' +
+    '• *Catálogo Ativo:* `' + (ctx.municipio ? (ctx.municipio + '/' + (ctx.uf || '')) : 'RENAME Nacional (SUS)') + '` (`' + slugAtual + '`)\n\n' +
+    'Toque em uma das cidades com preset imediato abaixo, ou digite:\n' +
+    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Uberlândia - MG`)\n\n' +
+    '🔎 _Se a cidade ainda não estiver nos presets, eu pesquiso automaticamente na internet por documentos oficiais da Prefeitura e, se você ou outro colega inserir uma REMUME nova, ela entra automaticamente nos presets para todos!_';
+
+  var linhas = [
+    [[(slugAtual === 'rename_nacional' ? '✅ ' : '') + '🇧🇷 RENAME Nacional (Padrão SUS)', 'ux:cidade:set:rename_nacional']]
+  ];
+
+  for (var i = 0; i < presets.length; i += 2) {
+    var p1 = presets[i];
+    var lbl1 = (slugAtual === p1.slug ? '✅ ' : '📍 ') + p1.municipio + ' (' + p1.uf + ')';
+    var row = [[lbl1, 'ux:cidade:set:' + p1.slug]];
+    if (presets[i + 1]) {
+      var p2 = presets[i + 1];
+      var lbl2 = (slugAtual === p2.slug ? '✅ ' : '📍 ') + p2.municipio + ' (' + p2.uf + ')';
+      row.push([lbl2, 'ux:cidade:set:' + p2.slug]);
+    }
+    linhas.push(row);
+  }
+
+  linhas.push([['📥 Inserir REMUME de Outra Cidade', 'ux:remume:instrucoes']]);
+  linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
+}
+
+function enviarTelaUnidadeSaude(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var unid = ctx.unidade_saude || 'Unidade de Saúde';
+
+  var texto = '🏥 *UNIDADE DE SAÚDE & LOCAL DE ATUAÇÃO*\n\n' +
+    'O nome da sua Unidade ou Hospital é exibido no cabeçalho das receitas, atestados e relatórios emitidos.\n\n' +
+    '• *Unidade atual:* `' + unid + '`\n\n' +
+    '✍️ *Para alterar, envie o comando com o novo nome:*\n' +
+    '`/unidade Nome do Hospital ou Posto`\n\n' +
+    '💡 *Exemplos rápidos:*\n' +
+    '• `/unidade UPA 24h Central`\n' +
+    '• `/unidade Hospital das Clínicas`\n' +
+    '• `/unidade UBS Jardim América`';
+
+  var botoes = botoesBot([
+    [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function tratarCallbackPerfilClinico(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuPerfilClinico(chat, messageId);
+  if (v === 'nome') return enviarTelaOnboardingNome(chat, messageId);
+  if (v === 'papel') return enviarMenuPapelProfissional(chat, messageId);
+  if (v === 'unidade' || v === 'equipe') return enviarTelaUnidadeSaude(chat, messageId);
+  if (v.indexOf('pref:') === 0) {
+    var novoPref = v.replace('pref:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      ConfigService.salvarContextoClinico(chat, { prefixo_tratamento: novoPref });
+    }
+    return enviarTelaOnboardingNome(chat, messageId);
+  }
+  if (v.indexOf('setpapel:') === 0) {
+    var novoPapel = v.replace('setpapel:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      ConfigService.salvarContextoClinico(chat, { papel: novoPapel });
+    }
+    return enviarMenuPapelProfissional(chat, messageId);
+  }
+  return enviarMenuPerfilClinico(chat, messageId);
+}
+
+function tratarCallbackCenarioModulos(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuCenarioECheckboxes(chat, messageId);
+  if (v.indexOf('preset:') === 0) {
+    var cenarioId = v.replace('preset:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.aplicarCenarioAssistencial === 'function') {
+      ConfigService.aplicarCenarioAssistencial(chat, cenarioId);
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v.indexOf('toggle:') === 0) {
+    var modId = v.replace('toggle:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.alternarModuloCenario === 'function') {
+      ConfigService.alternarModuloCenario(chat, modId);
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v === 'todos') {
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      var todosIds = (ConfigService.CATALOGO_MODULOS_CLINICOS || []).map(function(m) { return m.id; });
+      ConfigService.salvarContextoClinico(chat, { modulos_ativos: todosIds });
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v === 'confirmar') {
+    var nomeMed = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
+    enviarMensagemComTecladoFixo(chat, '✅ *Cenário e módulos atualizados, ' + nomeMed + '!* Teclado rápido ajustado.');
+    return enviarHubPrincipal(chat, messageId);
+  }
+  return enviarMenuCenarioECheckboxes(chat, messageId);
+}
+
+function tratarCallbackCidadeRemume(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuCidadeERemume(chat, messageId);
+  if (v.indexOf('set:') === 0) {
+    var slug = v.replace('set:', '').trim();
+    if (slug === 'rename_nacional') {
+      if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+        ConfigService.salvarContextoClinico(chat, {
+          municipio: '',
+          uf: 'BR',
+          remume_slug: 'rename_nacional'
+        });
+      }
+    } else if (typeof CatalogoRemumeService !== 'undefined') {
+      var cat = CatalogoRemumeService.carregarPresetPorSlug(slug);
+      if (cat && typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+        ConfigService.salvarContextoClinico(chat, {
+          municipio: cat.municipio || '',
+          uf: cat.uf || 'BR',
+          remume_slug: slug
+        });
+      }
+    }
+    if (typeof invalidarCacheRemumeRP === 'function') {
+      try { invalidarCacheRemumeRP(); } catch (_) {}
+    }
+    return enviarMenuCidadeERemume(chat, messageId);
+  }
+  return enviarMenuCidadeERemume(chat, messageId);
+}
+
+function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
+  if (v === 'instrucoes') {
+    var txtInst = '📥 *INSERIR REMUME MUNICIPAL (AUTO-PROMOÇÃO PARA PRESET)*\n\n' +
+      'Você pode cadastrar a REMUME da sua cidade a qualquer momento! Assim que os medicamentos forem validados, *sua cidade entra automaticamente nos presets oficiais* para ajudar outros colegas.\n\n' +
+      '💡 *Como enviar:*\n' +
+      'Digite `/importar_remume Cidade - UF` na primeira linha e cole a lista de medicamentos nas linhas abaixo:\n\n' +
+      '```text\n/importar_remume Bauru - SP\nAmoxicilina 500mg cápsula\nDipirona 500mg comprimido\nLosartana 50mg comprimido\nEnalapril 10mg comprimido\nOmeprazol 20mg cápsula\n```';
+    var kbInst = botoesBot([
+      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, txtInst, kbInst, messageId);
+  }
+  if (v && v.indexOf('solicitar:') === 0) {
+    var resto = v.replace('solicitar:', '');
+    var partes = resto.split(':');
+    var mun = partes[0] || 'Município';
+    var uf = partes[1] || 'BR';
+    var registro = (typeof ConfigService !== 'undefined' && typeof ConfigService.registrarSolicitacaoRemume === 'function')
+      ? ConfigService.registrarSolicitacaoRemume(mun, uf, chat)
+      : { municipio: mun, uf: uf, solicitantes: [String(chat)] };
+
+    // Notifica o desenvolvedor (titular) no Telegram se não for o próprio titular testando
+    var adminChat = (typeof ConfigService !== 'undefined' && typeof ConfigService.getPrimary === 'function')
+      ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+      : '';
+    if (adminChat && String(adminChat) !== String(chat)) {
+      try {
+        enviarMensagemParaChat(adminChat,
+          '📩 *NOVA SOLICITAÇÃO DE REMUME MUNICIPAL*\n\n' +
+          '• *Cidade:* `' + registro.municipio + ' - ' + registro.uf + '`\n' +
+          '• *Solicitante Chat ID:* `' + chat + '`\n' +
+          '• *Total de Pedidos desta Cidade:* ' + (registro.solicitantes ? registro.solicitantes.length : 1) + '\n\n' +
+          '💡 Para aprovar e liberar nos presets globais, envie:\n' +
+          '`/aprovar_remume ' + registro.municipio + ' - ' + registro.uf + '` seguido da lista de medicamentos.'
+        );
+      } catch (_) {}
+    }
+
+    var msgOk = '✅ *Solicitação enviada ao desenvolvedor com sucesso!*\n\n' +
+      '• *Município solicitado:* `' + registro.municipio + (registro.uf ? ' - ' + registro.uf : '') + '`\n' +
+      '• *Status:* Em fila de curadoria prioritária.\n\n' +
+      '🔔 Assim que a REMUME oficial de *' + registro.municipio + '* for homologada, você receberá um aviso automático aqui no chat e seu perfil será atualizado!\n\n' +
+      '💡 _Enquanto isso, suas consultas estão protegidas pela RENAME Nacional (SUS). Se você tiver o PDF/lista da REMUME em mãos, pode cadastrá-la na hora clicando em Inserir REMUME abaixo:_';
+    var kbOk = botoesBot([
+      [['📥 Inserir REMUME Agora', 'ux:remume:instrucoes'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, msgOk, kbOk, messageId);
+  }
+  return enviarMenuCidadeERemume(chat, messageId);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -70088,6 +71316,16 @@ if (typeof module !== 'undefined' && module.exports) {
     tratarCallbackChecklist: tratarCallbackChecklist,
     enviarMenuTimeBlocking: enviarMenuTimeBlocking,
     tratarCallbackTimeBlocking: tratarCallbackTimeBlocking,
+    enviarTelaOnboardingNome: enviarTelaOnboardingNome,
+    enviarMenuPerfilClinico: enviarMenuPerfilClinico,
+    enviarMenuPapelProfissional: enviarMenuPapelProfissional,
+    enviarMenuCenarioECheckboxes: enviarMenuCenarioECheckboxes,
+    enviarMenuCidadeERemume: enviarMenuCidadeERemume,
+    enviarTelaUnidadeSaude: enviarTelaUnidadeSaude,
+    tratarCallbackPerfilClinico: tratarCallbackPerfilClinico,
+    tratarCallbackCenarioModulos: tratarCallbackCenarioModulos,
+    tratarCallbackCidadeRemume: tratarCallbackCidadeRemume,
+    tratarCallbackSolicitarOuImportarRemume: tratarCallbackSolicitarOuImportarRemume,
     processarEntradaSoap: typeof processarEntradaSoap === 'function' ? processarEntradaSoap : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.processarEntradaSoap ? SoapAmbulatorialService.processarEntradaSoap : null),
     formatarRascunhoSoapTelegram: typeof formatarRascunhoSoapTelegram === 'function' ? formatarRascunhoSoapTelegram : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.formatarRascunhoSoapTelegram ? SoapAmbulatorialService.formatarRascunhoSoapTelegram : null),
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,
@@ -70102,10 +71340,13 @@ if (typeof module !== 'undefined' && module.exports) {
 
 function cockpitAutorizar_(initData) {
   function negar() { throw new Error('Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada.'); }
-  if (typeof initData !== 'string' || !initData || initData.length > 16000) negar();
-
-  if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
-    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary) ? ConfigService.getPrimary('TELEGRAM_CHAT_ID') : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim() : 'internal');
+  // Chamadas internas do motor em ambiente de testes unitários locais (bloqueado em produção e via HTTP)
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test' && (initData === 'bot' || initData === 'internal' || initData === 'interno')) {
+    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary)
+      ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+      : ((typeof ConfigService !== 'undefined' && ConfigService.get)
+        ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim()
+        : 'internal');
   }
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache
@@ -73315,20 +74556,14 @@ var PlantaoSniperService = (function () {
   ];
 
   var DEFAULT_CONFIG = {
-    nome: "Dr. Wagner Moraes",
+    nome: "Médico(a) Assistente",
     crm: "CRM/SP",
     modoOperacao: "SNIPER_AUTO", // "SNIPER_AUTO" ou "SEMI_AUTO"
     responderApenasPv: false,    // true = Modo Fantasma (só chama no PV do escalista)
     valorMinimo12h: 1300,
     valorMinimoHora: 108,
-    cidadesPermitidas: [
-      "São Paulo",
-      "ABC",
-      "Santo André",
-      "São Bernardo",
-      "São Caetano",
-      "Osasco"
-    ],
+    cidadesPermitidas: [],       // Vazio = Sem restrição: a abrangência é definida pelos grupos de WhatsApp em que o médico entra
+    filtroCidadesAtivo: false,   // false = 100% das cidades dos grupos permitidos são aceitas
     setoresPermitidos: [
       "Porta",
       "Ficha Verde",
@@ -73380,6 +74615,12 @@ var PlantaoSniperService = (function () {
         cfg[k] = salvo[k];
       }
     }
+    // Garante que lista mockada antiga não bloqueie as cidades dos grupos do médico
+    if (Array.isArray(cfg.cidadesPermitidas) && cfg.cidadesPermitidas.length === 6 && cfg.cidadesPermitidas[0] === "São Paulo") {
+      cfg.cidadesPermitidas = [];
+      cfg.filtroCidadesAtivo = false;
+      _salvarJsonProp(PROP_CONFIG_KEY, cfg);
+    }
     cfg.valorMinimoHora = Math.round((Number(cfg.valorMinimo12h) || 1300) / 12);
     return cfg;
   }
@@ -73396,6 +74637,177 @@ var PlantaoSniperService = (function () {
     atual.valorMinimoHora = Math.round((Number(atual.valorMinimo12h) || 1300) / 12);
     _salvarJsonProp(PROP_CONFIG_KEY, atual);
     return atual;
+  }
+
+  // --------------------------------------------------------------------------
+  // Catálogos e Gestão de Cidades e Setores Permitidos
+  // --------------------------------------------------------------------------
+  var CATALOGO_CIDADES_PADRAO = [
+    "São Paulo",
+    "ABC",
+    "Santo André",
+    "São Bernardo",
+    "São Caetano",
+    "Diadema",
+    "Mauá",
+    "Osasco",
+    "Guarulhos",
+    "Barueri",
+    "Cotia",
+    "Taboão da Serra",
+    "Mogi das Cruzes",
+    "Santos",
+    "Campinas",
+    "Jundiaí",
+    "Sorocaba",
+    "Ribeirão Preto",
+    "São José dos Campos"
+  ];
+
+  var CATALOGO_SETORES_PADRAO = [
+    "Porta",
+    "Ficha Verde",
+    "Clínica Médica",
+    "Observação",
+    "Enfermaria",
+    "UTI Adulto",
+    "Sala Vermelha / Emergência",
+    "Pediatria",
+    "Cirurgia Geral",
+    "Ginecologia / Obstetrícia"
+  ];
+
+  function obterCatalogoCidadesDisponiveis() {
+    var cfg = obterConfigSniper();
+    var ativas = Array.isArray(cfg.cidadesPermitidas) ? cfg.cidadesPermitidas : DEFAULT_CONFIG.cidadesPermitidas;
+    var mapa = {};
+    var lista = [];
+    var i;
+
+    for (i = 0; i < CATALOGO_CIDADES_PADRAO.length; i++) {
+      var c = CATALOGO_CIDADES_PADRAO[i];
+      var norm = _normalizarTexto(c);
+      if (!mapa[norm]) {
+        mapa[norm] = true;
+        lista.push(c);
+      }
+    }
+
+    for (i = 0; i < ativas.length; i++) {
+      var a = ativas[i];
+      var normA = _normalizarTexto(a);
+      if (!mapa[normA]) {
+        mapa[normA] = true;
+        lista.push(a);
+      }
+    }
+
+    return lista;
+  }
+
+  function alternarCidadePermitida(cidadeNome) {
+    var cfg = obterConfigSniper();
+    var cidades = Array.isArray(cfg.cidadesPermitidas) ? cfg.cidadesPermitidas.slice() : [];
+    var nomeTrim = String(cidadeNome || "").trim();
+    if (!nomeTrim) return { sucesso: false, ativada: false, cidades: cidades };
+
+    var norm = _normalizarTexto(nomeTrim);
+    var idx = -1;
+    for (var i = 0; i < cidades.length; i++) {
+      if (_normalizarTexto(cidades[i]) === norm) {
+        idx = i;
+        break;
+      }
+    }
+
+    var ativada = false;
+    if (idx !== -1) {
+      cidades.splice(idx, 1);
+      ativada = false;
+    } else {
+      cidades.push(nomeTrim);
+      ativada = true;
+    }
+
+    salvarConfigSniper({ cidadesPermitidas: cidades });
+    return { sucesso: true, ativada: ativada, cidade: nomeTrim, cidades: cidades };
+  }
+
+  function redefinirCidadesPadrao() {
+    var padrao = DEFAULT_CONFIG.cidadesPermitidas.slice();
+    salvarConfigSniper({ cidadesPermitidas: padrao });
+    return padrao;
+  }
+
+  function definirTodasCidades(ativarTodas) {
+    var novas = [];
+    if (ativarTodas) {
+      novas = obterCatalogoCidadesDisponiveis().slice();
+    }
+    salvarConfigSniper({ cidadesPermitidas: novas });
+    return novas;
+  }
+
+  function obterCatalogoSetoresDisponiveis() {
+    var cfg = obterConfigSniper();
+    var ativas = Array.isArray(cfg.setoresPermitidos) ? cfg.setoresPermitidos : DEFAULT_CONFIG.setoresPermitidos;
+    var mapa = {};
+    var lista = [];
+    var i;
+
+    for (i = 0; i < CATALOGO_SETORES_PADRAO.length; i++) {
+      var s = CATALOGO_SETORES_PADRAO[i];
+      var norm = _normalizarTexto(s);
+      if (!mapa[norm]) {
+        mapa[norm] = true;
+        lista.push(s);
+      }
+    }
+
+    for (i = 0; i < ativas.length; i++) {
+      var sa = ativas[i];
+      var normS = _normalizarTexto(sa);
+      if (!mapa[normS]) {
+        mapa[normS] = true;
+        lista.push(sa);
+      }
+    }
+
+    return lista;
+  }
+
+  function alternarSetorPermitido(setorNome) {
+    var cfg = obterConfigSniper();
+    var setores = Array.isArray(cfg.setoresPermitidos) ? cfg.setoresPermitidos.slice() : [];
+    var nomeTrim = String(setorNome || "").trim();
+    if (!nomeTrim) return { sucesso: false, ativado: false, setores: setores };
+
+    var norm = _normalizarTexto(nomeTrim);
+    var idx = -1;
+    for (var i = 0; i < setores.length; i++) {
+      if (_normalizarTexto(setores[i]) === norm) {
+        idx = i;
+        break;
+      }
+    }
+
+    var ativado = false;
+    if (idx !== -1) {
+      setores.splice(idx, 1);
+      ativado = false;
+    } else {
+      setores.push(nomeTrim);
+      ativado = true;
+    }
+
+    salvarConfigSniper({ setoresPermitidos: setores });
+    return { sucesso: true, ativado: ativado, setor: nomeTrim, setores: setores };
+  }
+
+  function redefinirSetoresPadrao() {
+    var padrao = DEFAULT_CONFIG.setoresPermitidos.slice();
+    salvarConfigSniper({ setoresPermitidos: padrao });
+    return padrao;
   }
 
   function obterEstatisticas() {
@@ -73849,10 +75261,28 @@ var PlantaoSniperService = (function () {
       { chave: "sao bernardo", nome: "São Bernardo" },
       { chave: "santo andre", nome: "Santo André" },
       { chave: "sao caetano", nome: "São Caetano" },
+      { chave: "diadema", nome: "Diadema" },
+      { chave: "maua", nome: "Mauá" },
       { chave: "abc", nome: "ABC" },
       { chave: "osasco", nome: "Osasco" },
       { chave: "guarulhos", nome: "Guarulhos" },
       { chave: "barueri", nome: "Barueri" },
+      { chave: "alphaville", nome: "Barueri" },
+      { chave: "cotia", nome: "Cotia" },
+      { chave: "taboao da serra", nome: "Taboão da Serra" },
+      { chave: "taboao", nome: "Taboão da Serra" },
+      { chave: "mogi das cruzes", nome: "Mogi das Cruzes" },
+      { chave: "mogi", nome: "Mogi das Cruzes" },
+      { chave: "santos", nome: "Santos" },
+      { chave: "sao vicente", nome: "São Vicente" },
+      { chave: "praia grande", nome: "Praia Grande" },
+      { chave: "guaruja", nome: "Guarujá" },
+      { chave: "campinas", nome: "Campinas" },
+      { chave: "jundiai", nome: "Jundiaí" },
+      { chave: "sorocaba", nome: "Sorocaba" },
+      { chave: "ribeirao preto", nome: "Ribeirão Preto" },
+      { chave: "sao jose dos campos", nome: "São José dos Campos" },
+      { chave: "sjc", nome: "São José dos Campos" },
       { chave: "morumbi", nome: "São Paulo" },
       { chave: "itaim", nome: "São Paulo" },
       { chave: "paulista", nome: "São Paulo" },
@@ -73866,6 +75296,18 @@ var PlantaoSniperService = (function () {
       if (norm.indexOf(mapaCidades[c].chave) !== -1) {
         cidade = mapaCidades[c].nome;
         break;
+      }
+    }
+    // Suporte dinâmico caso o médico configure cidades personalizadas
+    if (cidade === "São Paulo") {
+      var catalogoDinamico = obterCatalogoCidadesDisponiveis();
+      for (var cd = 0; cd < catalogoDinamico.length; cd++) {
+        var cItem = catalogoDinamico[cd];
+        var cItemNorm = _normalizarTexto(cItem);
+        if (cItemNorm && cItemNorm !== "sao paulo" && norm.indexOf(cItemNorm) !== -1) {
+          cidade = cItem;
+          break;
+        }
       }
     }
 
@@ -74121,22 +75563,26 @@ var PlantaoSniperService = (function () {
       };
     }
 
-    // 3. Verifica Cidade Compatível
-    var cidNorm = _normalizarTexto(oferta.cidade);
-    var cidadesOk = config.cidadesPermitidas || DEFAULT_CONFIG.cidadesPermitidas;
-    var cidadePermitida = false;
-    for (var j = 0; j < cidadesOk.length; j++) {
-      if (cidNorm.indexOf(_normalizarTexto(cidadesOk[j])) !== -1) {
-        cidadePermitida = true;
-        break;
+    // 3. Abrangência Geográfica (Definida pelos Grupos Autorizados)
+    // O médico entra exclusivamente em grupos de WhatsApp das cidades de seu interesse.
+    // Portanto, qualquer vaga de um grupo liberado na Allowlist é aceita sem bloqueio de cidade.
+    if (config.filtroCidadesAtivo && Array.isArray(config.cidadesPermitidas) && config.cidadesPermitidas.length > 0) {
+      var cidNorm = _normalizarTexto(oferta.cidade);
+      var cidadesOk = config.cidadesPermitidas;
+      var cidadePermitida = false;
+      for (var j = 0; j < cidadesOk.length; j++) {
+        if (cidNorm.indexOf(_normalizarTexto(cidadesOk[j])) !== -1) {
+          cidadePermitida = true;
+          break;
+        }
       }
-    }
-    if (!cidadePermitida) {
-      return {
-        aprovado: false,
-        codigo: "CIDADE_FORA_DO_RAIO",
-        motivo: "Cidade '" + oferta.cidade + "' fora do raio configurado"
-      };
+      if (!cidadePermitida) {
+        return {
+          aprovado: false,
+          codigo: "CIDADE_FORA_DO_RAIO",
+          motivo: "Cidade '" + oferta.cidade + "' fora do raio configurado"
+        };
+      }
     }
 
     // 4. Verifica Piso Financeiro
@@ -74595,12 +76041,11 @@ function _construirPainelSniperTelegram() {
         { text: "💰 Piso -R$100", callback_data: "sniper:val_down" }
       ],
       [
-        { text: "🧪 Simular 8 Vagas WhatsApp", callback_data: "sniper:simular" },
-        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" }
+        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
+        { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" }
       ],
       [
-        { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" },
-        { text: "🔓 Destravar Agenda Sniper", callback_data: "sniper:unlock_all" }
+        { text: "🛠️ Diagnóstico & Ferramentas", callback_data: "sniper:diag" }
       ],
       [
         { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
@@ -74793,7 +76238,12 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
   }
 
   if (acao === "pair_wa") {
-    var codigoPareamento = "WGN-" + Math.floor(1000 + Math.random() * 9000);
+    // Código oficial de pareamento WhatsApp: 8 dígitos/caracteres além do traço (4 + 4 no formato XXXX-XXXX)
+    var charsAlfanum = "23456789ABCDEFGHJKLMNPQRSTUVWXYZ";
+    var c1 = charsAlfanum.charAt(Math.floor(Math.random() * charsAlfanum.length));
+    var parte1 = "WGN" + c1; // 4 caracteres antes do traço (ex: WGN4, WGN7, WGNA)
+    var parte2 = String(Math.floor(1000 + Math.random() * 9000)); // 4 dígitos após o traço (ex: 6067)
+    var codigoPareamento = parte1 + "-" + parte2;
     var msgPair = [
       "📱 *PAREAMENTO WHATSAPP (8 DÍGITOS — SEM QR CODE)*",
       "━━━━━━━━━━━━━━━━━━━━",
@@ -74801,8 +76251,8 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
       "",
       "1️⃣ Abra o *WhatsApp* > *Aparelhos Conectados* > *Conectar um aparelho*",
       "2️⃣ Toque em *Conectar com número de telefone*",
-      "3️⃣ Digite o código de pareamento ou acione o webhook local `/api/sniper/webhook`:",
-      "🔑 Protocolo de Sessão: `" + codigoPareamento + "`",
+      "3️⃣ Digite o código de pareamento no WhatsApp ou acione o webhook local `/api/sniper/webhook`:",
+      "🔑 Código de Pareamento: `" + codigoPareamento + "`",
       "",
       "🛡️ *Blindagem & Stealth Ativos:*",
       "• `Camada 1`: Bloqueio hard-coded de conversas privadas (`@s.whatsapp.net`) e Status",
@@ -74817,6 +76267,30 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
     return _enviarOuEditarPainelSniper(chatId, msgId, token, msgPair, {
       inline_keyboard: [
         [{ text: "🛡️ Configurar Grupos Permitidos", callback_data: "sniper:grupos" }],
+        [{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]
+      ]
+    });
+  }
+
+  if (acao === "diag") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🛠️ Menu de Diagnóstico e Ferramentas", false);
+    }
+    var msgDiag = [
+      "🛠️ *DIAGNÓSTICO & FERRAMENTAS DO SNIPER*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Ferramentas de teste e manutenção técnica:",
+      "",
+      "🧪 *Simulador de 8 Vagas:* Injeta mensagens sintéticas nos grupos para auditar filtros anti-calote, piso salarial e auto-agendamento.",
+      "🔓 *Destravar Agenda:* Limpa locks temporários de slots capturados pelo Sniper na sua rotina.",
+      "",
+      "💡 _Também acessível a qualquer momento via comando:_ `/sniper simular`"
+    ].join("\n");
+
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, msgDiag, {
+      inline_keyboard: [
+        [{ text: "🧪 Simular 8 Vagas WhatsApp", callback_data: "sniper:simular" }],
+        [{ text: "🔓 Destravar Agenda Sniper", callback_data: "sniper:unlock_all" }],
         [{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]
       ]
     });

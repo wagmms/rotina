@@ -15,12 +15,10 @@
 
 ## 🔄 Tarefa Concluída
  
-- [x] **Auditoria Integral & Correção Cirúrgica de Fronteiras Clínicas, Segurança e RAG Local (`src/clinical/`, `src/data/remumes/`, `server/`, `estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `tests/test_auditoria_correcoes_aceite.cjs`)**:
-    - **Julgamento Comparativo (Gemini 4 Argon vs ChatGPT)**: Julgamento formal emitido em `scratch/julgamento_argon.md`. Convergência dos 22 achados priorizados.
-    - **Fronteira Clínica & Segurança (C1-C5, E1-E7)**: Resolução de negação de alergias por oração/cláusula; bloqueio gestacional e duplicidade em `safety_guard.js`; severidade crítica em pediatria sem peso com `is_safe: false`; `qSOFA` e IMC infantil em `calculators.js` sem valores espúrios; eliminação de negativas fabricadas em `formatClipboardSoap`; `SoapInputSchema` com `additionalProperties: true` eliminando mutilação Ajv; `_rpcMap` estritamente fechado em `server/runtime.js`; sessões reservadas bloqueadas na camada HTTP `/api/cockpit`; `x-bypass-ratelimit` restrito a `test`; `updateId` e `inline_query` com autorização real no webhook.
-    - **Bancos e Catálogos (CNES, TdC, REMUME)**: FTS5 corrigido em `cnes_service.js` (< 5ms); serviço RAG `tdc_service.js` criado do zero conectando os 3.899 docs clínicos do Tá de Clinicagem; presets provisórios do REMUME com `verificado: false`; método `obterCatalogoAtivo` e `await buscarRemumeNaWeb` normalizados.
-    - **Frontend Cockpit PWA**: `estacao_soap.js` com desestruturação segura dos nós S+O+A+P evitando `[object Object]`, banner de contraindicações críticas, cópia com 1 clique do clipboard formatado e resolução dinâmica de URL base para GitHub Pages.
-    - **Recibo Oficial de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 30.35s** (`npm test`) e suíte de aceite `tests/test_auditoria_correcoes_aceite.cjs` 100% aprovada.
+- [x] **Expurgo de Tokens Base64 de Equipe e Modernização da Configuração de Unidade (`src/12_experiencia_bot.js`, `src/07a_telegram_router.js`, `tests/test_multi_localidade_whitelabel.cjs`)**:
+    - **Expurgo do Token Base64 Inútil**: Eliminada a tela poluída de "Compartilhamento de Equipe" (`EQP-...`) e o comando `/importar_unidade` como fluxo primário.
+    - **Nova Tela e Fluxo de Unidade de Saúde (`enviarTelaUnidadeSaude`)**: Botão no `/perfil` atualizado para `[🏥 Unidade / Hospital (/unidade)]`. Ao tocar ou enviar `/unidade`, exibe a unidade atual e exemplos objetivos de como alterá-la (`/unidade UPA 24h Central`, `/unidade Hospital das Clínicas`).
+    - **Testes Aprovados**: `tests/test_multi_localidade_whitelabel.cjs` validado com zero regressões.
  
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

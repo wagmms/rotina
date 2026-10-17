@@ -1119,8 +1119,35 @@ function rotearComandoSistema(comando, texto, chatId) {
     },
     "/importar_remume": function() {
       var corpoImp = texto.replace(/^\/importar_remume\s*/i, "").trim();
-      var linhasImp = corpoImp.split(/\r?\n/);
+      var linhasImp = corpoImp.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
       if (linhasImp.length < 2) {
+        var primeiraLinha = (linhasImp[0] || "").trim();
+        if (primeiraLinha) {
+          var partesCidPre = primeiraLinha.split(/[-/,]/);
+          var munPre = (partesCidPre[0] || primeiraLinha).trim();
+          var ufPre = (partesCidPre[1] || "").trim().toUpperCase();
+          var cbSol = "ux:remume:solicitar:" + munPre.slice(0, 24).replace(/:/g, "") + ":" + (ufPre || "BR").slice(0, 2);
+          var txtAviso = "⚠️ *Faltou colar a lista de medicamentos de " + munPre + (ufPre ? " - " + ufPre : "") + "!*\n\n" +
+            "Você informou o nome da cidade, mas o comando `/importar_remume` exige que a **relação de medicamentos venha colada na mesma mensagem**, a partir da 2ª linha.\n\n" +
+            "💡 *Como enviar corretamente (copie o modelo abaixo e cole seus remédios):*\n" +
+            "```text\n" +
+            "/importar_remume " + munPre + (ufPre ? " - " + ufPre : "") + "\n" +
+            "Amoxicilina 500mg cápsula\n" +
+            "Dipirona 500mg comprimido\n" +
+            "Losartana 50mg comprimido\n" +
+            "Omeprazol 20mg cápsula\n" +
+            "```\n\n" +
+            "👇 *Outras opções imediatas:*\n" +
+            "• Quer apenas ativar sua cidade no perfil agora? Use `/cidade " + munPre + (ufPre ? " - " + ufPre : "") + "` (você fica protegido pela RENAME Nacional do SUS para receitas e condutas).\n" +
+            "• Não tem a lista em mãos? Toque em **Solicitar ao Desenvolvedor** abaixo para priorizarmos a inclusão oficial!";
+          var kbAviso = {
+            inline_keyboard: [
+              [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSol }],
+              [{ text: "🔙 Escolher Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          };
+          return enviarMensagemComTecladoParaChat(chatId, txtAviso, kbAviso);
+        }
         if (typeof tratarCallbackSolicitarOuImportarRemume === "function") {
           return tratarCallbackSolicitarOuImportarRemume(chatId, "instrucoes");
         }
@@ -1189,30 +1216,25 @@ function rotearComandoSistema(comando, texto, chatId) {
         return enviarMensagemParaChat(chatId, "🏥 *Unidade de Saúde atualizada:* `" + argUnid + "`\nEste nome constará no cabeçalho das suas receitas e documentos.");
       }
       if (typeof tratarCallbackPerfilClinico === "function") {
-        return tratarCallbackPerfilClinico(chatId, "equipe");
+        return tratarCallbackPerfilClinico(chatId, "unidade");
       }
       return false;
     },
     "/importar_unidade": function() {
       var tokenEq = texto.replace(/^\/importar_unidade\s*/i, "").trim();
-      if (!tokenEq) {
-        return enviarMensagemParaChat(chatId, "🔗 Envie `/importar_unidade EQP-...` com o código compartilhado pelo seu colega de plantão.");
-      }
-      if (typeof ConfigService !== "undefined" && typeof ConfigService.importarCodigoUnidade === "function") {
+      if (tokenEq && typeof ConfigService !== "undefined" && typeof ConfigService.importarCodigoUnidade === "function") {
         var ctxImportado = ConfigService.importarCodigoUnidade(chatId, tokenEq);
         if (ctxImportado) {
           return enviarMensagemComTecladoParaChat(chatId,
-            "🔗✅ *Configuração de Equipe Importada com Sucesso!*\n\n" +
+            "✅ *Configuração Importada com Sucesso!*\n\n" +
             "• *Cidade:* `" + (ctxImportado.municipio || "Nacional") + "`\n" +
-            "• *Unidade:* `" + (ctxImportado.unidade_saude || "Unidade de Saúde") + "`\n" +
-            "• *Cenário:* `" + (ctxImportado.cenario_assistencial || "UPA 24h") + "`\n" +
-            "• *REMUME:* `" + (ctxImportado.remume_slug || "rename_nacional") + "`\n\n" +
-            "🔒 _Seu Nome e CRM individuais foram preservados intactos._",
+            "• *Unidade:* `" + (ctxImportado.unidade_saude || "Unidade de Saúde") + "`\n\n" +
+            "💡 _Dica: Para alterar sua unidade diretamente, envie `/unidade Nome da Unidade`._",
             { inline_keyboard: [[{ text: "⚙️ Ver Meu Perfil", callback_data: "ux:perfil:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
           );
         }
       }
-      return enviarMensagemParaChat(chatId, "⚠️ Código de equipe inválido ou corrompido.");
+      return enviarMensagemParaChat(chatId, "ℹ️ O compartilhamento por código de equipe foi descontinuado para simplificar a experiência. Para definir sua unidade ou hospital, envie `/unidade Nome do Hospital` (ex: `/unidade UPA Central`) ou acesse o menu `/perfil`.");
     }
   };
 

@@ -11,8 +11,7 @@
     "test:affected": "node scripts/run_tests.cjs --affected",
     "build": "python3 build_master.py",
     "extrair:hsl": "node scripts/extrair_guia_hsl.js",
-    "test:all": "node scripts/run_tests.cjs --all",
-    "test:autoloop": "node scripts/run_tests.cjs --all --select=tests/test_autoloop_runner.cjs,tests/test_autoloop_orchestrator.py"
+    "test:all": "node scripts/run_tests.cjs --all"
   },
   "dependencies": {
     "@fastify/compress": "^9.2.1",
