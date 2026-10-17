@@ -178,7 +178,7 @@ test('Cockpit Acessibilidade e SBAR - Execução determinística do gerador SBAR
   assert.ok(sbarCenso.includes('Total no Censo: 2 leito(s)'), 'Deve registrar censo total');
   assert.ok(sbarCenso.includes('LEITO 12'), 'Deve conter Leito 12');
   assert.ok(sbarCenso.includes('LEITO 14'), 'Deve conter Leito 14');
-  assert.ok(sbarCenso.includes('Padronização HC-UE FMRP-USP'), 'Deve conter assinatura institucional de segurança');
+  assert.ok(sbarCenso.includes('Padronização Protocolo de Emergência'), 'Deve conter assinatura institucional de segurança');
 });
 
 test('Cockpit Acessibilidade e SBAR - Extração de prescrição PEP a partir do SOAP ambulatorial', () => {

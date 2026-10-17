@@ -1,0 +1,17 @@
+Você é o Lead Software Architect e Preceptor Chefe de Medicina Interna e Emergência do projeto Rotina.
+Estamos executando o PASSO 2 da modernização clínica após a extração de 3.899 documentos do acervo "Tá de Clinicagem" (TdC).
+O PASSO 1 já concluiu a atualização de src/02_calculadoras_puras.js com a função tromboliseAVC e refinamentos clínicos.
+
+Agora no PASSO 2, o objetivo é auditar e integrar os módulos do Bot no Telegram:
+1) src/07f_telegram_calculadoras_parser.js:
+   - Adicionar a calculadora determinística de trombólise no AVC (Alteplase 0,9 mg/kg máx 90mg / Tenecteplase 0,25 mg/kg máx 25mg) no CATALOGO_CALCULADORAS, em LISTA_CALCULADORAS_DETERMINISTICAS, no despacho de calcularAutomatico e nas instruções de preenchimento.
+2) src/02_neurologia_avc.js:
+   - Harmonizar as diretrizes contemporâneas AHA/ASA 2019/2023, ESO e acervo TdC:
+     - Atualizar a janela 3-4,5h: Idade > 80 anos não é mais contraindicação absoluta na prática atual.
+     - Reafirmar Tenecteplase (TNK 0,25 mg/kg máx 25 mg) como opção Classe I de primeira linha, salientando bolus em 5-10s, ausência de necessidade de BIC de 1h, ideal para drip-and-ship em oclusão de grande vaso.
+     - Incompatibilidade física de Tenecteplase com SG 5% (precipita).
+     - Alvo PA < 185/110 mmHg pré e < 180/105 mmHg nas primeiras 24h pós-trombólise.
+3) src/07c_telegram_consultas_e_ia.js:
+   - Auditar consultas rápidas e integração com o motor determinístico.
+
+Forneça a auditoria cirúrgica e os blocos exatos de código (patches) para aplicar essas melhorias, garantindo 100% de compatibilidade e preservação dos testes existentes.

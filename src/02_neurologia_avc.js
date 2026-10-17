@@ -139,9 +139,16 @@ var NeurologiaAvcService = (function() {
     } else {
       if (tempoSintomasHoras > 3.0 && tempoSintomasHoras <= 4.5) {
         janela = "3_a_4.5h";
-        // Critérios adicionais para 3 a 4.5h (ECASS III)
+        // Critérios adicionais para 3 a 4.5h (ECASS III / AHA-ASA 2019-2023 / ESO):
         var criteriosExclusao45 = [];
-        if (idade > 80) criteriosExclusao45.push("Idade > 80 anos");
+        if (idade > 80) {
+          if (params.ignorarIdadeAvancada || params.diretrizContemporanea) {
+            contraRelativas.push("Idade > 80 anos na janela de 3 a 4,5h (elegível pelas diretrizes AHA/ASA 2019/2023 e ESO se mRS prévio favorável)");
+            alertasClinicos.push("💡 Idade > 80 anos (Janela 3–4,5h): Diretrizes AHA/ASA e ESO recomendam a trombólise IV se benefício superar risco.");
+          } else {
+            criteriosExclusao45.push("Idade > 80 anos (critério histórico estrito ECASS III; diretrizes contemporâneas AHA/ASA e ESO consideram elegível se mRS favorável)");
+          }
+        }
         if (params.usoAnticoagulanteOral) criteriosExclusao45.push("Uso de anticoagulante oral (qualquer RNI)");
         if (nihss !== undefined && nihss > 25) criteriosExclusao45.push("AVC grave (NIHSS > 25)");
         if (params.historicoAvcEDiabetes) criteriosExclusao45.push("Histórico prévio de AVC e Diabetes");
@@ -172,7 +179,7 @@ var NeurologiaAvcService = (function() {
     }
 
     if (elegivel) {
-      mensagem = "Paciente ELEGÍVEL para Trombólise IV (Alteplase) na janela de até 4.5h.";
+      mensagem = "Paciente ELEGÍVEL para Trombólise IV (Tenecteplase ou Alteplase) na janela de até 4.5h.";
       if (contraRelativas.length > 0) {
         mensagem += " ATENÇÃO: Avaliar risco/benefício devido a contraindicações relativas: " + contraRelativas.join(", ");
       }
@@ -194,7 +201,7 @@ var NeurologiaAvcService = (function() {
         // Cálculo Tenecteplase (Metalyse / TNK): 0.25 mg/kg em bolus único, máx 25 mg
         var maxPesoTnk = Math.min(pesoKg, 100);
         var doseTotalTnk = Math.min(maxPesoTnk * 0.25, 25.0).toFixed(1);
-        posologiaTenecteplase = `Tenecteplase (0,25 mg/kg, máx 25 mg). Dose Única: ${doseTotalTnk} mg em bolus IV direto durante 5 a 10 segundos.`;
+        posologiaTenecteplase = `Tenecteplase (0,25 mg/kg, máx 25 mg). Dose Única: ${doseTotalTnk} mg em bolus IV direto durante 5 a 10 segundos. ATENÇÃO: Incompatível com SG 5% (precipita) — lavar acesso exclusivamente com SF 0,9% antes e após o bolus.`;
       }
     }
 
@@ -374,13 +381,15 @@ var NeurologiaAvcService = (function() {
       if (e.posologiaTenecteplase) {
         t.push("⭐ *1ª ESCOLHA / PREFERENCIAL: TENECTEPLASE (TNK):*");
         t.push(`👉 ${e.posologiaTenecteplase}`);
-        t.push("  ↳ _Bolus IV direto em 5–10s; sem necessidade de BIC; menor risco de interrupção e padrão-ouro para transferência/transporte (AHA/ESO 2024)._");
+        t.push("  ↳ _Bolus IV único em 5–10s; dispensa BIC de 1h; padrão-ouro para oclusão de grande vaso e transferência (drip-and-ship) para trombectomia (AHA/ESO/TdC)._");
+        t.push("  ↳ ⚠️ _INCOMPATIBILIDADE FÍSICA: Precipita em Soro Glicosado 5% (SG 5%). Lavar acesso exclusivamente com SF 0,9%._");
         t.push("");
       }
 
       if (e.posologiaAlteplase) {
         t.push("🔄 *ALTERNATIVA PADRÃO: ALTEPLASE (rtPA):*");
         t.push(`👉 ${e.posologiaAlteplase}`);
+        t.push("  ↳ _Proibido AAS, clopidogrel ou anticoagulantes nas primeiras 24h pós-trombólise (aguardar TC de crânio de controle em 24h)._");
         t.push("");
       }
 

@@ -1,0 +1,87 @@
+{
+  "version": "3.0.0",
+  "baseline": "rename_nacional",
+  "presets": [
+    {
+      "slug": "rename_nacional",
+      "municipio": "Brasil (Padrão Nacional)",
+      "uf": "BR",
+      "nome_exibicao": "RENAME Nacional (SUS)",
+      "selo_curto": "🟢 [RENAME/SUS]",
+      "total_itens": 255,
+      "verificado": true
+    },
+    {
+      "slug": "sp_sao_paulo",
+      "municipio": "São Paulo",
+      "uf": "SP",
+      "nome_exibicao": "REMUME São Paulo (SP)",
+      "selo_curto": "🟡 \udfe2 [REMUME-SP]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "mg_belo_horizonte",
+      "municipio": "Belo Horizonte",
+      "uf": "MG",
+      "nome_exibicao": "REMUME Belo Horizonte (MG)",
+      "selo_curto": "🟡 \udfe2 [REMUME-BH]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "rj_rio_de_janeiro",
+      "municipio": "Rio de Janeiro",
+      "uf": "RJ",
+      "nome_exibicao": "REMUME Rio de Janeiro (RJ)",
+      "selo_curto": "🟡 \udfe2 [REMUME-RJ]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "pr_curitiba",
+      "municipio": "Curitiba",
+      "uf": "PR",
+      "nome_exibicao": "REMUME Curitiba (PR)",
+      "selo_curto": "🟡 \udfe2 [REMUME-CWB]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "rs_porto_alegre",
+      "municipio": "Porto Alegre",
+      "uf": "RS",
+      "nome_exibicao": "REMUME Porto Alegre (RS)",
+      "selo_curto": "🟡 \udfe2 [REMUME-POA]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "df_brasilia",
+      "municipio": "Brasília",
+      "uf": "DF",
+      "nome_exibicao": "REMUME Brasília (DF)",
+      "selo_curto": "🟡 \udfe2 [REME-DF]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "mt_cuiaba",
+      "municipio": "Cuiabá",
+      "uf": "MT",
+      "nome_exibicao": "REMUME Cuiabá (MT)",
+      "selo_curto": "🟡 \udfe2 [REMUME-CBA]",
+      "total_itens": 255,
+      "verificado": false
+    },
+    {
+      "slug": "sp_ribeirao_preto",
+      "municipio": "Ribeirão Preto",
+      "uf": "SP",
+      "nome_exibicao": "REMUME Ribeirão Preto (SP)",
+      "selo_curto": "🟢 [REMUME-RP]",
+      "total_itens": 255,
+      "verificado": true
+    }
+  ]
+}

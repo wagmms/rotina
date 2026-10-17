@@ -47,7 +47,7 @@ function doGet(e) {
             template.cockpitSession = tokenCockpit;
           }
           return (template ? template.evaluate() : HtmlService.createHtmlOutputFromFile(arquivoHtml))
-            .setTitle("Cockpit Móvel — Wagner Moraes")
+            .setTitle("Cockpit Clínico Móvel")
             .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover")
             .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
         } catch (eFile) {
@@ -56,7 +56,7 @@ function doGet(e) {
             tmplBio.cockpitSession = tokenCockpit || "";
           }
           return (tmplBio ? tmplBio.evaluate() : HtmlService.createHtmlOutputFromFile("ComposicaoCorporal"))
-            .setTitle("Cockpit Móvel — Wagner Moraes")
+            .setTitle("Cockpit Clínico Móvel")
             .addMetaTag("viewport", "width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover")
             .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
         }

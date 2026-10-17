@@ -97,3 +97,41 @@ Excluir expressamente diretórios de artefatos dinâmicos (`tests/repros`, `docs
 - Guidance: Manter filtros de exclusão no fingerprint para artefatos gerados em tempo de execução.
 
 ---
+
+## [ERR-20261017-AUD] Auditoria integral: falhas e integridade da execução
+
+**Logged**: 2026-10-17
+**Priority**: high
+**Status**: pending
+**Area**: tests
+
+### Summary
+A execução única `npm test -- --all` resultou em 254/281 suítes aprovadas, 27 falhas e `stable:false`; as 57 suítes baseline passaram. Há wrappers Python duplicando falhas CJS e expectativas antigas, portanto não equivale a 27 bugs clínicos. Três arquivos do bot divergiram do snapshot inicial durante a auditoria.
+
+### Evidence
+`docs/auditorias/2026-10-17/RESULTADOS_TESTES.json` e `RELATORIO.md`. Fingerprint de entrada: ed897c7a61d9c6cf951109822735b4a14380e4e0ab29e057ae44bd8395e271fd. Não emitir recibo de estabilidade do diretório atual.
+
+### Incidentes de ferramentas
+- Descoberta inicial incluiu `.github`, ausente; corrigido restringindo inventário aos diretórios existentes.
+- Revisor encontrou glob zsh sem correspondência `src/*db*`; preferir `rg --files` e filtragem.
+- Runner direcionado inicialmente falhou com `spawnSync python3 EPERM`; reexecução autorizada fora do sandbox concluiu 9/9. Nenhum bloqueio de aprovação permaneceu.
+
+### Suggested Action
+Triar asserções por comportamento e fonte clínica; corrigir defeitos confirmados; estabilizar snapshot antes do próximo recibo. Não relaxar limites clínicos nem autenticação para satisfazer testes.
+
+### Metadata
+- Pattern-Key: tests.audit-failures-snapshot-drift
+- Related Files: scripts/run_tests.cjs, scripts/test_manifest.json, docs/auditorias/2026-10-17/RELATORIO.md
+
+### Maintenance
+- Claim: resultado baseline verde não demonstra aprovação integral; recibo com stable:false não certifica diretório atual.
+- Scope: runner e snapshot desta auditoria
+- Type: dependency
+- Validation: validated
+- Evidence: recibo preservado com 281 resultados e integridade false
+- Revalidate: alteração do runner ou nova execução em snapshot estabilizado
+- Disposition: retain
+
+
+### Complemento da auditoria — reprodução CSV
+O primeiro script de evidências comparou linhas brutas do CSV de uma coluna sem remover aspas de escape e falhou na comparação com JSON. Corrigido somente `docs/auditorias/2026-10-17/reproducoes.cjs` para interpretar aspas da coluna; nova execução exit 0 confirmou igualdade dos 255 itens. A comparação anterior com o parser CSV do Python já havia confirmado o resultado. Não houve mudança em dados ou código de produção.

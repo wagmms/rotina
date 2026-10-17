@@ -261,7 +261,87 @@ var ReceitaPdfService = (function() {
       "</div>";
   }
 
-  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes) {
+  function _resolverContextoPdf(chatId, opcoesExtras) {
+    opcoesExtras = opcoesExtras || {};
+    var ctx = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+      ? ConfigService.getContextoClinico(chatId)
+      : null;
+    var prof = (ctx && ctx.profissional) ? ctx.profissional : {};
+    var loc = (ctx && ctx.localidade) ? ctx.localidade : {};
+    var unid = (ctx && ctx.unidade_assistencial) ? ctx.unidade_assistencial : {};
+
+    var papel = opcoesExtras.papel || prof.papel || "MEDICO_CRM";
+    var ehInterno = (papel === "INTERNO_ACADEMICO" || papel === "INTERNO" || opcoesExtras.ehInterno === true);
+    var prefixo = prof.prefixo || "Dr.";
+    var nomeCarimbo = opcoesExtras.medicoNome || prof.nome_completo_carimbo || "";
+    if (nomeCarimbo && !/^dr(a)?\.?\s/i.test(nomeCarimbo)) {
+      nomeCarimbo = prefixo + " " + nomeCarimbo;
+    }
+    var crmStr = opcoesExtras.medicoCrm || (prof.registro_conselho ? ("CRM-" + (prof.uf_conselho || loc.uf || "BR") + " " + prof.registro_conselho) : "");
+    var munNome = (loc.municipio_nome && loc.municipio_nome !== "Brasil (Padrão Nacional)")
+      ? (loc.municipio_nome + (loc.uf && loc.uf !== "BR" ? " - " + loc.uf : ""))
+      : "";
+    var instituicao = opcoesExtras.instituicao || (unid.nome_unidade && unid.nome_unidade !== "Unidade de Saúde / SUS" ? unid.nome_unidade : "");
+    var tipoReceita = opcoesExtras.tipoReceita || (opcoesExtras.controleEspecial ? "CONTROLE_ESPECIAL" : "SIMPLES");
+
+    return {
+      ehInterno: ehInterno,
+      papel: papel,
+      medicoNome: ehInterno ? "" : nomeCarimbo,
+      medicoCrm: ehInterno ? "" : crmStr,
+      cidade: opcoesExtras.cidade || munNome,
+      instituicao: instituicao,
+      tipoReceita: tipoReceita,
+      controleEspecial: tipoReceita === "CONTROLE_ESPECIAL"
+    };
+  }
+
+  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf) {
+    ctxPdf = ctxPdf || {};
+    var ehControle = !!ctxPdf.controleEspecial;
+    var ehInterno = !!ctxPdf.ehInterno;
+    var titulo = ehControle ? "RECEITUÁRIO DE CONTROLE ESPECIAL" : "RECEITUÁRIO MÉDICO";
+    var subtituloVias = ehControle
+      ? "<div style='font-weight: bold; font-size: 9pt; margin-top: 3px; color: #000000;'>1ª VIA - RETENÇÃO DA FARMÁCIA &nbsp;|&nbsp; 2ª VIA - ORIENTAÇÃO AO PACIENTE</div>"
+      : "";
+    var instHtml = ctxPdf.instituicao
+      ? "<div style='font-weight: bold; font-size: 10pt; margin-bottom: 2px; color: #000000;'>" + escHtml(ctxPdf.instituicao) + "</div>"
+      : "";
+
+    var blocoAssinaturaTexto = "";
+    if (!ehInterno) {
+      if (ctxPdf.medicoNome || ctxPdf.medicoCrm) {
+        blocoAssinaturaTexto = "<strong>" + escHtml(ctxPdf.medicoNome) + "</strong>" +
+          (ctxPdf.medicoCrm ? "<br>" + escHtml(ctxPdf.medicoCrm) : "");
+      } else {
+        blocoAssinaturaTexto = "Assinatura do(a) Médico(a) / CRM";
+      }
+    }
+
+    var blocoQuadrosControle = "";
+    if (ehControle) {
+      blocoQuadrosControle =
+        "<table width='100%' cellpadding='6' cellspacing='0' style='width: 100%; margin-top: 28px; border-collapse: collapse; color: #000000;'>" +
+        "  <tr>" +
+        "    <td width='49%' valign='top' style='border: 1px solid #000000; font-size: 8.5pt; line-height: 1.5; color: #000000;'>" +
+        "      <div style='font-weight: bold; text-align: center; border-bottom: 1px solid #000000; padding-bottom: 3px; margin-bottom: 4px;'>IDENTIFICAÇÃO DO COMPRADOR</div>" +
+        "      Nome: ___________________________________________<br>" +
+        "      Ident.: ____________________ Órg. Emissor: _________<br>" +
+        "      End.: ____________________________________________<br>" +
+        "      Cidade: ________________________ UF: _____________<br>" +
+        "      Telefone: (____) _________________________________" +
+        "    </td>" +
+        "    <td width='2%'></td>" +
+        "    <td width='49%' valign='top' style='border: 1px solid #000000; font-size: 8.5pt; line-height: 1.5; text-align: center; color: #000000;'>" +
+        "      <div style='font-weight: bold; text-align: center; border-bottom: 1px solid #000000; padding-bottom: 3px; margin-bottom: 32px;'>IDENTIFICAÇÃO DO FORNECEDOR</div>" +
+        "      ___________________________________________<br>" +
+        "      Assinatura do Farmacêutico<br><br>" +
+        "      Data: _____ / _____ / __________" +
+        "    </td>" +
+        "  </tr>" +
+        "</table>";
+    }
+
     return "<!DOCTYPE html>" +
       "<html><head><meta charset='utf-8'>" +
       "<style>" +
@@ -269,40 +349,43 @@ var ReceitaPdfService = (function() {
       "  * { box-sizing: border-box; font-family: Arial, sans-serif; font-size: 11pt; color: #000000; }" +
       "  body { font-family: Arial, sans-serif; color: #000000; margin: 0; padding: 0; font-size: 11pt; line-height: 1.4; }" +
       "</style></head><body>" +
-      "  <div style='text-align: center; border-bottom: 1px solid #000000; padding-bottom: 8px; margin-bottom: 16px;'>" +
-      "    <div style='font-weight: bold; letter-spacing: 2px; text-transform: uppercase;'>RECEITUÁRIO MÉDICO</div>" +
-      "    <div style='color: #c00000; font-weight: bold; font-size: 10pt; margin-top: 4px;'>⚠️ DOCUMENTO EM CARÁTER DE RASCUNHO · CONFERÊNCIA MÉDICA OBRIGATÓRIA</div>" +
+      "  <div style='text-align: center; border-bottom: 1.5px solid #000000; padding-bottom: 8px; margin-bottom: 16px; color: #000000;'>" +
+      instHtml +
+      "    <div style='font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #000000;'>" + titulo + "</div>" +
+      subtituloVias +
       "  </div>" +
-      "  <table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; border-bottom: 1px solid #000000; margin-bottom: 14px;'>" +
+      "  <table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; border-bottom: 1px solid #000000; margin-bottom: 14px; color: #000000;'>" +
       "    <tr>" +
-      "      <td width='70%' align='left' style='padding-bottom: 6px;'>" +
+      "      <td width='70%' align='left' style='padding-bottom: 6px; color: #000000;'>" +
       "        Paciente: <strong>" + nomePaciente + "</strong>" +
       "      </td>" +
-      "      <td width='30%' align='right' style='padding-bottom: 6px;'>" +
+      "      <td width='30%' align='right' style='padding-bottom: 6px; color: #000000;'>" +
       "        Data: <strong>" + dataFormatada + "</strong>" +
       "      </td>" +
       "    </tr>" +
       "  </table>" +
-      "  <div style='margin-bottom: 18px;'>" +
+      "  <div style='margin-bottom: 18px; color: #000000;'>" +
       htmlCorpo +
       htmlOrientacoes +
       "  </div>" +
-      "  <table align='center' width='280' cellpadding='0' cellspacing='0' style='margin: 60px auto 0 auto; text-align: center;'>" +
+      "  <table align='center' width='280' cellpadding='0' cellspacing='0' style='margin: 60px auto 0 auto; text-align: center; color: #000000;'>" +
       "    <tr>" +
-      "      <td align='center' style='border-top: 1px solid #000000; padding-top: 6px;'>" +
-      "        Assinatura do(a) Médico(a) / CRM" +
+      "      <td align='center' style='border-top: 1px solid #000000; padding-top: 6px; color: #000000;'>" +
+      blocoAssinaturaTexto +
       "      </td>" +
       "    </tr>" +
       "  </table>" +
+      blocoQuadrosControle +
       "</body></html>";
   }
 
-  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
+  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente, opcoesExtras) {
     var dados = extrairItensReceitaLimpos(textoPrescricao);
     var viasMap = agruparItensPorVia_(dados.itens);
     var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
     var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dados.orientacoes);
-    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+    var ctxPdf = _resolverContextoPdf(opcoesExtras && opcoesExtras.chatId, opcoesExtras);
+    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf);
   }
 
   function obterOuCriarPastaDrive() {
@@ -315,7 +398,8 @@ var ReceitaPdfService = (function() {
     return folder;
   }
 
-  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada) {
+  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada, ctxPdf) {
+    ctxPdf = ctxPdf || {};
     var blobPdf = null;
     if (typeof gerarPdfReceitaNativo === "function") {
       try {
@@ -324,7 +408,15 @@ var ReceitaPdfService = (function() {
           dataFormatada: dataFormatada,
           itens: dadosEstruturados.itens,
           orientacoes: dadosEstruturados.orientacoes,
-          ehRascunho: dadosEstruturados.ehRascunho
+          ehRascunho: false,
+          ehInterno: ctxPdf.ehInterno,
+          papel: ctxPdf.papel,
+          medicoNome: ctxPdf.medicoNome,
+          medicoCrm: ctxPdf.medicoCrm,
+          cidade: ctxPdf.cidade,
+          instituicao: ctxPdf.instituicao,
+          tipoReceita: ctxPdf.tipoReceita,
+          controleEspecial: ctxPdf.controleEspecial
         });
         if (pdfBytes) {
           blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
@@ -343,11 +435,11 @@ var ReceitaPdfService = (function() {
   }
 
   return {
-    gerarHtml: function(textoPrescricao, dataStr, pacienteStr) {
-      return gerarHtmlReceituario(textoPrescricao, dataStr || "03/10/2026", pacienteStr || "Paciente");
+    gerarHtml: function(textoPrescricao, dataStr, pacienteStr, opcoesExtras) {
+      return gerarHtmlReceituario(textoPrescricao, dataStr || "03/10/2026", pacienteStr || "Paciente", opcoesExtras);
     },
 
-    processarEEnviarPdf: function(chatId, textoPrescricao) {
+    processarEEnviarPdf: function(chatId, textoPrescricao, opcoesExtras) {
       // Feedback visual imediato: sinaliza ao Telegram que o documento PDF está sendo gerado
       if (typeof enviarChatAction === "function" && chatId) {
         try { enviarChatAction(chatId, "upload_document", true); } catch (_) {}
@@ -369,10 +461,11 @@ var ReceitaPdfService = (function() {
       var viasMap = agruparItensPorVia_(dadosEstruturados.itens);
       var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
       var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dadosEstruturados.orientacoes);
-      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+      var ctxPdf = _resolverContextoPdf(chatId, opcoesExtras);
+      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf);
 
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
-      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada);
+      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada, ctxPdf);
 
       var linkDrive = "";
       try {

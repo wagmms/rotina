@@ -1,0 +1,2543 @@
+{
+  "version": 1,
+  "scope": "all",
+  "fingerprint": "ed897c7a61d9c6cf951109822735b4a14380e4e0ab29e057ae44bd8395e271fd",
+  "versions": {
+    "node": "v24.21.0",
+    "python": "Python 3.12.13"
+  },
+  "passed": false,
+  "stable": false,
+  "seconds": 54.803970238000005,
+  "results": [
+    {
+      "file": "tests/test_central_rotina_plantao_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 2.525,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_resiliencia_rede.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 3.213,
+      "error": null
+    },
+    {
+      "file": "tests/test_convidado_onboarding_e_ajuda_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 1.096,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_historico_calculos.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 2.305,
+      "error": null
+    },
+    {
+      "file": "tests/test_google_calendar_sync.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 4.933,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_resiliencia_e_offline.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.751,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_seguranca_rpc_telegram.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.935,
+      "error": null
+    },
+    {
+      "file": "tests/test_sniper_plantoes_rotina.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.88,
+      "error": null
+    },
+    {
+      "file": "tests/test_resiliencia_telegram_pipeline.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.689,
+      "error": null
+    },
+    {
+      "file": "tests/test_caching_etag_fastify.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.755,
+      "error": null
+    },
+    {
+      "file": "tests/test_hubs_e_comandos_telegram.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 1.493,
+      "error": null
+    },
+    {
+      "file": "tests/test_schemas_validacao_calculadoras.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.687,
+      "error": null
+    },
+    {
+      "file": "tests/test_fastify_resiliencia_payloads.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.751,
+      "error": null
+    },
+    {
+      "file": "tests/test_server_render.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.803,
+      "error": null
+    },
+    {
+      "file": "tests/test_logs_telemetria_render.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.499,
+      "error": null
+    },
+    {
+      "file": "tests/test_webhook_ingress.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.643,
+      "error": null
+    },
+    {
+      "file": "tests/test_ajustes_usuario_audio_rotina.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.977,
+      "error": null
+    },
+    {
+      "file": "tests/test_webhook_d1_integration.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.64,
+      "error": null
+    },
+    {
+      "file": "tests/test_autoloop_runner.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.554,
+      "error": null
+    },
+    {
+      "file": "tests/test_circuit_breaker_multimodal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.522,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_motores_fallback_local.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.232,
+      "error": null
+    },
+    {
+      "file": "tests/test_fastify_resiliencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.513,
+      "error": null
+    },
+    {
+      "file": "tests/test_seguranca_helmet_ratelimit.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.455,
+      "error": null
+    },
+    {
+      "file": "tests/test_preceptor_live_voice.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.469,
+      "error": null
+    },
+    {
+      "file": "tests/test_etapa2_performance_deterministico.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.473,
+      "error": null
+    },
+    {
+      "file": "tests/test_aderencia_semanal_rotina.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 9.745,
+      "error": null
+    },
+    {
+      "file": "tests/test_preceptor_cockpit_completo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.386,
+      "error": null
+    },
+    {
+      "file": "tests/test_runtime_http_worker.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.423,
+      "error": null
+    },
+    {
+      "file": "tests/test_defensivo_telegram_rpc.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.418,
+      "error": null
+    },
+    {
+      "file": "tests/test_webhook_checkpoint.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.451,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_resolvida.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.201,
+      "error": null
+    },
+    {
+      "file": "tests/test_ui_ux_acessibilidade_telegram.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 1.907,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_busca_remume_guia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.391,
+      "error": null
+    },
+    {
+      "file": "tests/test_hub_go_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.372,
+      "error": null
+    },
+    {
+      "file": "tests/test_pcr_arritmias_telegram.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.565,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_motores_pipeline_refatorado.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.412,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_prenatal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.414,
+      "error": null
+    },
+    {
+      "file": "tests/test_calculadoras_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.884,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_modo_e_receita_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.501,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_ef_organizacao_ux.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.272,
+      "error": null
+    },
+    {
+      "file": "tests/test_via_aerea_dificil.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.206,
+      "error": null
+    },
+    {
+      "file": "tests/test_tev_gestante.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.209,
+      "error": null
+    },
+    {
+      "file": "tests/test_telegram_inline_e_webapp.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.426,
+      "error": null
+    },
+    {
+      "file": "tests/test_compatibilidade_y_dva.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.285,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_local_offline.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.316,
+      "error": null
+    },
+    {
+      "file": "tests/test_geriatria_frax_osteoporose.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.197,
+      "error": null
+    },
+    {
+      "file": "tests/test_guia_pediatrico_pedb.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.342,
+      "error": null
+    },
+    {
+      "file": "tests/test_otorrino_epistaxe_vertigem_hints.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.229,
+      "error": null
+    },
+    {
+      "file": "tests/test_gasometria_acido_base.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.41,
+      "error": null
+    },
+    {
+      "file": "tests/test_ajuda_comandos_slash.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.348,
+      "error": null
+    },
+    {
+      "file": "tests/test_correcao_revisao_geral.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.368,
+      "error": null
+    },
+    {
+      "file": "tests/test_saneamento_escopo_clinico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.207,
+      "error": null
+    },
+    {
+      "file": "tests/test_multi_localidade_whitelabel.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.581,
+      "error": null
+    },
+    {
+      "file": "tests/test_rbac_perfis_clinicos.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.415,
+      "error": null
+    },
+    {
+      "file": "tests/test_correcao_oitava_rodada.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.296,
+      "error": null
+    },
+    {
+      "file": "tests/test_go_hub_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 2.495,
+      "error": null
+    },
+    {
+      "file": "tests/test_ginecologia_ambulatorial.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.186,
+      "error": null
+    },
+    {
+      "file": "tests/test_puericultura_pediatria.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.216,
+      "error": null
+    },
+    {
+      "file": "tests/test_fase2_clinica_epidemiologica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.339,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_api.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.475,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_soap_modais_responsividade.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.235,
+      "error": null
+    },
+    {
+      "file": "tests/test_posologia_deterministica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.255,
+      "error": null
+    },
+    {
+      "file": "tests/test_simplificacao_e_expurgo_generalista.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.183,
+      "error": null
+    },
+    {
+      "file": "tests/test_cardiologia_emergencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.214,
+      "error": null
+    },
+    {
+      "file": "tests/test_ambulatorio_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 1.238,
+      "error": null
+    },
+    {
+      "file": "tests/test_centro_obstetrico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.19,
+      "error": null
+    },
+    {
+      "file": "tests/test_climaterio_thm.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.195,
+      "error": null
+    },
+    {
+      "file": "tests/test_endocrinologia_diabetes.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.228,
+      "error": null
+    },
+    {
+      "file": "tests/test_motores_ia_fallback_local_fastack.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.226,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_clinica_20261008.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.293,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_prescricao_hsl.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.277,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_ambulatorial.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.289,
+      "error": null
+    },
+    {
+      "file": "tests/test_sop_ovarios_policisticos.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.214,
+      "error": null
+    },
+    {
+      "file": "tests/test_guia_farmaceutico_hsl.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.313,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_cota.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.165,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_local_fallback.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.291,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_pro_ginecologia_prenatal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.19,
+      "error": null
+    },
+    {
+      "file": "tests/test_dip_abscesso_tubo_ovariano.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.214,
+      "error": null
+    },
+    {
+      "file": "tests/test_modulos_desativados.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.179,
+      "error": null
+    },
+    {
+      "file": "tests/test_interacoes_locais.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.241,
+      "error": null
+    },
+    {
+      "file": "tests/test_psiquiatria_urgencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.191,
+      "error": null
+    },
+    {
+      "file": "tests/test_comando_mudancas.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.182,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_integracao.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.189,
+      "error": null
+    },
+    {
+      "file": "tests/test_navegacao_rapida_metricas.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.185,
+      "error": null
+    },
+    {
+      "file": "tests/test_pcr_gestante.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.186,
+      "error": null
+    },
+    {
+      "file": "tests/test_saude_idoso_geriatria.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.214,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_pediatrica_extremos.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.236,
+      "error": null
+    },
+    {
+      "file": "tests/test_dermatologia_lesoes_ists.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.194,
+      "error": null
+    },
+    {
+      "file": "tests/test_consultas_bolso_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 1.219,
+      "error": null
+    },
+    {
+      "file": "tests/test_preceptor_dialogo_socratico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.176,
+      "error": null
+    },
+    {
+      "file": "tests/test_reumatologia_monoartrite_febre_reumatica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.229,
+      "error": null
+    },
+    {
+      "file": "tests/test_audio_tempo_unico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.188,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_qualidade.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.254,
+      "error": null
+    },
+    {
+      "file": "tests/test_sala_vermelha_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.222,
+      "error": null
+    },
+    {
+      "file": "tests/test_pipeline_audio_otimizado.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.267,
+      "error": null
+    },
+    {
+      "file": "tests/test_toxicologia_emergencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.239,
+      "error": null
+    },
+    {
+      "file": "tests/test_enfermaria_ux_fluxos.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.179,
+      "error": null
+    },
+    {
+      "file": "tests/test_atendimento_persistente.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.175,
+      "error": null
+    },
+    {
+      "file": "tests/test_notion_habit_log_resiliencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.218,
+      "error": null
+    },
+    {
+      "file": "tests/test_remume_soap_pdf_integracao.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.427,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_qualidade_clinica.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.356,
+      "error": null
+    },
+    {
+      "file": "tests/test_calculadoras_caixa_texto.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.178,
+      "error": null
+    },
+    {
+      "file": "tests/test_gestao_leitos_sbar_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.139,
+      "error": null
+    },
+    {
+      "file": "tests/test_ef_normal_completo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.201,
+      "error": null
+    },
+    {
+      "file": "tests/test_resiliencia_audio_clinico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.135,
+      "error": null
+    },
+    {
+      "file": "tests/test_prescricao_hospitalar_e_ajuste_atb.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.151,
+      "error": null
+    },
+    {
+      "file": "tests/test_ditado_corredor_enfermaria.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.119,
+      "error": null
+    },
+    {
+      "file": "tests/test_leitor_imagens_ostensivo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.163,
+      "error": null
+    },
+    {
+      "file": "tests/test_resiliencia_multimodal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.163,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_dois_tempos.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.203,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_extrair_receita.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.156,
+      "error": null
+    },
+    {
+      "file": "tests/test_prescricao_medica_ostensivo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.153,
+      "error": null
+    },
+    {
+      "file": "tests/test_cnes_api.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.15,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_exame_fisico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.128,
+      "error": null
+    },
+    {
+      "file": "tests/test_didatica_seguranca_soap_ostensivo.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.082,
+      "error": null
+    },
+    {
+      "file": "tests/test_keep_alive_typing.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.12,
+      "error": null
+    },
+    {
+      "file": "tests/test_rotina_adaptativa.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.162,
+      "error": null
+    },
+    {
+      "file": "tests/test_remume_cache_lote.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.099,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_nefrologia_hidratacao_acessibilidade.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.073,
+      "error": null
+    },
+    {
+      "file": "tests/test_fabrica_teclados_ux.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.127,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_acessibilidade_modais_sbar.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.127,
+      "error": null
+    },
+    {
+      "file": "tests/test_tts_modo_rapido_preceptor.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.125,
+      "error": null
+    },
+    {
+      "file": "tests/test_calculadoras_puras_audit_argon.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.228,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_ef_moldes_copia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.06,
+      "error": null
+    },
+    {
+      "file": "tests/test_apresentacao_novos_dominios.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.494,
+      "error": null
+    },
+    {
+      "file": "tests/test_lactacao_seguranca_domain.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.042,
+      "error": null
+    },
+    {
+      "file": "tests/test_golden_dataset_clinico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.229,
+      "error": null
+    },
+    {
+      "file": "tests/test_novos_dominios_argon.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.061,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_protocolos_onda1.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.033,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_protocolos_onda2.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.06,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_protocolos_onda3.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.054,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_protocolos_onda4.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.046,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_protocolos_onda5.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.047,
+      "error": null
+    },
+    {
+      "file": "tests/test_aba_rotina_sincronizacao_bidirecional.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.947,
+      "error": null
+    },
+    {
+      "file": "tests/test_preceptor_live_anti_eco_e_transcricao.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.506,
+      "error": null
+    },
+    {
+      "file": "tests/test_usuario_dogfooding.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.289,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_velocidade_fase2.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.109,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_asma_dpoc_acessibilidade.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.083,
+      "error": null
+    },
+    {
+      "file": "tests/test_ouvir_no_fone.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.134,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_offline_indexeddb.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.07,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_io_e_thinking.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.123,
+      "error": null
+    },
+    {
+      "file": "tests/test_vertex_ai_multimodal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.61,
+      "error": null
+    },
+    {
+      "file": "tests/test_round_passagem_ostensivo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.113,
+      "error": null
+    },
+    {
+      "file": "tests/test_resiliencia_gemini_429.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.185,
+      "error": null
+    },
+    {
+      "file": "tests/test_acessibilidade_contraste_cockpit.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.093,
+      "error": null
+    },
+    {
+      "file": "tests/test_server_telemetry.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.049,
+      "error": null
+    },
+    {
+      "file": "tests/test_hematologia_anemias.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.057,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_pwa_interface_e_responsividade.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.067,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_edge_cases_clinicos.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.053,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_carga_e_teclados.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.036,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_perfil_dinamico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.037,
+      "error": null
+    },
+    {
+      "file": "tests/test_aba_rotina_cockpit.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.288,
+      "error": null
+    },
+    {
+      "file": "tests/test_d1_inbox.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.059,
+      "error": null
+    },
+    {
+      "file": "tests/test_hepatologia_colestase_gestacional.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.055,
+      "error": null
+    },
+    {
+      "file": "tests/test_nefrologia_clearance.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.029,
+      "error": null
+    },
+    {
+      "file": "tests/test_oncologia_basica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.029,
+      "error": null
+    },
+    {
+      "file": "tests/test_pals_pediatria.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.03,
+      "error": null
+    },
+    {
+      "file": "tests/test_teclado_adaptativo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.066,
+      "error": null
+    },
+    {
+      "file": "tests/test_suporte_nutricional_pediatrico.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.048,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_toxoplasmose.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.045,
+      "error": null
+    },
+    {
+      "file": "tests/test_hepatologia_hda.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.029,
+      "error": null
+    },
+    {
+      "file": "tests/test_sedacao_opioides.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.049,
+      "error": null
+    },
+    {
+      "file": "tests/test_pneumologia_dpoc_vni.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.035,
+      "error": null
+    },
+    {
+      "file": "tests/test_oftalmologia_emergencia.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.046,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_rcf_doppler.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.04,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_pediatrica_schwartz.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.059,
+      "error": null
+    },
+    {
+      "file": "tests/test_urologia_colica_nefretica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.038,
+      "error": null
+    },
+    {
+      "file": "tests/test_cardiologia_intensiva.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.033,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_saf_trombofilias.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.051,
+      "error": null
+    },
+    {
+      "file": "tests/test_sepse_puerperal.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.043,
+      "error": null
+    },
+    {
+      "file": "tests/test_ginecologia_endometriose.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.059,
+      "error": null
+    },
+    {
+      "file": "tests/test_pneumologia_crise_asmatica.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.035,
+      "error": null
+    },
+    {
+      "file": "tests/test_nefrologia_dhe.cjs",
+      "kind": "cjs",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.045,
+      "error": null
+    },
+    {
+      "file": "tests/test_cnes_service.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.05,
+      "error": null
+    },
+    {
+      "file": "tests/test_neurologia_avc.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.04,
+      "error": null
+    },
+    {
+      "file": "tests/test_telegram_calculadoras_parser_tdc.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.076,
+      "error": null
+    },
+    {
+      "file": "tests/test_gastroenterologia_pancreatite.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.032,
+      "error": null
+    },
+    {
+      "file": "tests/test_cardiologia_fa_anticoagulacao.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.043,
+      "error": null
+    },
+    {
+      "file": "tests/test_golden_cases.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.092,
+      "error": null
+    },
+    {
+      "file": "tests/test_nefrologia_lra_kdigo.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.034,
+      "error": null
+    },
+    {
+      "file": "tests/test_nutricao_pediatrica.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.027,
+      "error": null
+    },
+    {
+      "file": "tests/test_emergencia_choque_septico_circi.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.044,
+      "error": null
+    },
+    {
+      "file": "tests/test_clinical_calculators.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.045,
+      "error": null
+    },
+    {
+      "file": "tests/test_pediatria_bronquiolite.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.047,
+      "error": null
+    },
+    {
+      "file": "tests/test_saude_idoso.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.04,
+      "error": null
+    },
+    {
+      "file": "tests/test_trombolise_avc_tdc.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.05,
+      "error": null
+    },
+    {
+      "file": "tests/test_ui_ux_formatacao_respostas_pep.cjs",
+      "kind": "cjs",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 29.92,
+      "error": null
+    },
+    {
+      "file": "tests/test_calculadoras_clinicas.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.939,
+      "error": null
+    },
+    {
+      "file": "tests/test_ui_ux_bot.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 1.01,
+      "error": null
+    },
+    {
+      "file": "tests/test_build_pipeline.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.854,
+      "error": null
+    },
+    {
+      "file": "tests/test_runtime_bot.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 2.898,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_aulas.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.696,
+      "error": null
+    },
+    {
+      "file": "tests/test_revisao_seguranca_audit.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.777,
+      "error": null
+    },
+    {
+      "file": "tests/test_bio_rotina.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.553,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_mini_app.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.626,
+      "error": null
+    },
+    {
+      "file": "tests/test_novos_comandos.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.616,
+      "error": null
+    },
+    {
+      "file": "tests/test_deep_audit.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.652,
+      "error": null
+    },
+    {
+      "file": "tests/test_sala_vermelha.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.49,
+      "error": null
+    },
+    {
+      "file": "tests/test_enfermaria.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.531,
+      "error": null
+    },
+    {
+      "file": "tests/test_gasometria.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.474,
+      "error": null
+    },
+    {
+      "file": "tests/test_pdf_receita.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.398,
+      "error": null
+    },
+    {
+      "file": "tests/test_utils.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.402,
+      "error": null
+    },
+    {
+      "file": "tests/test_linguagem_natural_voz.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.399,
+      "error": null
+    },
+    {
+      "file": "tests/test_bases_locais.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.35,
+      "error": null
+    },
+    {
+      "file": "tests/test_hematologia_anemias.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.362,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_io_e_thinking.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.235,
+      "error": null
+    },
+    {
+      "file": "tests/test_embasamento_cientifico.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.336,
+      "error": null
+    },
+    {
+      "file": "tests/test_rotina_adaptativa.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.229,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_qualidade.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.329,
+      "error": null
+    },
+    {
+      "file": "tests/test_dip_abscesso_tubo_ovariano.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.369,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_offline_indexeddb.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.297,
+      "error": null
+    },
+    {
+      "file": "tests/test_neurologia_avc.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.253,
+      "error": null
+    },
+    {
+      "file": "tests/test_pneumologia_crise_asmatica.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.378,
+      "error": null
+    },
+    {
+      "file": "tests/test_puericultura_pediatria.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.353,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_qualidade_clinica.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.393,
+      "error": null
+    },
+    {
+      "file": "tests/test_mecanica_pulmonar_sdra.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.295,
+      "error": null
+    },
+    {
+      "file": "tests/test_hepatologia_hda.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.359,
+      "error": null
+    },
+    {
+      "file": "tests/test_round_passagem_ostensivo.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.355,
+      "error": null
+    },
+    {
+      "file": "tests/test_analgesia_pca.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.244,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_cota.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.264,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_kaizen_clinico.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.336,
+      "error": null
+    },
+    {
+      "file": "tests/test_autoloop_orchestrator.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 9.326,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_toxoplasmose.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.35,
+      "error": null
+    },
+    {
+      "file": "tests/test_sop_ovarios_policisticos.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.256,
+      "error": null
+    },
+    {
+      "file": "tests/test_navegacao_rapida_metricas.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.43,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_ambulatorial.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.352,
+      "error": null
+    },
+    {
+      "file": "tests/test_testador_master.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 9.855,
+      "error": null
+    },
+    {
+      "file": "tests/test_prescricao_hospitalar_e_ajuste_atb.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.274,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_integracao.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.447,
+      "error": null
+    },
+    {
+      "file": "tests/test_guia_pediatrico_pedb.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.31,
+      "error": null
+    },
+    {
+      "file": "tests/test_otimizacao_velocidade_fase2.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.458,
+      "error": null
+    },
+    {
+      "file": "tests/test_climaterio_thm.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.422,
+      "error": null
+    },
+    {
+      "file": "tests/test_atendimento_persistente.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.478,
+      "error": null
+    },
+    {
+      "file": "tests/test_soap_dois_tempos.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.382,
+      "error": null
+    },
+    {
+      "file": "tests/test_transfusao_sanguinea.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.419,
+      "error": null
+    },
+    {
+      "file": "tests/test_pipeline_audio_otimizado.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.289,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_y_site.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.41,
+      "error": null
+    },
+    {
+      "file": "tests/test_defensivo_telegram_rpc.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.435,
+      "error": null
+    },
+    {
+      "file": "tests/test_tts_modo_rapido_preceptor.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.266,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_prenatal.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.32,
+      "error": null
+    },
+    {
+      "file": "tests/test_centro_obstetrico.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.291,
+      "error": null
+    },
+    {
+      "file": "tests/test_composicao_corporal.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.446,
+      "error": null
+    },
+    {
+      "file": "tests/test_ginecologia_ambulatorial.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.432,
+      "error": null
+    },
+    {
+      "file": "tests/test_oncologia_basica.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.443,
+      "error": null
+    },
+    {
+      "file": "tests/test_keep_alive_typing.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.318,
+      "error": null
+    },
+    {
+      "file": "tests/test_server_render.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.433,
+      "error": null
+    },
+    {
+      "file": "tests/test_sedacao_opioides.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.449,
+      "error": null
+    },
+    {
+      "file": "tests/test_posologia_deterministica.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.338,
+      "error": null
+    },
+    {
+      "file": "tests/test_sepse_puerperal.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.383,
+      "error": null
+    },
+    {
+      "file": "tests/test_correcao_revisao_geral.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.432,
+      "error": null
+    },
+    {
+      "file": "tests/test_obstetricia_rcf_doppler.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.466,
+      "error": null
+    },
+    {
+      "file": "tests/test_suporte_nutricional.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.281,
+      "error": null
+    },
+    {
+      "file": "tests/test_tev_gestante.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.457,
+      "error": null
+    },
+    {
+      "file": "tests/test_calculadoras_caixa_texto.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.258,
+      "error": null
+    },
+    {
+      "file": "tests/test_rbac_perfis_clinicos.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.276,
+      "error": null
+    },
+    {
+      "file": "tests/test_pcr_gestante.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.425,
+      "error": null
+    },
+    {
+      "file": "tests/test_hepatologia_colestase_gestacional.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.41,
+      "error": null
+    },
+    {
+      "file": "tests/test_audio_tempo_unico.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.427,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_infusao_uti.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.383,
+      "error": null
+    },
+    {
+      "file": "tests/test_ditado_corredor_enfermaria.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.311,
+      "error": null
+    },
+    {
+      "file": "tests/test_nefrologia_lra_kdigo.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.333,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_prescricao_hsl.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.268,
+      "error": null
+    },
+    {
+      "file": "tests/test_nefrologia_dhe.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.469,
+      "error": null
+    },
+    {
+      "file": "tests/test_teclado_adaptativo.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.312,
+      "error": null
+    },
+    {
+      "file": "tests/test_correcao_oitava_rodada.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.462,
+      "error": null
+    },
+    {
+      "file": "tests/test_prescricao_medica_ostensivo.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.279,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_local_fallback.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.403,
+      "error": null
+    },
+    {
+      "file": "tests/test_leitor_imagens_ostensivo.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.444,
+      "error": null
+    },
+    {
+      "file": "tests/test_saude_idoso.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.401,
+      "error": null
+    },
+    {
+      "file": "tests/test_pals_pediatria.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.35,
+      "error": null
+    },
+    {
+      "file": "tests/test_endocrinologia_diabetes.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.282,
+      "error": null
+    },
+    {
+      "file": "tests/test_interacoes_locais.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.369,
+      "error": null
+    },
+    {
+      "file": "tests/test_cockpit_perfil_dinamico.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.347,
+      "error": null
+    },
+    {
+      "file": "tests/test_resiliencia_gemini_429.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.42,
+      "error": null
+    },
+    {
+      "file": "tests/test_didatica_seguranca_soap_ostensivo.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.366,
+      "error": null
+    },
+    {
+      "file": "tests/test_remume_cache_lote.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.28,
+      "error": null
+    },
+    {
+      "file": "tests/test_toxicologia_emergencia.py",
+      "kind": "python-script",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.054,
+      "error": null
+    },
+    {
+      "file": "tests/test_via_aerea_dificil.py",
+      "kind": "python-script",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.046,
+      "error": null
+    },
+    {
+      "file": "tests/test_ia_local_offline.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.338,
+      "error": null
+    },
+    {
+      "file": "tests/test_psiquiatria_urgencia.py",
+      "kind": "python",
+      "status": "passed",
+      "code": 0,
+      "signal": null,
+      "seconds": 0.424,
+      "error": null
+    },
+    {
+      "file": "tests/test_auditoria_pediatrica_extremos.py",
+      "kind": "python",
+      "status": "failed",
+      "code": 1,
+      "signal": null,
+      "seconds": 0.351,
+      "error": null
+    }
+  ]
+}

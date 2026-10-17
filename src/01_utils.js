@@ -584,36 +584,74 @@ function ehUsuarioTitular(chatId) {
 }
 
 /**
- * Retorna o nome de tratamento do usuário atual (Dr. Wagner para titular, Dr. Vinicius para convidado).
+ * Retorna o nome de tratamento do usuário atual a partir do Contexto Clínico dinâmico (ex: "Dr. Matheus" ou "Dra. Ana").
  */
 function obterNomeTratamentoUsuario(chatId) {
-  if (ehUsuarioTitular(chatId)) {
-    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Dr. Wagner") : "Dr. Wagner";
+  if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+    var ctx = ConfigService.getContextoClinico(chatId);
+    if (ctx && ctx.nome_chamada_configurado && ctx.nome_chamada) {
+      return ((ctx.prefixo_tratamento || "Dr.") + " " + ctx.nome_chamada).trim();
+    }
+    if (ctx && ctx.nome_chamada && ctx.nome_chamada !== "Médico(a)") {
+      return ((ctx.prefixo_tratamento || "Dr.") + " " + ctx.nome_chamada).trim();
+    }
   }
-  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Dr. Vinicius") : "Dr. Vinicius";
+  if (ehUsuarioTitular(chatId)) {
+    return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_TITULAR_NAME", "Doutor(a)") : "Doutor(a)";
+  }
+  return (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TELEGRAM_GUEST_NAME", "Doutor(a)") : "Doutor(a)";
 }
 
 /**
  * Retorna a estrutura do teclado fixo principal (ReplyKeyboardMarkup)
- * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina.
- * Configurado com is_persistent: false para ergonomia mobile perfeita.
+ * Projetado para navegação rápida de 1 toque no celular em ambiente hospitalar e rotina,
+ * filtrando botões conforme os módulos clínicos habilitados no cenário do usuário.
  */
 function obterTecladoFixoPrincipal(chatId) {
+  var modulosAtivos = null;
+  if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+    var ctx = ConfigService.getContextoClinico(chatId);
+    if (ctx && Array.isArray(ctx.modulos_ativos) && ctx.modulos_ativos.length > 0) {
+      modulosAtivos = ctx.modulos_ativos;
+    }
+  }
+  function modAtivo(id) {
+    if (!modulosAtivos) return true;
+    return modulosAtivos.indexOf(id) !== -1;
+  }
+
+  var candidatos = [];
+  if (modAtivo("SALA_VERMELHA") || modAtivo("INTOXICACOES")) candidatos.push({ text: '🚨 Sala Vermelha' });
+  if (modAtivo("ENFERMARIA_LEITOS")) candidatos.push({ text: '🛏️ Enfermaria' });
+  if (modAtivo("SOAP_PEP") || modAtivo("RECEITUARIO_ATESTADOS")) candidatos.push({ text: '🩺 Ambulatório' });
+  if (modAtivo("FARMACIA_REMUME") || modAtivo("PRECEPTOR_EBM")) candidatos.push({ text: '💊 Consultas de Bolso' });
+  if (modAtivo("PEDIATRIA_DOSES")) candidatos.push({ text: '👶 Pediatria' });
+  if (modAtivo("GO_OBSTETRICIA")) candidatos.push({ text: '🤰 G&O / Maternidade' });
+
+  if (candidatos.length === 0) {
+    candidatos = [
+      { text: '🚨 Sala Vermelha' },
+      { text: '🛏️ Enfermaria' },
+      { text: '🩺 Ambulatório' },
+      { text: '💊 Consultas de Bolso' }
+    ];
+  }
+
+  var linhas = [];
+  for (var i = 0; i < candidatos.length && linhas.length < 2; i += 2) {
+    if (candidatos[i + 1]) {
+      linhas.push([candidatos[i], candidatos[i + 1]]);
+    } else {
+      linhas.push([candidatos[i]]);
+    }
+  }
+  linhas.push([
+    { text: '📅 Minha Rotina' },
+    { text: '⚙️ Central / Menu' }
+  ]);
+
   return {
-    keyboard: [
-      [
-        { text: '🚨 Sala Vermelha' },
-        { text: '🛏️ Enfermaria' }
-      ],
-      [
-        { text: '🩺 Ambulatório' },
-        { text: '💊 Consultas de Bolso' }
-      ],
-      [
-        { text: '📅 Minha Rotina' },
-        { text: '⚙️ Central / Menu' }
-      ]
-    ],
+    keyboard: linhas,
     resize_keyboard: true,
     is_persistent: false
   };

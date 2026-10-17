@@ -2,6 +2,10 @@
 .env
 .deploy_state.json
 /data/
+*.db
+*.db-wal
+*.db-shm
+data/tdc_knowledge.db*
 
 # Dependências e ambientes virtuais
 .venv/

@@ -1,9 +1,12 @@
 function cockpitAutorizar_(initData) {
   function negar() { throw new Error('Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada.'); }
-  if (typeof initData !== 'string' || !initData || initData.length > 16000) negar();
-
-  if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
-    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary) ? ConfigService.getPrimary('TELEGRAM_CHAT_ID') : ((typeof ConfigService !== 'undefined' && ConfigService.get) ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim() : 'internal');
+  // Chamadas internas do motor em ambiente de testes unitários locais (bloqueado em produção e via HTTP)
+  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test' && (initData === 'bot' || initData === 'internal' || initData === 'interno')) {
+    return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary)
+      ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+      : ((typeof ConfigService !== 'undefined' && ConfigService.get)
+        ? String(ConfigService.get('TELEGRAM_CHAT_ID') || 'internal').split(',')[0].trim()
+        : 'internal');
   }
 
   // Token assinado criptograficamente (HMAC 64-hex) ou temporário em cache

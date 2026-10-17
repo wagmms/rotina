@@ -1318,6 +1318,13 @@ function enviarTelaAmbAtestado(chat, messageId) {
 function tratarCallbackAmbAtestado(chat, valor, messageId) {
   var textoAtestado = "";
   if (valor === 'comp') {
+    var ctxAmb = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+      ? ConfigService.getContextoClinico(chat)
+      : { municipio: "Local", uf: "BR", nome_completo_carimbo: "Médico(a) Assistente", crm: "CRM" };
+    var locData = (ctxAmb.municipio ? (ctxAmb.municipio + (ctxAmb.uf ? " - " + ctxAmb.uf : "")) : "Local") + ", " + new Date().toLocaleDateString('pt-BR') + ".";
+    var linhaAss = (ctxAmb.papel === "INTERNO_ACADEMICO")
+      ? "Médico(a) Responsável (Carimbo e CRM)"
+      : ((ctxAmb.nome_completo_carimbo || "Médico(a) Assistente") + " · " + (ctxAmb.crm || "CRM"));
     textoAtestado = "======================================================================\n" +
       "                    DECLARAÇÃO DE COMPARECIMENTO MÉDICO               \n" +
       "======================================================================\n\n" +
@@ -1326,9 +1333,9 @@ function tratarCallbackAmbAtestado(chat, valor, messageId) {
       "Documento: [RG / CPF / Documento]\n\n" +
       "Compareceu a esta unidade de saúde nesta data, permanecendo em atendimento\n" +
       "médico ambulatorial sob meus cuidados profissionais no período das [   ]h às [   ]h.\n\n" +
-      "Local e Data: Ribeirão Preto - SP, " + new Date().toLocaleDateString('pt-BR') + ".\n\n" +
+      "Local e Data: " + locData + "\n\n" +
       "__________________________________________________________\n" +
-      "Dr. Wagner Moraes · CRM/SP\n" +
+      linhaAss + "\n" +
       "======================================================================";
   } else {
     var diasNum = parseInt(valor.replace('d', ''), 10) || 1;
@@ -1957,20 +1964,44 @@ function tratarCallbackBolsoHSL(chat, acao, messageId) {
 /* ========== Hub Principal (4 Cenários Clínicos Imediatos) ========== */
 
 function enviarHubPrincipal(chat, messageId) {
-  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\nSelecione o cenário clínico ou envie o caso diretamente:';
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : null;
+  var modulos = (ctx && Array.isArray(ctx.modulos_ativos) && ctx.modulos_ativos.length > 0) ? ctx.modulos_ativos : null;
+  function modAtivo(id) {
+    if (!modulos) return true;
+    return modulos.indexOf(id) !== -1;
+  }
+
+  var nomeSaudacao = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
+  var seloLoc = (ctx && ctx.municipio) ? ('📍 ' + ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : '🇧🇷 RENAME Nacional (SUS)';
+  var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n' +
+    '👨‍⚕️ *' + nomeSaudacao + '* · ' + seloLoc + '\n' +
+    'Selecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
-  var linha3 = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat))
-    ? [['💊 Consultas Bolso', 'ux:hub:bolso'], ['📅 Rotina & Estudo', 'ux:hub:rotina']]
-    : [['💊 Consultas Bolso', 'ux:hub:bolso'], ['🩸 Gasometria', 'ux:iniciar:gaso']];
+  var pares = [];
+  if (modAtivo('SALA_VERMELHA') || modAtivo('INTOXICACOES')) pares.push(['🚨 Sala Vermelha', 'ux:hub:sala']);
+  if (modAtivo('ENFERMARIA_LEITOS')) pares.push(['🛏️ Enfermaria', 'ux:hub:enf']);
+  if (modAtivo('SOAP_PEP') || modAtivo('RECEITUARIO_ATESTADOS')) pares.push(['🩺 Ambulatório', 'ux:hub:amb']);
+  if (modAtivo('GO_OBSTETRICIA')) pares.push(['🤰 Hub G&O', 'ux:rotina:go']);
+  if (modAtivo('FARMACIA_REMUME') || modAtivo('PRECEPTOR_EBM')) pares.push(['💊 Consultas Bolso', 'ux:hub:bolso']);
+  if (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat)) {
+    pares.push(['📅 Rotina & Estudo', 'ux:hub:rotina']);
+  } else if (modAtivo('CALCULADORAS_ESCORES')) {
+    pares.push(['🩸 Gasometria', 'ux:iniciar:gaso']);
+  }
 
-  var botoes = [
-    [['🚨 Sala Vermelha', 'ux:hub:sala'], ['🛏️ Enfermaria', 'ux:hub:enf']],
-    [['🩺 Ambulatório', 'ux:hub:amb'], ['🤰 Hub G&O', 'ux:rotina:go']],
-    linha3,
-    [['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Mini App', web_app: { url: urlApp } }],
-    [['🧹 Novo Paciente', 'ux:novo:soap']]
-  ];
+  var botoes = [];
+  for (var i = 0; i < pares.length; i += 2) {
+    if (pares[i + 1]) {
+      botoes.push([pares[i], pares[i + 1]]);
+    } else {
+      botoes.push([pares[i]]);
+    }
+  }
+  botoes.push([['📐 Calculadoras', 'ux:hub:calc'], { text: '📱 Cockpit Mini App', web_app: { url: urlApp } }]);
+  botoes.push([['⚙️ Perfil & Cidade', 'ux:perfil:menu'], ['🧹 Novo Paciente', 'ux:novo:soap']]);
 
   return enviarTelaBot(chat, texto, botoesBot(botoes), messageId);
 }
@@ -2383,12 +2414,13 @@ function enviarRotinaBot(chat, messageId) {
               "Selecione uma ação rápida ou envie áudio/texto para ajustar seus blocos:";
 
   var botoes = botoesBot([
-    [['✏️ Ajustar Rotina', 'rotina:ajustar'], ['💤 Modo Descanso', 'rotina:descanso']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
-    [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
-    [['📋 Tarefas Notion', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
-    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🏁 Fim de Plantão', 'ux:rotina:plantao_fim']],
-    [['🧠 Dúvida MedQuest', 'ux:rotina:duvida'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
+    [['💤 Modo Descanso', 'rotina:descanso'], ['🔄 Restaurar Padrão', 'rotina:reset']],
+    [['📆 Sincronizar Google', 'rotina:cal_sync'], ['📆 Agenda de Hoje', 'ux:rotina:agenda']],
+    [['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha'], ['📋 Tarefas Notion', 'ux:rotina:tasks']],
+    [['🌙 Check-in Noturno', 'ux:rotina:checkin'], ['☀️ Briefing Matinal', 'ux:rotina:briefing']],
+    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
+    [['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -3486,7 +3518,7 @@ function tratarCallbackGOLactacao(chat, v, messageId) {
   var ck = Utilities.getUuid().replace(/-/g, '');
   safePutCache(cache, ck, textoRes, 21600);
 
-  var msgCorpo = "🤱 *SEGURANÇA NA LACTAÇÃO (FMRP-USP / MS):*\n\n```text\n" + textoRes + "\n```";
+  var msgCorpo = "🤱 *SEGURANÇA NA LACTAÇÃO (HALE / LACMED / MS):*\n\n```text\n" + textoRes + "\n```";
   var botoes = botoesBot([
     [['📋 Copiar Guia', 'ux:copiar:' + ck]],
     [['🔴 Contraindicados', 'go_lactacao:red'], ['🟡 Cautela', 'go_lactacao:yel']],
@@ -3777,7 +3809,7 @@ function tratarEntradaUX(message) {
   var state = modoBot(chat);
   var dialogoAtivo = (typeof obterDialogoPreceptor === "function") ? obterDialogoPreceptor(chat) : null;
   if (dialogoAtivo && dialogoAtivo.em_andamento) {
-    // Diálogo socrático ativo: não redireciona nem adiciona prefixo /soap à resposta de Wagner
+    // Diálogo socrático ativo: não redireciona nem adiciona prefixo /soap à resposta do médico
     return false;
   }
 
@@ -4776,6 +4808,14 @@ function tratarCallbackUX(cb) {
       return tratarCallbackChecklist(chat, v, msgId);
     } else if (op === 'tb') {
       return tratarCallbackTimeBlocking(chat, v, msgId);
+    } else if (op === 'perfil') {
+      return tratarCallbackPerfilClinico(chat, v, msgId);
+    } else if (op === 'cenario') {
+      return tratarCallbackCenarioModulos(chat, v, msgId);
+    } else if (op === 'cidade') {
+      return tratarCallbackCidadeRemume(chat, v, msgId);
+    } else if (op === 'remume') {
+      return tratarCallbackSolicitarOuImportarRemume(chat, v, msgId);
     } else {
       enviarMensagemParaChat(chat, 'Ação não reconhecida. Reabra o menu.');
     }
@@ -4784,6 +4824,326 @@ function tratarCallbackUX(cb) {
     try { enviarMensagemParaChat(chat, 'Não consegui concluir essa ação. Tente novamente ou use /cancelar.'); } catch (e2) {}
   }
   return true;
+}
+
+// ============================================================================
+// CENTRAL DE PERFIL, NOME, CIDADE, CENÁRIO (CHECKBOXES) E AUTOATENDIMENTO REMUME
+// ============================================================================
+
+function enviarTelaOnboardingNome(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : { prefixo_tratamento: 'Dr.', nome_chamada: 'Médico(a)' };
+  var prefAtual = ctx.prefixo_tratamento || 'Dr.';
+  var nomeAtual = (ctx.nome_chamada && ctx.nome_chamada !== 'Médico(a)') ? (prefAtual + ' ' + ctx.nome_chamada) : 'Não definido';
+
+  var texto = '👨‍⚕️👩‍⚕️ *IDENTIFICAÇÃO E SAUDAÇÃO PERSONALIZADA*\n\n' +
+    'Como você prefere que eu te chame durante os plantões e atendimentos?\n' +
+    '• *Atual:* `' + nomeAtual + '`\n\n' +
+    '1️⃣ Escolha seu prefixo abaixo (`Dr.` ou `Dra.`):\n' +
+    '2️⃣ Digite ou envie: `/nome SeuNome` (ex: `/nome Matheus` ou `/nome Dra. Carolina`)\n\n' +
+    '💡 *Para carimbo de receitas (Médico/Residente):*\n' +
+    'Envie `/carimbo Nome Completo | CRM/UF 123456`';
+
+  var botoes = botoesBot([
+    [
+      [(prefAtual === 'Dr.' ? '✅ ' : '') + '👨‍⚕️ Dr.', 'ux:perfil:pref:Dr.'],
+      [(prefAtual === 'Dra.' ? '✅ ' : '') + '👩‍⚕️ Dra.', 'ux:perfil:pref:Dra.']
+    ],
+    [['⚙️ Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuPerfilClinico(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var saudacao = ((ctx.prefixo_tratamento || 'Dr.') + ' ' + (ctx.nome_chamada || 'Médico(a)')).trim();
+  var mapaPapel = {
+    'MEDICO_CRM': '👨‍⚕️ Médico(a) com CRM',
+    'RESIDENTE': '🏥 Médico(a) Residente',
+    'INTERNO_ACADEMICO': '🎓 Interno(a) / Acadêmico(a) (Receita sem CRM impresso)'
+  };
+  var mapaCenario = {
+    'APS_UBS': '🩺 UBS / Saúde da Família (APS)',
+    'URGENCIA_UPA_24H': '🚑 UPA 24h / Pronto Atendimento',
+    'SALA_VERMELHA': '🚨 Sala Vermelha / Emergência & UTI',
+    'ENFERMARIA': '🛏️ Enfermaria / Clínica Médica',
+    'MATERNIDADE_GO': '🤰 Maternidade / Centro Obstétrico (G&O)',
+    'PEDIATRIA': '👶 Pronto-Socorro / Ala Pediátrica'
+  };
+  var papelTxt = mapaPapel[ctx.papel] || ctx.papel || 'Médico(a) com CRM';
+  var cenTxt = mapaCenario[ctx.cenario_assistencial] || ctx.cenario_assistencial || 'UPA 24h';
+  var cidTxt = ctx.municipio ? (ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : 'Nacional (RENAME SUS)';
+  var totalMod = Array.isArray(ctx.modulos_ativos) ? ctx.modulos_ativos.length : 10;
+
+  var texto = '⚙️ *CONFIGURAÇÃO DE PERFIL & REALIDADE LOCAL*\n\n' +
+    '• *Saudação no Chat:* `' + saudacao + '`\n' +
+    '• *Atuação / Receituário:* ' + papelTxt + '\n' +
+    '• *Carimbo PDF:* `' + (ctx.papel === 'INTERNO_ACADEMICO' ? 'Em branco para preceptor assinar' : ((ctx.nome_completo_carimbo || '-') + ' · ' + (ctx.crm || 'Sem CRM'))) + '`\n' +
+    '• *Cidade / REMUME:* 📍 `' + cidTxt + '` (`' + (ctx.remume_slug || 'rename_nacional') + '`)\n' +
+    '• *Unidade / Serviço:* 🏥 `' + (ctx.unidade_saude || 'Unidade de Saúde') + '`\n' +
+    '• *Cenário Assistencial:* ' + cenTxt + ' (`' + totalMod + '/10 módulos visíveis`)\n\n' +
+    'Selecione abaixo o que deseja personalizar em 1 toque:';
+
+  var botoes = botoesBot([
+    [['👨‍⚕️ Nome & Saudação (/nome)', 'ux:perfil:nome'], ['🎓 Papel: Médico / Interno', 'ux:perfil:papel']],
+    [['📍 Escolher Cidade / REMUME', 'ux:cidade:menu'], ['🏥 Cenário & Módulos (Checkboxes)', 'ux:cenario:menu']],
+    [['📥 Inserir REMUME da Minha Cidade', 'ux:remume:instrucoes'], ['🔗 Código de Equipe (/unidade)', 'ux:perfil:equipe']],
+    [['🏠 Voltar ao Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuPapelProfissional(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var p = ctx.papel || 'MEDICO_CRM';
+  var texto = '🎓 *PAPEL PROFISSIONAL & REGRA DE RECEITUÁRIO PDF*\n\n' +
+    'Escolha seu perfil de atuação atual:\n\n' +
+    '• *Médico(a) com CRM / Residente:* O Receituário PDF (100% preto `#000000`) sai com seu Nome Completo e CRM impressos na linha de assinatura.\n' +
+    '• *Interno(a) / Acadêmico(a):* O Receituário PDF é emitido *sem nome de médico e sem CRM impressos*, deixando a linha limpa para o médico preceptor carimbar e assinar.';
+
+  var botoes = botoesBot([
+    [[(p === 'MEDICO_CRM' ? '✅ ' : '') + '👨‍⚕️ Médico(a) com CRM', 'ux:perfil:setpapel:MEDICO_CRM']],
+    [[(p === 'RESIDENTE' ? '✅ ' : '') + '🏥 Médico(a) Residente', 'ux:perfil:setpapel:RESIDENTE']],
+    [[(p === 'INTERNO_ACADEMICO' ? '✅ ' : '') + '🎓 Interno(a) / Acadêmico(a)', 'ux:perfil:setpapel:INTERNO_ACADEMICO']],
+    [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+  ]);
+  return enviarTelaBot(chat, texto, botoes, messageId);
+}
+
+function enviarMenuCenarioECheckboxes(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var cen = ctx.cenario_assistencial || 'URGENCIA_UPA_24H';
+  var ativos = Array.isArray(ctx.modulos_ativos) ? ctx.modulos_ativos : [];
+  var catalogo = (typeof ConfigService !== 'undefined' && Array.isArray(ConfigService.CATALOGO_MODULOS_CLINICOS))
+    ? ConfigService.CATALOGO_MODULOS_CLINICOS
+    : [];
+
+  var texto = '🏥 *CENÁRIO ASSISTENCIAL & VISIBILIDADE DE MÓDULOS*\n\n' +
+    '1️⃣ *Escolha seu cenário principal* para pré-marcar os módulos recomendados:\n' +
+    '2️⃣ *Ou marque/desmarque livremente (`✅` / `⬜`)* quais módulos você quer exibir nos seus menus e no Cockpit.\n\n' +
+    '🛡️ _Nota de Segurança:_ Módulos desmarcados (`⬜`) ficam ocultos apenas nos menus visuais para deixar sua tela mais limpa, mas continuam 100% acessíveis se você digitar o comando direto numa emergência.';
+
+  var linhas = [
+    [
+      [(cen === 'APS_UBS' ? '🎯 ' : '') + '🩺 UBS / APS', 'ux:cenario:preset:APS_UBS'],
+      [(cen === 'URGENCIA_UPA_24H' ? '🎯 ' : '') + '🚑 UPA 24h', 'ux:cenario:preset:URGENCIA_UPA_24H']
+    ],
+    [
+      [(cen === 'SALA_VERMELHA' ? '🎯 ' : '') + '🚨 Sala Vermelha', 'ux:cenario:preset:SALA_VERMELHA'],
+      [(cen === 'ENFERMARIA' ? '🎯 ' : '') + '🛏️ Enfermaria', 'ux:cenario:preset:ENFERMARIA']
+    ],
+    [
+      [(cen === 'MATERNIDADE_GO' ? '🎯 ' : '') + '🤰 Maternidade G&O', 'ux:cenario:preset:MATERNIDADE_GO'],
+      [(cen === 'PEDIATRIA' ? '🎯 ' : '') + '👶 Pediatria', 'ux:cenario:preset:PEDIATRIA']
+    ]
+  ];
+
+  // Checkboxes dos 10 módulos clínicos em 2 colunas
+  for (var i = 0; i < catalogo.length; i += 2) {
+    var m1 = catalogo[i];
+    var chk1 = (ativos.indexOf(m1.id) !== -1) ? '✅ ' : '⬜ ';
+    var row = [[chk1 + m1.nome, 'ux:cenario:toggle:' + m1.id]];
+    if (catalogo[i + 1]) {
+      var m2 = catalogo[i + 1];
+      var chk2 = (ativos.indexOf(m2.id) !== -1) ? '✅ ' : '⬜ ';
+      row.push([chk2 + m2.nome, 'ux:cenario:toggle:' + m2.id]);
+    }
+    linhas.push(row);
+  }
+
+  linhas.push([['☑️ Marcar Todos (10/10)', 'ux:cenario:todos'], ['✔️ Aceitar & Salvar', 'ux:cenario:confirmar']]);
+  linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
+}
+
+function enviarMenuCidadeERemume(chat, messageId) {
+  var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+    ? ConfigService.getContextoClinico(chat)
+    : {};
+  var presets = (typeof CatalogoRemumeService !== 'undefined' && typeof CatalogoRemumeService.listarPresets === 'function')
+    ? CatalogoRemumeService.listarPresets()
+    : [];
+  var slugAtual = ctx.remume_slug || 'rename_nacional';
+
+  var texto = '📍 *ESCOLHER CIDADE & CATÁLOGO REMUME (SUS)*\n\n' +
+    '• *Catálogo Ativo:* `' + (ctx.municipio ? (ctx.municipio + '/' + (ctx.uf || '')) : 'RENAME Nacional (SUS)') + '` (`' + slugAtual + '`)\n\n' +
+    'Toque em uma das cidades com preset imediato abaixo, ou digite:\n' +
+    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Uberlândia - MG`)\n\n' +
+    '🔎 _Se a cidade ainda não estiver nos presets, eu pesquiso automaticamente na internet por documentos oficiais da Prefeitura e, se você ou outro colega inserir uma REMUME nova, ela entra automaticamente nos presets para todos!_';
+
+  var linhas = [
+    [[(slugAtual === 'rename_nacional' ? '✅ ' : '') + '🇧🇷 RENAME Nacional (Padrão SUS)', 'ux:cidade:set:rename_nacional']]
+  ];
+
+  for (var i = 0; i < presets.length; i += 2) {
+    var p1 = presets[i];
+    var lbl1 = (slugAtual === p1.slug ? '✅ ' : '📍 ') + p1.municipio + ' (' + p1.uf + ')';
+    var row = [[lbl1, 'ux:cidade:set:' + p1.slug]];
+    if (presets[i + 1]) {
+      var p2 = presets[i + 1];
+      var lbl2 = (slugAtual === p2.slug ? '✅ ' : '📍 ') + p2.municipio + ' (' + p2.uf + ')';
+      row.push([lbl2, 'ux:cidade:set:' + p2.slug]);
+    }
+    linhas.push(row);
+  }
+
+  linhas.push([['📥 Inserir REMUME de Outra Cidade', 'ux:remume:instrucoes']]);
+  linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
+}
+
+function tratarCallbackPerfilClinico(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuPerfilClinico(chat, messageId);
+  if (v === 'nome') return enviarTelaOnboardingNome(chat, messageId);
+  if (v === 'papel') return enviarMenuPapelProfissional(chat, messageId);
+  if (v.indexOf('pref:') === 0) {
+    var novoPref = v.replace('pref:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      ConfigService.salvarContextoClinico(chat, { prefixo_tratamento: novoPref });
+    }
+    return enviarTelaOnboardingNome(chat, messageId);
+  }
+  if (v.indexOf('setpapel:') === 0) {
+    var novoPapel = v.replace('setpapel:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      ConfigService.salvarContextoClinico(chat, { papel: novoPapel });
+    }
+    return enviarMenuPapelProfissional(chat, messageId);
+  }
+  if (v === 'equipe') {
+    var cod = (typeof ConfigService !== 'undefined' && typeof ConfigService.gerarCodigoUnidade === 'function')
+      ? ConfigService.gerarCodigoUnidade(chat)
+      : '';
+    var txtEq = '🔗 *COMPARTILHAMENTO DE UNIDADE E PLANTÃO (EQUIPE)*\n\n' +
+      'Envie o comando abaixo para seus colegas de plantão ou estágio clonarem instantaneamente sua Cidade, Unidade, Cenário e REMUME (sem alterar o Nome ou CRM pessoal deles):\n\n' +
+      '```text\n/importar_unidade ' + cod + '\n```';
+    var kbEq = botoesBot([
+      [['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, txtEq, kbEq, messageId);
+  }
+  return enviarMenuPerfilClinico(chat, messageId);
+}
+
+function tratarCallbackCenarioModulos(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuCenarioECheckboxes(chat, messageId);
+  if (v.indexOf('preset:') === 0) {
+    var cenarioId = v.replace('preset:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.aplicarCenarioAssistencial === 'function') {
+      ConfigService.aplicarCenarioAssistencial(chat, cenarioId);
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v.indexOf('toggle:') === 0) {
+    var modId = v.replace('toggle:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.alternarModuloCenario === 'function') {
+      ConfigService.alternarModuloCenario(chat, modId);
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v === 'todos') {
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+      var todosIds = (ConfigService.CATALOGO_MODULOS_CLINICOS || []).map(function(m) { return m.id; });
+      ConfigService.salvarContextoClinico(chat, { modulos_ativos: todosIds });
+    }
+    return enviarMenuCenarioECheckboxes(chat, messageId);
+  }
+  if (v === 'confirmar') {
+    var nomeMed = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
+    enviarMensagemComTecladoFixo(chat, '✅ *Cenário e módulos atualizados, ' + nomeMed + '!* Teclado rápido ajustado.');
+    return enviarHubPrincipal(chat, messageId);
+  }
+  return enviarMenuCenarioECheckboxes(chat, messageId);
+}
+
+function tratarCallbackCidadeRemume(chat, v, messageId) {
+  if (!v || v === 'menu') return enviarMenuCidadeERemume(chat, messageId);
+  if (v.indexOf('set:') === 0) {
+    var slug = v.replace('set:', '').trim();
+    if (slug === 'rename_nacional') {
+      if (typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+        ConfigService.salvarContextoClinico(chat, {
+          municipio: '',
+          uf: 'BR',
+          remume_slug: 'rename_nacional'
+        });
+      }
+    } else if (typeof CatalogoRemumeService !== 'undefined') {
+      var cat = CatalogoRemumeService.carregarPresetPorSlug(slug);
+      if (cat && typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
+        ConfigService.salvarContextoClinico(chat, {
+          municipio: cat.municipio || '',
+          uf: cat.uf || 'BR',
+          remume_slug: slug
+        });
+      }
+    }
+    if (typeof invalidarCacheRemumeRP === 'function') {
+      try { invalidarCacheRemumeRP(); } catch (_) {}
+    }
+    return enviarMenuCidadeERemume(chat, messageId);
+  }
+  return enviarMenuCidadeERemume(chat, messageId);
+}
+
+function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
+  if (v === 'instrucoes') {
+    var txtInst = '📥 *INSERIR REMUME MUNICIPAL (AUTO-PROMOÇÃO PARA PRESET)*\n\n' +
+      'Você pode cadastrar a REMUME da sua cidade a qualquer momento! Assim que os medicamentos forem validados, *sua cidade entra automaticamente nos presets oficiais* para ajudar outros colegas.\n\n' +
+      '💡 *Como enviar:*\n' +
+      'Digite `/importar_remume Cidade - UF` na primeira linha e cole a lista de medicamentos nas linhas abaixo:\n\n' +
+      '```text\n/importar_remume Bauru - SP\nAmoxicilina 500mg cápsula\nDipirona 500mg comprimido\nLosartana 50mg comprimido\nEnalapril 10mg comprimido\nOmeprazol 20mg cápsula\n```';
+    var kbInst = botoesBot([
+      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, txtInst, kbInst, messageId);
+  }
+  if (v && v.indexOf('solicitar:') === 0) {
+    var resto = v.replace('solicitar:', '');
+    var partes = resto.split(':');
+    var mun = partes[0] || 'Município';
+    var uf = partes[1] || 'BR';
+    var registro = (typeof ConfigService !== 'undefined' && typeof ConfigService.registrarSolicitacaoRemume === 'function')
+      ? ConfigService.registrarSolicitacaoRemume(mun, uf, chat)
+      : { municipio: mun, uf: uf, solicitantes: [String(chat)] };
+
+    // Notifica o desenvolvedor (titular) no Telegram se não for o próprio titular testando
+    var adminChat = (typeof ConfigService !== 'undefined' && typeof ConfigService.getPrimary === 'function')
+      ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+      : '';
+    if (adminChat && String(adminChat) !== String(chat)) {
+      try {
+        enviarMensagemParaChat(adminChat,
+          '📩 *NOVA SOLICITAÇÃO DE REMUME MUNICIPAL*\n\n' +
+          '• *Cidade:* `' + registro.municipio + ' - ' + registro.uf + '`\n' +
+          '• *Solicitante Chat ID:* `' + chat + '`\n' +
+          '• *Total de Pedidos desta Cidade:* ' + (registro.solicitantes ? registro.solicitantes.length : 1) + '\n\n' +
+          '💡 Para aprovar e liberar nos presets globais, envie:\n' +
+          '`/aprovar_remume ' + registro.municipio + ' - ' + registro.uf + '` seguido da lista de medicamentos.'
+        );
+      } catch (_) {}
+    }
+
+    var msgOk = '✅ *Solicitação enviada ao desenvolvedor com sucesso!*\n\n' +
+      '• *Município solicitado:* `' + registro.municipio + (registro.uf ? ' - ' + registro.uf : '') + '`\n' +
+      '• *Status:* Em fila de curadoria prioritária.\n\n' +
+      '🔔 Assim que a REMUME oficial de *' + registro.municipio + '* for homologada, você receberá um aviso automático aqui no chat e seu perfil será atualizado!\n\n' +
+      '💡 _Enquanto isso, suas consultas estão protegidas pela RENAME Nacional (SUS). Se você tiver o PDF/lista da REMUME em mãos, pode cadastrá-la na hora clicando em Inserir REMUME abaixo:_';
+    var kbOk = botoesBot([
+      [['📥 Inserir REMUME Agora', 'ux:remume:instrucoes'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, msgOk, kbOk, messageId);
+  }
+  return enviarMenuCidadeERemume(chat, messageId);
 }
 
 if (typeof module !== 'undefined' && module.exports) {
@@ -4882,6 +5242,15 @@ if (typeof module !== 'undefined' && module.exports) {
     tratarCallbackChecklist: tratarCallbackChecklist,
     enviarMenuTimeBlocking: enviarMenuTimeBlocking,
     tratarCallbackTimeBlocking: tratarCallbackTimeBlocking,
+    enviarTelaOnboardingNome: enviarTelaOnboardingNome,
+    enviarMenuPerfilClinico: enviarMenuPerfilClinico,
+    enviarMenuPapelProfissional: enviarMenuPapelProfissional,
+    enviarMenuCenarioECheckboxes: enviarMenuCenarioECheckboxes,
+    enviarMenuCidadeERemume: enviarMenuCidadeERemume,
+    tratarCallbackPerfilClinico: tratarCallbackPerfilClinico,
+    tratarCallbackCenarioModulos: tratarCallbackCenarioModulos,
+    tratarCallbackCidadeRemume: tratarCallbackCidadeRemume,
+    tratarCallbackSolicitarOuImportarRemume: tratarCallbackSolicitarOuImportarRemume,
     processarEntradaSoap: typeof processarEntradaSoap === 'function' ? processarEntradaSoap : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.processarEntradaSoap ? SoapAmbulatorialService.processarEntradaSoap : null),
     formatarRascunhoSoapTelegram: typeof formatarRascunhoSoapTelegram === 'function' ? formatarRascunhoSoapTelegram : (typeof SoapAmbulatorialService !== 'undefined' && SoapAmbulatorialService.formatarRascunhoSoapTelegram ? SoapAmbulatorialService.formatarRascunhoSoapTelegram : null),
     extrairPlanoDeTextoSoap: extrairPlanoDeTextoSoap,

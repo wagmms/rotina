@@ -1410,24 +1410,67 @@ var SoapAmbulatorialService = (function() {
     };
   }
 
+  function _resolverAssinaturaContextoSoap(dados) {
+    dados = dados || {};
+    var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+      ? ConfigService.getContextoClinico(dados.chatId)
+      : null;
+    var prof = (ctx && ctx.profissional) ? ctx.profissional : {};
+    var loc = (ctx && ctx.localidade) ? ctx.localidade : {};
+    var unid = (ctx && ctx.unidade_assistencial) ? ctx.unidade_assistencial : {};
+
+    var papel = dados.papel || prof.papel || 'MEDICO_CRM';
+    var ehInterno = (papel === 'INTERNO_ACADEMICO' || papel === 'INTERNO');
+    var prefixo = prof.prefixo || 'Dr(a).';
+    var nomeCarimbo = dados.medicoNome || prof.nome_completo_carimbo || prof.nome_chamada || '';
+    if (nomeCarimbo && !/^dr(a)?\.?\s/i.test(nomeCarimbo)) {
+      nomeCarimbo = prefixo + ' ' + nomeCarimbo;
+    }
+    if (!nomeCarimbo) nomeCarimbo = 'Médico(a) Assistente';
+
+    var regBruto = String(prof.registro_conselho || '').trim();
+    var crmFormatado = 'CRM';
+    if (regBruto) {
+      crmFormatado = /^CRM/i.test(regBruto)
+        ? regBruto
+        : ('CRM/' + (prof.uf_conselho || loc.uf || 'BR') + ' ' + regBruto);
+    }
+    var crmStr = dados.medicoCrm || crmFormatado;
+    var munNome = loc.municipio_nome && loc.municipio_nome !== 'Brasil (Padrão Nacional)'
+      ? (loc.municipio_nome + (loc.uf && loc.uf !== 'BR' ? ' - ' + loc.uf : ''))
+      : 'Localidade';
+    var cidade = dados.cidade || munNome;
+    var unidadeSaude = dados.unidadeSaude || unid.nome_unidade || 'Unidade de Saúde / SUS';
+    var regulacao = dados.sistemaRegulacao || unid.sistema_regulacao || 'SISREG';
+
+    return {
+      ehInterno: ehInterno,
+      medico: nomeCarimbo,
+      crm: crmStr,
+      cidade: cidade,
+      unidadeSaude: unidadeSaude,
+      regulacao: regulacao
+    };
+  }
+
   // 7. EXPORTAÇÃO LIMPA DE RECEITA MÉDICA AMBULATORIAL (TEXTO PURO PARA PEP)
   function exportarReceitaTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || 'Ao Portador';
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
 
     var linhas = [
       '======================================================================',
       '                       RECEITUÁRIO MÉDICO AMBULATORIAL                ',
       '======================================================================',
+      'Unidade: ' + infoAss.unidadeSaude + ' | Local: ' + infoAss.cidade,
       'Paciente: ' + paciente,
       'Data: ' + dataStr,
       '----------------------------------------------------------------------'
     ];
 
-    var itens = dados.itens || dados.medicamentos || [];
+    var itens = dados.itens || dados.medicamentos || dados.prescricaoMedicamentosa || [];
     if (!itens.length && dados.textoLivre) {
       linhas.push(dados.textoLivre);
     } else {
@@ -1447,7 +1490,7 @@ var SoapAmbulatorialService = (function() {
           var qtd = m.quantidade ? ' -------------------- ' + m.quantidade : '';
           linhas.push(numItem + ') ' + nomeApres + qtd);
           if (m.posologia) {
-            var poso = '   Tomar ' + m.posologia;
+            var poso = /^tomar\s/i.test(m.posologia) ? ('   ' + m.posologia) : ('   Tomar ' + m.posologia);
             if (m.horarios) poso += ' (Horários sugeridos: ' + m.horarios + ')';
             if (m.duracao) poso += ' por ' + m.duracao + '.';
             linhas.push(poso);
@@ -1467,7 +1510,13 @@ var SoapAmbulatorialService = (function() {
     }
 
     linhas.push('======================================================================');
-    linhas.push('Assinatura e Carimbo Médico: ' + medico + ' · ' + crm);
+    linhas.push('Local e Data: ' + infoAss.cidade + ', ' + dataStr);
+    if (infoAss.ehInterno && !dados.medicoNome) {
+      linhas.push('__________________________________________________________');
+      linhas.push('Assinatura e Carimbo do(a) Médico(a) Responsável');
+    } else {
+      linhas.push('Assinatura e Carimbo Médico: ' + infoAss.medico + ' · ' + infoAss.crm);
+    }
 
     return linhas.join('\n');
   }
@@ -1475,16 +1524,15 @@ var SoapAmbulatorialService = (function() {
   // 8. EXPORTAÇÃO LIMPA DE ATESTADO MÉDICO (CONFORME RESOLUÇÕES CFM 1.658/2002 E 1.851/2008)
   function exportarAtestadoTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || '[Nome do Paciente]';
     var doc = dados.pacienteDoc || dados.doc || '[Documento de Identidade/CPF]';
     var dias = parseInt(dados.dias || 1, 10);
     var diasExtenso = converterNumeroPorExtenso(dias);
     var aPartirDe = dados.aPartirDe || dados.data || new Date().toLocaleDateString('pt-BR');
     var finalidade = dados.finalidade || 'repouso e recuperação clínica, necessitando de afastamento de suas atividades laborais e escolares';
-    var cidade = dados.cidade || 'Ribeirão Preto - SP';
+    var cidade = infoAss.cidade;
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
 
     var linhas = [
       '======================================================================',
@@ -1514,7 +1562,9 @@ var SoapAmbulatorialService = (function() {
     linhas.push('Local e Data: ' + cidade + ', ' + dataStr + '.');
     linhas.push('');
     linhas.push('__________________________________________________________');
-    linhas.push(medico + ' · ' + crm);
+    if (!infoAss.ehInterno || dados.medicoNome) {
+      linhas.push(infoAss.medico + ' · ' + infoAss.crm);
+    }
     linhas.push('======================================================================');
 
     return linhas.join('\n');
@@ -1523,18 +1573,19 @@ var SoapAmbulatorialService = (function() {
   // 9. EXPORTAÇÃO DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (SISREG / CROSS)
   function exportarEncaminhamentoTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || '[Nome do Paciente]';
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
     var especialidade = dados.especialidade || '[Especialidade Destino]';
     var motivo = dados.motivo || '[Motivo do Encaminhamento]';
     var cid = dados.cid || '[CID-10]';
     var prioridade = dados.prioridade || 'Eletiva / Regulada';
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
+    var medico = infoAss.medico;
+    var crm = infoAss.crm;
 
     var linhas = [
       '======================================================================',
-      '         GUIA DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (SISREG)     ',
+      '         GUIA DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (' + infoAss.regulacao + ')     ',
       '======================================================================',
       'Paciente: ' + paciente + ' | Data: ' + dataStr,
       'Especialidade Solicitada: ' + especialidade.toUpperCase(),

@@ -141,13 +141,22 @@ var CATALOGO_CALCULADORAS = {
     id: "holliday",
     nome: "Holliday-Segar (Hidratação Pediátrica)",
     aliases: ["holliday", "holliday-segar", "holliday segar", "hidratacao", "hidratação", "nutriped"]
+  },
+  trombolise_avc: {
+    id: "trombolise_avc",
+    nome: "Trombólise no AVCi (Alteplase / Tenecteplase)",
+    aliases: [
+      "trombolise", "trombólise", "trombolise avc", "trombólise avc",
+      "trombolise avci", "trombólise avci", "alteplase", "actilyse",
+      "tenecteplase", "metalyse", "rtpa", "tnk"
+    ]
   }
 };
 
 var LISTA_CALCULADORAS_DETERMINISTICAS = [
   "curb65", "ckd", "cockcroft", "cha2ds2vasc", "hasbled", "wells",
   "glasgow", "calcio", "gap_osmolar", "agua", "kdigo", "ldl", "meld",
-  "parkland", "dva", "gasometria", "gaso", "holliday"
+  "parkland", "dva", "gasometria", "gaso", "holliday", "trombolise_avc"
 ];
 
 var INDICE_ALIASES_CALCULADORAS = Object.keys(CATALOGO_CALCULADORAS).reduce(function(indice, chave) {
@@ -327,6 +336,98 @@ function tentarCalcularDeterministico(texto) {
       }
       return "⚠️ *Calculadora DVA: Parâmetros Insuficientes*\n\n" + obterInstrucoesCalculadora("dva");
     }
+  }
+
+  // 0.25. Trombólise no AVC Isquêmico Agudo (Alteplase 0,9 mg/kg / Tenecteplase 0,25 mg/kg)
+  if (identidade === "trombolise_avc" ||
+      /\b(?:tromb[oó]lise(?:\s+avc[i]?)?|alteplase|actilyse|tenecteplase|metalyse|rtpa|tnk)\b/i.test(t)) {
+    var mPesoTromb = t.match(/(?:peso\s*[:=]?\s*)?(\d+(?:[.,]\d+)?)\s*kg\b/i) ||
+                     t.match(/\bpeso\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i) ||
+                     t.match(/(?:tromb[oó]lise|alteplase|actilyse|tenecteplase|metalyse|rtpa|tnk)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\b/i);
+
+    if (mPesoTromb) {
+      var pesoTrombVal = parseFloat(mPesoTromb[1].replace(",", "."));
+      if (isNaN(pesoTrombVal) || pesoTrombVal <= 0 || pesoTrombVal > 300) {
+        return "⚠️ *Calculadora de Trombólise no AVC: Peso Inválido*\n\nInforme um peso corporal válido em kg (ex: `/calc trombolise 75kg`).";
+      }
+
+      // Extração opcional de janela de tempo (horas) e PA (mmHg)
+      var mTempoTromb = t.match(/(?:tempo|janela|ictus)\s*[:=]?\s*(\d+(?:[.,]\d+)?)\s*h?/i) ||
+                        t.match(/\b(\d+(?:[.,]\d+)?)\s*(?:h|horas|hrs)\b/i);
+      var tempoHorasTromb = mTempoTromb ? parseFloat(mTempoTromb[1].replace(",", ".")) : null;
+
+      var mPaTromb = t.match(/\b(?:pa|press[ãa]o)\s*[:=]?\s*(\d{2,3})\s*[/xX]\s*(\d{2,3})/i) ||
+                     t.match(/\b(\d{2,3})\s*[/xX]\s*(\d{2,3})\s*mmhg\b/i);
+      var pasTromb = mPaTromb ? Number(mPaTromb[1]) : null;
+      var padTromb = mPaTromb ? Number(mPaTromb[2]) : null;
+
+      // 1) Integração primária com CalculadorasClinicas.tromboliseAVC (Passo 1)
+      if (typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.tromboliseAVC === "function") {
+        var rTromb = CalculadorasClinicas.tromboliseAVC(pesoTrombVal, 'ambos', pasTromb, padTromb, tempoHorasTromb);
+        if (rTromb && rTromb.ok) {
+          if (rTromb.textoFormatado) return rTromb.textoFormatado;
+          var strTromb = "🧠 *" + (rTromb.nome || "TROMBÓLISE IV NO AVC ISQUÊMICO AGUDO") + "*\n\n";
+          if (rTromb.principal) strTromb += "• *Resumo Posológico:* `" + rTromb.principal + "`\n";
+          if (rTromb.rotulo) strTromb += "• *Janela / Alerta:* " + rTromb.rotulo + "\n";
+          if (rTromb.secoes) {
+            for (var st = 0; st < rTromb.secoes.length; st++) {
+              var secT = rTromb.secoes[st];
+              strTromb += "\n*" + secT[0] + ":*\n";
+              var itensT = Array.isArray(secT[1]) ? secT[1] : [secT[1]];
+              for (var itt = 0; itt < itensT.length; itt++) {
+                strTromb += "  • " + itensT[itt] + "\n";
+              }
+            }
+          }
+          return strTromb;
+        } else if (rTromb && rTromb.erro) {
+          return "⚠️ *Trombólise no AVC:* " + rTromb.erro;
+        }
+      }
+
+      // 2) Fallback determinístico em RAM (AHA/ASA & ESO / TdC)
+      var pesoEfetivo = Math.min(pesoTrombVal, 100);
+      var rtpaTotal = (pesoEfetivo * 0.9).toFixed(1);
+      var rtpaBolus = (rtpaTotal * 0.1).toFixed(1);
+      var rtpaInfusao = (rtpaTotal * 0.9).toFixed(1);
+      var tnkTotal = Math.min(pesoEfetivo * 0.25, 25.0).toFixed(1);
+
+      var txtAvcTromb = "🧠 *TROMBÓLISE IV NO AVC ISQUÊMICO AGUDO (AHA/ASA & ESO)*\n\n" +
+        "• *Peso Informado:* `" + pesoTrombVal + " kg`" + (pesoTrombVal > 100 ? " *(Teto posológico: 100 kg)*" : "") + "\n";
+
+      if (tempoHorasTromb !== null) {
+        txtAvcTromb += "• *Tempo de Ictus:* `" + tempoHorasTromb + "h` " +
+          (tempoHorasTromb <= 4.5
+            ? "✅ *(Dentro da janela padrão ≤ 4,5h)*"
+            : "⚠️ *(> 4,5h: exige neuroimagem avançada de mismatch DWI-FLAIR/Perfusão até 9h ou Trombectomia até 24h)*") + "\n";
+      }
+      if (pasTromb !== null && padTromb !== null) {
+        txtAvcTromb += "• *PA Informada:* `" + pasTromb + "/" + padTromb + " mmHg` " +
+          ((pasTromb >= 185 || padTromb >= 110)
+            ? "⛔ *(REDUZIR PA PARA < 185/110 mmHg ANTES DO BOLUS!)*"
+            : "✅ *(PA apta para início da trombólise < 185/110 mmHg)*") + "\n";
+      }
+
+      txtAvcTromb += "\n⭐ *OPÇÃO 1: TENECTEPLASE (Metalyse® — 0,25 mg/kg, máx. 25 mg)*\n" +
+        "  • *Dose Única (Bolus IV):* `" + tnkTotal + " mg` em *5 a 10 segundos*\n" +
+        "  • *Vantagem Clínica:* Dispensa BIC de 1h; primeira escolha em Oclusão de Grande Vaso (*drip-and-ship* para trombectomia).\n" +
+        "  • ⚠️ *Incompatibilidade Crítica:* **PRECIPITA em Soro Glicosado 5% (SG 5%)**. Lavar o acesso venoso (*flush*) exclusivamente com **SF 0,9%** antes e após o bolus.\n" +
+        "  • ⛔ *Atenção:* Nunca usar dose de IAM (50 mg). Teto no AVCi = **25 mg**.\n\n" +
+        "🔄 *OPÇÃO 2: ALTEPLASE (Actilyse® — 0,9 mg/kg, máx. 90 mg)*\n" +
+        "  • *Dose Total:* `" + rtpaTotal + " mg`\n" +
+        "  • *Bolus IV (10%):* `" + rtpaBolus + " mg` em *1 minuto*\n" +
+        "  • *Infusão Contínua (90%):* `" + rtpaInfusao + " mg` em BIC por *60 minutos* (lavar equipo com SF 0,9% ao término)\n\n" +
+        "🛡️ *METAS PRESSÓRICAS E SEGURANÇA PÓS-TROMBÓLISE:*\n" +
+        "  • *Alvo Pré-Trombólise:* PA < 185/110 mmHg\n" +
+        "  • *Alvo Pós-Trombólise (primeiras 24h):* PA < 180/105 mmHg (aferir 15/15 min nas primeiras 2h; 30/30 min das 2–8h; 1/1h das 8–24h)\n" +
+        "  • *Antitrombóticos:* **PROIBIDO** AAS, clopidogrel, heparinas ou DOACs nas primeiras **24h** (aguardar TC de crânio de controle em 24h).\n" +
+        "  • *Exclusão de Mímico:* Confirmar glicemia capilar ≥ 50 mg/dL antes do bolus.";
+
+      return txtAvcTromb;
+    }
+
+    return "⚠️ *Calculadora de Trombólise no AVC: Peso Não Informado*\n\n" +
+      obterInstrucoesCalculadora("trombolise_avc");
   }
 
   // Ajuste Renal de Antimicrobianos
@@ -1200,6 +1301,25 @@ function obterInstrucoesCalculadora(tipo) {
       "*(Toque na caixa acima para copiar, preencha os valores entre colchetes e envie)*";
   }
 
+  if (t.indexOf("TROMBOLISE") !== -1 || t.indexOf("TROMBÓLISE") !== -1 ||
+      t.indexOf("ALTEPLASE") !== -1 || t.indexOf("TENECTEPLASE") !== -1 ||
+      t.indexOf("ACTILYSE") !== -1 || t.indexOf("METALYSE") !== -1 ||
+      t.indexOf("RTPA") !== -1 || t.indexOf("TNK") !== -1) {
+    return "📐 *CALCULADORA: TROMBÓLISE IV NO AVC ISQUÊMICO (rtPA / TNK)*\n\n" +
+      "Dados necessários para o cálculo determinístico:\n" +
+      "• Peso corporal estimado ou aferido (kg)\n" +
+      "• Tempo de início dos sintomas / ictus em horas (opcional)\n" +
+      "• Pressão Arterial atual em mmHg (opcional)\n\n" +
+      "📋 *Copie a caixa abaixo, preencha os dados e envie:*\n" +
+      "```\n" +
+      "/calc trombolise avc\n" +
+      "Peso: [ ] kg\n" +
+      "Tempo: [ ] h\n" +
+      "PA: [ ]x[ ] mmHg\n" +
+      "```\n" +
+      "*(Ou envie direto: `/calc trombolise 75kg`)*";
+  }
+
   if (t.indexOf("NIHSS") !== -1) {
     return "📐 *CALCULADORA: NIHSS (Escala de AVC Isquêmico)*\n\n" +
       "Dados estritamente necessários para o cálculo:\n" +
@@ -1369,9 +1489,9 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
     tituloCat = "🧠 *Calculadoras Neuro & Terapia Intensiva:*";
     teclado = [
       [{"text": "Glasgow-P", "callback_data": "calc_Glasgow"}, {"text": "NIHSS (AVC)", "callback_data": "calc_NIHSS"}],
-      [{"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}, {"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}],
-      [{"text": "Child-Pugh", "callback_data": "calc_Child"}, {"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}],
-      [{"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "Trombólise AVC (rtPA/TNK)", "callback_data": "calc_Trombolise_AVC"}, {"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}],
+      [{"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}, {"text": "Child-Pugh", "callback_data": "calc_Child"}],
+      [{"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
       [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }

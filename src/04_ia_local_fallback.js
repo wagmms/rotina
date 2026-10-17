@@ -643,7 +643,7 @@ var IaLocalFallbackService = (function () {
                    ctxLow.indexOf('ferida') !== -1 || ctxLow.indexOf('npuap') !== -1;
 
     var cabecalhoContingencia = [
-      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (IMAGEM MÉDICA FMRP-USP)*',
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (IMAGEM MÉDICA / LAUDO BEIRA-LEITO)*',
       'A leitura de imagens por IA oscilou temporariamente. Para sua segurança, confira o roteiro semiológico oficial ou reenvie a foto em instantes:',
       ''
     ].join('\n');
@@ -651,7 +651,7 @@ var IaLocalFallbackService = (function () {
     var rodapeSeguranca = [
       '',
       '---',
-      '📌 *Roteiro de apoio beira-leito (FMRP-USP / CBR). Se preferir, digite a alteração suspeita para conduta imediata.*'
+      '📌 *Roteiro de apoio beira-leito (SBC / CBR / Diretrizes SUS). Se preferir, digite a alteração suspeita para conduta imediata.*'
     ].join('\n');
 
     var corpo = [];
@@ -663,7 +663,7 @@ var IaLocalFallbackService = (function () {
         corpo.push('');
       }
 
-      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS FMRP-USP):*');
+      corpo.push('*ROTEIRO SISTEMÁTICO DE LEITURA DE ECG (6 PASSOS SBC):*');
       corpo.push('1. *Ritmo:* Sinusal (onda P positiva em D1, D2, aVF; negativa em aVR, seguida de QRS regular) vs Taqui/Bradiarritmias (FA, Flutter, BAVs).');
       corpo.push('2. *Frequência Cardíaca (FC):* 1500 / mm entre ondas R (se regular) ou complexos em 30 quadrados grandes x 10 (se irregular). Normal: 50 a 100 bpm.');
       corpo.push('3. *Eixo Elétrico (Plano Frontal):* Normal (-30° a +90°). Se D1 (+) e aVF (+): Eixo normal (0° a +90°). Se D1 (+) e aVF (-): Desvio para esquerda (-30° a -90°). Se D1 (-) e aVF (+): Desvio para direita.');
@@ -676,7 +676,7 @@ var IaLocalFallbackService = (function () {
       corpo.push('   • Anterior/Septal (V1-V4), Lateral Alta (D1, aVL), Lateral Baixa (V5-V6), Inferior (D2, D3, aVF).');
       corpo.push('   • ⚠️ Se supra em parede inferior (D2, D3, aVF): Rodar obrigatoriamente derivações direitas (V3R, V4R) para descartar IAM de Ventrículo Direito (Nitrato contraindicado!).');
     } else if (ehRx) {
-      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS FMRP-USP):*');
+      corpo.push('*ROTEIRO SISTEMÁTICO DE RADIOGRAFIA DE TÓRAX (5 PASSOS CBR):*');
       corpo.push('1. *Identificação e Técnica:* Incidência (PA vs AP), penetração correta (visualização sutil dos corpos vertebrais atrás do coração), rotação (clavículas equidistantes das espinhosas) e inspiração (8 a 10 arcos costais posteriores visíveis).');
       corpo.push('2. *Arcabouço Ósseo e Partes Moles:* Fraturas de arcos costais ou clavícula, lesões líticas/blásticas, enfisema subcutâneo (presença de ar dissecando partes moles).');
       corpo.push('3. *Mediastino e Silhueta Cardíaca:* Índice Cardiotorácico (ICT <= 0,50 no PA), contornos aórtico e hilar, desvio de traqueia.');
@@ -956,6 +956,57 @@ var IaLocalFallbackService = (function () {
     return gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes);
   }
 
+  /**
+   * Gera perguntas socráticas de segurança crítica baseadas nas pérolas do Tá de Clinicagem (TdC)
+   * e diretrizes 2024-2026 para ancorar o raciocínio clínico na emergência.
+   * @param {string} textoCaso Texto ou termo clínico em discussão
+   * @return {Object|null} Objeto com perolaTdC e perguntaSocratica
+   */
+  function obterAncoraSocraticaTdCEmergencia(textoCaso) {
+    var protocolo = typeof obterProtocoloClinico === "function" ? obterProtocoloClinico(textoCaso) : null;
+    if (!protocolo) return null;
+
+    var mapaSocraticoTdC = {
+      "Sepse e Choque Séptico": {
+        perolaTdC: "SSC 2021 + CLOVERS / ANDROMEDA-SHOCK: qSOFA isolado não serve para triagem; guie a ressuscitação pelo Tempo de Enchimento Capilar (TEC ≤ 3s) e lactato, priorize Ringer Lactato e inicie Noradrenalina periférica precoce se PAM < 65 mmHg sem atrasar o controle de foco (6-12h).",
+        perguntaSocratica: "Qual é o Tempo de Enchimento Capilar (TEC) atual do paciente, qual o foco infeccioso que precisa de controle na 1ª hora e você já considerou iniciar Noradrenalina em veia periférica calibrosa enquanto corre o Ringer Lactato?"
+      },
+      "Cetoacidose Diabética (CAD) e Estado Hiperosmolar Hiperglicêmico (EHH)": {
+        perolaTdC: "ADA/SBD 2024: NUNCA inicie insulina regular EV antes de checar o Potássio sérico (se K < 3,5 mEq/L, repor K+ antes). Lembre-se de iniciar SG 5% quando a glicemia atingir 200 mg/dL (ou desde a 1ª hora na CAD euglicêmica por iSGLT2) e aplicar insulina basal SC 2 a 4h ANTES de desligar a bomba EV.",
+        perguntaSocratica: "Antes de ligar a bomba de insulina regular EV, qual é o valor do Potássio sérico deste paciente? E quando o ânion gap fechar, qual cuidado na transição para insulina subcutânea evitará a cetoacidose de rebote?"
+      },
+      "Crise de Asma Grave no Adulto": {
+        perolaTdC: "GINA 2024-2026: Alvo de SpO₂ 93-95%, corticoide sistêmico na 1ª hora e Sulfato de Magnésio 2g EV em 20 min se crise grave. Na alta (Track 1), é proscrito prescrever SABA isolado: associe Corticoide Inalatório + Formoterol de alívio (AIR/MART).",
+        perguntaSocratica: "Há algum sinal de falência ventilatória iminente (tórax silencioso ou PaCO₂ normalizando/subindo)? Se a crise for grave, já indicou Sulfato de Magnésio 2g EV e planejou a alta na Track 1 do GINA (CI + Formoterol)?"
+      },
+      "Anafilaxia e Choque Anafilático": {
+        perolaTdC: "WAO/ASBAI: Adrenalina 1:1000 (0,5 mg IM no vasto lateral da coxa) imediata + decúbito dorsal com pernas elevadas (nunca sentar ou levantar subitamente pelo risco de síndrome do ventrículo vazio). Se refratário em usuário de betabloqueador, usar Glucagon 1-2 mg EV.",
+        perguntaSocratica: "A Adrenalina 1:1000 IM no vasto lateral já foi administrada imediatamente com o paciente mantido em decúbito dorsal estrito? Ele faz uso crônico de betabloqueador?"
+      },
+      "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)": {
+        perolaTdC: "Baveno VII: Transfusão restritiva (alvo Hb 7-8 g/dL). Na suspeita de HDA varicosa em cirrótico, iniciar Terlipressina 2 mg EV 4/4h + Ceftriaxona 1g EV/dia ANTES da EDA, associar Eritromicina pré-EDA e suspender betabloqueador se hipotensão ou IRA.",
+        perguntaSocratica: "Há estigmas de hepatopatia crônica/hipertensão portal que exijam Terlipressina + Ceftriaxona imediatas antes da EDA em 12h, mantendo estratégia transfusional restritiva (Hb 7-8 g/dL)?"
+      },
+      "Infarto Agudo do Miocárdio (IAM)": {
+        perolaTdC: "SBC 2024 / AHA: Tempo porta-agulha ≤ 30 min (se trombólise) ou porta-balão ≤ 90 min (se angioplastia primária). AAS mastigado 300 mg + 2º antiplaquetário (Ticagrelor 180 mg ou Clopidogrel 300/600 mg). Morfina de rotina é proscrita.",
+        perguntaSocratica: "Qual é o tempo porta-ECG (meta ≤ 10 min)? Se houver supra de ST, a reperfusão por angioplastia primária está acessível em até 120 min ou está indicada a fibrinólise imediata?"
+      },
+      "Edema Agudo de Pulmão (EAP Cardiogênico)": {
+        perolaTdC: "ESC/SBC 2024: VNI precoce (CPAP/BIPAP com PEEP 5-10 cmH2O) + Vasodilatador venoso/arterial (Nitroglicerina/Nitroprussiato) se PAS > 110 mmHg. Furosemida em bólus (1 a 2x a dose crônica). Evite morfina rotineira.",
+        perguntaSocratica: "A Ventilação Não Invasiva (VNI) já foi instalada e a PAS permite titulação agressiva de vasodilatador EV (Nitroglicerina) para alívio imediato da pós-carga?"
+      },
+      "Crise Convulsiva e Estado de Mal Epiléptico": {
+        perolaTdC: "ABN / AES / ESETT: 0-5 min: Benzodiazepínico (Diazepam 10 mg EV ou Midazolam 10 mg IM). Se refratário aos 5-10 min, repetir 1 dose. 10-20 min: 2ª linha (Levetiracetam 60 mg/kg máx 4500 mg, Valproato 40 mg/kg máx 3000 mg ou Fenitoína 20 mg/kg máx 1500 mg).",
+        perguntaSocratica: "O Benzodiazepínico foi feito na dose e tempo corretos (primeiros 5 min)? Qual anticonvulsivante de 2ª linha (Levetiracetam, Valproato ou Fenitoína) já está em preparo?"
+      }
+    };
+
+    return mapaSocraticoTdC[protocolo.titulo] || {
+      perolaTdC: protocolo.divergencia || "",
+      perguntaSocratica: "Quais são as condutas salvadoras de vida nos primeiros 10 a 60 minutos segundo a diretriz (" + protocolo.diretriz_brasileira + ")?"
+    };
+  }
+
   return {
     MODELOS_HOMOLOGADOS_LOCAL: MODELOS_HOMOLOGADOS_LOCAL,
     PROTOCOLOS_OFFLINE: PROTOCOLOS_OFFLINE,
@@ -969,6 +1020,7 @@ var IaLocalFallbackService = (function () {
     gerarFallbackAudio: gerarFallbackAudio,
     gerarFallbackMultimodal: gerarFallbackMultimodal,
     executarFallbackLocalOffline: executarFallbackLocalOffline,
+    obterAncoraSocraticaTdCEmergencia: obterAncoraSocraticaTdCEmergencia,
     _iaChamarOllamaNativo: function(arg1, arg2, arg3, arg4, arg5, arg6) {
       if (typeof _iaChamarOllamaNativo === 'function') {
         return _iaChamarOllamaNativo(arg1, arg2, arg3, arg4, arg5, arg6);
@@ -1174,8 +1226,13 @@ function executarFallbackLocalOffline(arg1, arg2, arg3, arg4) {
   return IaLocalFallbackService.executarFallbackLocalOffline(arg1, arg2, arg3, arg4);
 }
 
+function obterAncoraSocraticaTdCEmergencia(textoCaso) {
+  return IaLocalFallbackService.obterAncoraSocraticaTdCEmergencia(textoCaso);
+}
+
 if (typeof global !== 'undefined') {
   global.executarFallbackLocalOffline = executarFallbackLocalOffline;
+  global.obterAncoraSocraticaTdCEmergencia = obterAncoraSocraticaTdCEmergencia;
   if (typeof _iaChamarOllamaNativo !== 'undefined') {
     global._iaChamarOllamaNativo = _iaChamarOllamaNativo;
   }
@@ -1186,6 +1243,7 @@ if (typeof module !== 'undefined' && module.exports) {
     IaLocalFallbackService: IaLocalFallbackService,
     IaCircuitBreaker: IaCircuitBreaker,
     executarFallbackLocalOffline: executarFallbackLocalOffline,
+    obterAncoraSocraticaTdCEmergencia: obterAncoraSocraticaTdCEmergencia,
     _iaChamarOllamaNativo: (typeof _iaChamarOllamaNativo !== 'undefined' ? _iaChamarOllamaNativo : null)
   };
 }

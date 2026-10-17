@@ -31,6 +31,9 @@ const {
   preValidationChat,
   handlerChat
 } = require('./controllers/chat.controller');
+const { handlerClinicalSoap } = require('./controllers/clinical_soap.controller');
+const { SoapInputSchema } = require('../src/clinical/schemas/soap.schema');
+const cnesRoutes = require('./controllers/cnes.controller');
 
 function ehErroAutenticacaoOuSessao(err) {
   if (!err) return false;
@@ -301,7 +304,7 @@ async function buildServer() {
     max: limiteRateLimit,
     timeWindow: '1 minute',
     allowList: (req) => {
-      if (req.headers && req.headers['x-bypass-ratelimit'] === 'true') {
+      if (process.env.NODE_ENV === 'test' && req.headers && req.headers['x-bypass-ratelimit'] === 'true') {
         return true;
       }
       return false;
@@ -531,6 +534,31 @@ async function buildServer() {
 
   fastify.get('/api/remume', async (request, reply) => {
     try {
+      const q = request.query || {};
+      const slug = q.slug || q.cidade || '';
+      const chatId = q.chatId || '';
+      if ((slug || chatId) && runtime.ctx && runtime.ctx.CatalogoRemumeService) {
+        const ctxUser = (runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.getContextoClinico === 'function')
+          ? runtime.ctx.ConfigService.getContextoClinico(chatId || 'default')
+          : {};
+        if (slug) ctxUser.remume_slug = slug;
+        const cat = (typeof runtime.ctx.CatalogoRemumeService.obterCatalogoAtivo === 'function')
+          ? runtime.ctx.CatalogoRemumeService.obterCatalogoAtivo(ctxUser)
+          : runtime.ctx.CatalogoRemumeService.resolverCatalogoAtivo(ctxUser);
+        const itens = (cat.medicamentos || []).map((m) => `${m.principio_ativo || m.nome || ''};${m.apresentacao || ''}`);
+        return {
+          ok: true,
+          sucesso: true,
+          slug: cat.slug || slug || 'rename_nacional',
+          municipio: cat.municipio || '',
+          uf: cat.uf || 'BR',
+          fonte: cat.nome_exibicao || cat.fonte || 'Catálogo SUS',
+          total: itens.length,
+          itens,
+          medicamentos: cat.medicamentos || []
+        };
+      }
+
       const { payload, etag } = obterRemumeCacheada();
       reply.header('ETag', etag);
       reply.header('Cache-Control', 'public, max-age=3600, stale-while-revalidate=86400');
@@ -544,6 +572,191 @@ async function buildServer() {
     } catch (err) {
       reply.status(500);
       return { ok: false, erro: err.message };
+    }
+  });
+
+  // 4.9. ROTAS MULTI-LOCALIDADE, PERFIL DINÂMICO, BUSCA WEB E AUTO-PROMOÇÃO REMUME
+  fastify.get('/api/remume/presets', async (request, reply) => {
+    try {
+      const presets = (runtime.ctx && runtime.ctx.CatalogoRemumeService && typeof runtime.ctx.CatalogoRemumeService.listarPresets === 'function')
+        ? runtime.ctx.CatalogoRemumeService.listarPresets()
+        : [];
+      const modulosCatalogo = (runtime.ctx && runtime.ctx.ConfigService && runtime.ctx.ConfigService.CATALOGO_MODULOS_CLINICOS) || [];
+      const modulosPorCenario = (runtime.ctx && runtime.ctx.ConfigService && runtime.ctx.ConfigService.MODULOS_POR_CENARIO) || {};
+      return {
+        ok: true,
+        sucesso: true,
+        total: presets.length,
+        presets,
+        catalogo_modulos: modulosCatalogo,
+        modulos_por_cenario: modulosPorCenario
+      };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  fastify.get('/api/perfil', async (request, reply) => {
+    try {
+      const q = request.query || {};
+      const chatId = q.chatId || 'default';
+      const perfil = (runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.getContextoClinico === 'function')
+        ? runtime.ctx.ConfigService.getContextoClinico(chatId)
+        : {};
+      const catalogo = (runtime.ctx && runtime.ctx.CatalogoRemumeService)
+        ? (typeof runtime.ctx.CatalogoRemumeService.obterCatalogoAtivo === 'function'
+            ? runtime.ctx.CatalogoRemumeService.obterCatalogoAtivo(perfil)
+            : (typeof runtime.ctx.CatalogoRemumeService.resolverCatalogoAtivo === 'function' ? runtime.ctx.CatalogoRemumeService.resolverCatalogoAtivo(perfil) : null))
+        : null;
+      return {
+        ok: true,
+        sucesso: true,
+        perfil,
+        remume_info: catalogo ? {
+          slug: catalogo.slug,
+          nome_exibicao: catalogo.nome_exibicao,
+          municipio: catalogo.municipio,
+          uf: catalogo.uf,
+          total_medicamentos: Array.isArray(catalogo.medicamentos) ? catalogo.medicamentos.length : 0
+        } : null,
+        catalogo_modulos: (runtime.ctx && runtime.ctx.ConfigService && runtime.ctx.ConfigService.CATALOGO_MODULOS_CLINICOS) || [],
+        modulos_por_cenario: (runtime.ctx && runtime.ctx.ConfigService && runtime.ctx.ConfigService.MODULOS_POR_CENARIO) || {}
+      };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  fastify.post('/api/perfil', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const chatId = body.chatId || 'default';
+      let perfilAtualizado = {};
+      if (body.aplicar_cenario && runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.aplicarCenarioAssistencial === 'function') {
+        runtime.ctx.ConfigService.aplicarCenarioAssistencial(chatId, body.aplicar_cenario);
+      }
+      if (runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.salvarContextoClinico === 'function') {
+        perfilAtualizado = runtime.ctx.ConfigService.salvarContextoClinico(chatId, body);
+      }
+      if (runtime.ctx && typeof runtime.ctx.invalidarCacheRemumeRP === 'function') {
+        try { runtime.ctx.invalidarCacheRemumeRP(); } catch (_) {}
+      }
+      cacheRemumePayload = null;
+      return { ok: true, sucesso: true, perfil: perfilAtualizado };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  fastify.post('/api/remume/importar', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const municipio = String(body.municipio || '').trim();
+      const uf = String(body.uf || 'BR').trim().toUpperCase();
+      const conteudo = body.medicamentos || body.texto || body.csv || '';
+      const fonte = body.fonte || `Importação Colaborativa (${municipio})`;
+      const chatId = body.chatId || 'default';
+
+      if (!municipio || !conteudo) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Campos "municipio" e "texto/medicamentos" são obrigatórios.' };
+      }
+
+      const resultado = (runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.promoverRemumeParaPresetGlobal === 'function')
+        ? runtime.ctx.ConfigService.promoverRemumeParaPresetGlobal(municipio, uf, conteudo, fonte, chatId)
+        : null;
+
+      if (!resultado || !resultado.sucesso) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: (resultado && resultado.erro) || 'Não foi possível extrair medicamentos válidos.' };
+      }
+
+      if (runtime.ctx && typeof runtime.ctx.invalidarCacheRemumeRP === 'function') {
+        try { runtime.ctx.invalidarCacheRemumeRP(); } catch (_) {}
+      }
+      cacheRemumePayload = null;
+      return {
+        ok: true,
+        sucesso: true,
+        promovido_preset: true,
+        slug: resultado.slug,
+        total: resultado.total,
+        catalogo: resultado.catalogo
+      };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
+    }
+  });
+
+  fastify.post('/api/remume/buscar-web', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const municipio = String(body.municipio || '').trim();
+      const uf = String(body.uf || 'BR').trim().toUpperCase();
+      const chatId = body.chatId || 'default';
+
+      if (!municipio) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Informe o município para pesquisa.' };
+      }
+
+      const resWeb = (runtime.ctx && runtime.ctx.CatalogoRemumeService && typeof runtime.ctx.CatalogoRemumeService.buscarRemumeNaWeb === 'function')
+        ? await runtime.ctx.CatalogoRemumeService.buscarRemumeNaWeb(municipio, uf, chatId)
+        : { encontrado: false, motivo: 'Serviço indisponível' };
+
+      if (resWeb && resWeb.encontrado && resWeb.catalogo && runtime.ctx && runtime.ctx.ConfigService) {
+        runtime.ctx.ConfigService.salvarContextoClinico(chatId, {
+          municipio: resWeb.catalogo.municipio || municipio,
+          uf: resWeb.catalogo.uf || uf,
+          remume_slug: resWeb.slug
+        });
+        cacheRemumePayload = null;
+      }
+
+      return { ok: true, ...resWeb };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, encontrado: false, erro: err.message };
+    }
+  });
+
+  fastify.post('/api/remume/solicitar', async (request, reply) => {
+    try {
+      const body = request.body || {};
+      const municipio = String(body.municipio || '').trim();
+      const uf = String(body.uf || 'BR').trim().toUpperCase();
+      const chatId = body.chatId || 'cockpit_user';
+
+      if (!municipio) {
+        reply.status(400);
+        return { ok: false, sucesso: false, erro: 'Informe o município desejado.' };
+      }
+
+      const registro = (runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.registrarSolicitacaoRemume === 'function')
+        ? runtime.ctx.ConfigService.registrarSolicitacaoRemume(municipio, uf, chatId)
+        : { municipio, uf, status: 'PENDENTE', solicitantes: [String(chatId)] };
+
+      // Alerta o admin no Telegram se configurado
+      try {
+        const adminChat = runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.getPrimary === 'function'
+          ? runtime.ctx.ConfigService.getPrimary('TELEGRAM_CHAT_ID')
+          : '';
+        if (adminChat && runtime.ctx && typeof runtime.ctx.enviarMensagemParaChat === 'function') {
+          runtime.ctx.enviarMensagemParaChat(
+            adminChat,
+            `📩 *SOLICITAÇÃO DE REMUME (VIA COCKPIT/BOT)*\n\n• *Cidade:* \`${registro.municipio} - ${registro.uf}\`\n• *Solicitante:* \`${chatId}\`\n\nPara aprovar e liberar no preset global:\n\`/aprovar_remume ${registro.municipio} - ${registro.uf}\``
+          );
+        }
+      } catch (_) {}
+
+      return { ok: true, sucesso: true, solicitacao: registro };
+    } catch (err) {
+      reply.status(500);
+      return { ok: false, sucesso: false, erro: err.message };
     }
   });
 
@@ -577,6 +790,19 @@ async function buildServer() {
     registrarInteracaoAoVivo,
     fastifyLog: fastify.log
   }));
+
+  // 5.0.3 Endpoint REST Dedicado: Estação Clínica SOAP (/api/clinical/soap)
+  fastify.post('/api/clinical/soap', {
+    schema: {
+      body: SoapInputSchema
+    }
+  }, (request, reply) => handlerClinicalSoap(request, reply, {
+    registrarInteracaoAoVivo,
+    fastifyLog: fastify.log
+  }));
+
+  // 5.0.4 Endpoints REST Dedicados: Busca de Estabelecimentos CNES & Cabeçalho (/api/cnes/*)
+  fastify.register(cnesRoutes);
 
   // ==============================================================================
   // 5.0.3 ROTAS REST DEDICADAS: ABA ROTINA & SINCRONIZAÇÃO GOOGLE CALENDAR
@@ -1278,13 +1504,20 @@ async function buildServer() {
         return { ok: false, erro: 'Update inválido' };
       }
       const updateId = updateData.update_id;
-      const mensagem = updateData.message || (updateData.callback_query && updateData.callback_query.message);
       const chatsPermitidos = (runtime.ctx.ConfigService && runtime.ctx.ConfigService.getArray
         ? runtime.ctx.ConfigService.getArray('TELEGRAM_CHAT_ID')
         : String(chatPermitido).split(',')
       ).map(s => String(s).trim()).filter(Boolean);
 
-      if (!mensagem || !mensagem.chat || !chatsPermitidos.includes(String(mensagem.chat.id))) {
+      const chatIdRemetente = (
+        (updateData.message && updateData.message.chat && String(updateData.message.chat.id)) ||
+        (updateData.callback_query && updateData.callback_query.message && updateData.callback_query.message.chat && String(updateData.callback_query.message.chat.id)) ||
+        (updateData.callback_query && updateData.callback_query.from && String(updateData.callback_query.from.id)) ||
+        (updateData.inline_query && updateData.inline_query.from && String(updateData.inline_query.from.id)) ||
+        (updateData.chosen_inline_result && updateData.chosen_inline_result.from && String(updateData.chosen_inline_result.from.id))
+      );
+
+      if (!chatIdRemetente || !chatsPermitidos.includes(chatIdRemetente)) {
         // O Telegram repete respostas fora de 2xx; updates de outros chats
         // são ignorados definitivamente para não bloquear a fila legítima.
         return { ok: true, ignored: true };
@@ -1355,15 +1588,7 @@ async function buildServer() {
     if (!require('fs').existsSync(pathCockpitHtml)) {
       return '<h1>Cockpit Móvel não encontrado</h1>';
     }
-    let html = require('fs').readFileSync(pathCockpitHtml, 'utf8');
-    try {
-      const chatId = runtime.ctx.ConfigService.get('TELEGRAM_CHAT_ID');
-      if (chatId) {
-        const token = runtime.ctx.criarSessaoCockpit_(chatId);
-        html = html.replace('</head>', `<script>window.cockpitSessionRaw = "${token}";</script>\n</head>`);
-      }
-    } catch (_) {}
-    return html;
+    return require('fs').readFileSync(pathCockpitHtml, 'utf8');
   }
 
   // Rota raiz: serve o Cockpit PWA para navegadores e JSON para clientes de API
@@ -1488,6 +1713,93 @@ async function buildServer() {
   }
   fastify.get('/apple-touch-icon.png', async (request, reply) => responderAppleIcon(request, reply));
   fastify.get('/favicon.ico', async (request, reply) => responderAppleIcon(request, reply));
+
+  // ══════════════════════════════════════════════════════════════════════════════
+  // SNIPER DE PLANTÕES MÉDICOS (WHATSAPP ➔ BOT ROTINA · ISOLAMENTO ZERO-TRUST)
+  // ══════════════════════════════════════════════════════════════════════════════
+  fastify.get('/api/sniper/status', async (request, reply) => {
+    const svc = runtime.ctx?.PlantaoSniperService;
+    if (!svc) {
+      return reply.status(503).send({ ok: false, error: 'PlantaoSniperService indisponível.' });
+    }
+    return {
+      ok: true,
+      config: svc.obterConfig(),
+      metricas: svc.obterMetricas(),
+      gruposAllowlist: typeof svc.obterGruposAllowlist === 'function' ? svc.obterGruposAllowlist() : [],
+      historicoRecente: svc.obterHistorico().slice(0, 10)
+    };
+  });
+
+  fastify.post('/api/sniper/grupos/sync', async (request, reply) => {
+    const svc = runtime.ctx?.PlantaoSniperService;
+    if (!svc || typeof svc.sincronizarGruposWhatsApp !== 'function') {
+      return reply.status(503).send({ ok: false, error: 'PlantaoSniperService indisponível.' });
+    }
+    const grupos = Array.isArray(request.body?.grupos) ? request.body.grupos : [];
+    const res = svc.sincronizarGruposWhatsApp(grupos);
+    return { ok: true, ...res };
+  });
+
+  fastify.post('/api/sniper/webhook', async (request, reply) => {
+    const svc = runtime.ctx?.PlantaoSniperService;
+    if (!svc || typeof svc.processarMensagemGrupoWhatsApp !== 'function') {
+      return reply.status(503).send({ ok: false, error: 'PlantaoSniperService indisponível.' });
+    }
+    const body = request.body || {};
+
+    // Extração normalizada do envelope WhatsApp (Baileys / Evolution API / WAHA)
+    const remoteJid = String(
+      body.remoteJid ||
+      body.groupJid ||
+      body.key?.remoteJid ||
+      body.data?.key?.remoteJid ||
+      ''
+    ).trim();
+
+    const fromMe = Boolean(
+      body.fromMe === true ||
+      body.key?.fromMe === true ||
+      body.data?.key?.fromMe === true
+    );
+
+    // CAMADA 1 NA BORDA HTTP: Descarte instantâneo de conversas privadas, status ou mensagens próprias
+    if (fromMe) {
+      return { ok: true, ignored: true, camada: 1, codigo: 'MENSAGEM_PROPRIA_IGNORADA' };
+    }
+    if (remoteJid && (!remoteJid.endsWith('@g.us') || remoteJid.includes('@s.whatsapp.net') || remoteJid.includes('broadcast') || remoteJid.includes('@newsletter'))) {
+      return { ok: true, ignored: true, camada: 1, codigo: 'CHAT_PRIVADO_OU_STATUS_BLOQUEADO' };
+    }
+
+    const texto = String(
+      body.texto ||
+      body.text ||
+      body.message?.conversation ||
+      body.message?.extendedTextMessage?.text ||
+      body.data?.message?.conversation ||
+      ''
+    ).trim();
+
+    if (!texto) {
+      return reply.status(400).send({ ok: false, error: 'Campo "texto" ausente na mensagem do WhatsApp.' });
+    }
+
+    const opcoes = {
+      fromMe,
+      remoteJid,
+      exigirAllowlist: Boolean(remoteJid || body.exigirAllowlist),
+      grupoNome: body.grupoNome || body.groupName || 'Grupo WhatsApp Plantões',
+      escalistaNome: body.escalistaNome || body.pushName || body.senderName || 'Escalista',
+      escalistaFone: body.escalistaFone || body.participant || body.sender || '',
+      chatId: body.chatId || runtime.ctx?.ConfigService?.get('TELEGRAM_CHAT_ID') || process.env.TELEGRAM_CHAT_ID || ''
+    };
+
+    const resultado = svc.processarMensagemGrupoWhatsApp(texto, opcoes.grupoNome, opcoes.escalistaFone, opcoes);
+    return {
+      ok: true,
+      ...resultado
+    };
+  });
 
   // ══════════════════════════════════════════════════════════════════════════════
   // PRECEPTOR IA · VOZ EM TEMPO REAL (GEMINI-3.8-LIVE / WEBSOCKET FULL-DUPLEX)
@@ -1643,14 +1955,19 @@ async function buildServer() {
       'gemini-2.0-flash-exp'
     ].filter(Boolean);
 
-    const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP.
-Você está conversando por voz em tempo real diretamente no fone de ouvido do médico Dr. Wagner enquanto ele caminha na enfermaria ou na emergência.
+    const ctxVozServer = (runtime.ctx && runtime.ctx.ConfigService && typeof runtime.ctx.ConfigService.getContextoClinico === 'function')
+      ? runtime.ctx.ConfigService.getContextoClinico('default')
+      : {};
+    const nomeMedLive = ((ctxVozServer.prefixo_tratamento || 'Dr.') + ' ' + (ctxVozServer.nome_chamada || 'Doutor(a)')).trim();
+
+    const SYSTEM_INSTRUCTION_PRECEPTOR = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva.
+Você está conversando por voz em tempo real diretamente no fone de ouvido de ${nomeMedLive} enquanto atua na enfermaria, ambulatório ou emergência.
 Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio: "Qual hipótese diagnóstica você prioriza?", "Qual o próximo exame confirmatório?", "Por que indicou essa droga e não a primeira linha?".
-3. Mantenha cada turno de fala curto (15 a 30 segundos), permitindo que Wagner fale livremente.
-4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT).
-5. NUNCA INVENTE DADOS DE PACIENTES nem simule casos fictícios aleatoriamente do nada. Se Wagner apenas chamar ou se faltarem dados (sinais vitais, exames), pergunte qual caso ele quer discutir ou pergunte ativamente o dado faltante. Somente simule caso se ele pedir expressamente.`;
+3. Mantenha cada turno de fala curto (15 a 30 segundos), permitindo que o médico fale livremente.
+4. Ao ouvir uma conduta, reforce a segurança do paciente, alergias, contraindicações e diretrizes brasileiras (SBC, ILAS, AMIB, SBPT, FEBRASGO, SBP).
+5. NUNCA INVENTE DADOS DE PACIENTES nem simule casos fictícios aleatoriamente do nada. Se o médico apenas chamar ou se faltarem dados (sinais vitais, exames), pergunte qual caso ele quer discutir ou pergunte ativamente o dado faltante. Somente simule caso se ele pedir expressamente.`;
 
     // Função de tentativa de conexão com timeout defensivo (6s)
     async function tentarConectarLive(key, modelo) {
@@ -1881,13 +2198,13 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
           clientWs.send(JSON.stringify({ type: 'transcript', role: 'user', text: textoUsuario.trim(), streaming: false }));
         }
 
-        const sistemaPrompt = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva da FMRP-USP falando no fone de Wagner durante o plantão.
+        const sistemaPrompt = `Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Terapia Intensiva falando no fone de ${nomeMedLive} durante o plantão.
 Seu estilo é socrático, ágil, estimulante e acolhedor:
 1. Discuta o caso clínico com alto rigor técnico e vocabulário médico culto e direto.
 2. Faça perguntas socráticas provocativas e curtas para estimular o raciocínio clínico.
 3. Responda em no máximo 2 a 3 frases concisas (15 a 25 segundos de fala).
 4. Sem formatação markdown, sem asteriscos, pronto para locução de áudio.
-5. NUNCA invente dados de pacientes nem simule casos fictícios aleatoriamente do nada. Se Wagner não relatou o paciente ou faltarem dados, pergunte qual caso ele quer discutir ou pergunte o dado que falta.`;
+5. NUNCA invente dados de pacientes nem simule casos fictícios aleatoriamente do nada. Se o médico não relatou o paciente ou faltarem dados, pergunte qual caso ele quer discutir ou pergunte o dado que falta.`;
 
         let respostaTexto = '';
         if (runtime.ctx && typeof runtime.ctx._iaProvGemini === 'function') {
@@ -1935,7 +2252,7 @@ Seu estilo é socrático, ágil, estimulante e acolhedor:
         }
 
         if (!respostaTexto) {
-          respostaTexto = 'Compreendido, Dr. Wagner. Qual é a sua principal suspeita diagnóstica e qual conduta imediata você preconiza?';
+          respostaTexto = `Compreendido, ${nomeMedLive}. Qual é a sua principal suspeita diagnóstica e qual conduta imediata você preconiza?`;
         }
 
         respostaTexto = respostaTexto.replace(/[*_#`\[\]\(\)]/g, '').replace(/\s+/g, ' ').trim();

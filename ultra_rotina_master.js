@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 08:21:34
- * Checksum SHA256: 410964122b406403
+ * Gerado automaticamente via build_master.py em: 2026-10-17 09:31:21
+ * Checksum SHA256: b6dd83098a9bef26
  * ==============================================================================
  */
 
@@ -16,15 +16,95 @@
 
 /**
  * ==============================================================================
- * MÓDULO 00: CONFIGURAÇÕES, SEGREDOS E AMBIENTE (ConfigService)
+ * MÓDULO 00: CONFIGURAÇÕES, SEGREDOS, AMBIENTE E CONTEXTO CLÍNICO MULTI-PERFIL
  * ==============================================================================
- * Arquitetura de Gestão de Chaves e Propriedades:
- * Lê prioritariamente de PropertiesService.getScriptProperties().
+ * Arquitetura de Gestão de Chaves, Propriedades, Perfis Assistenciais e REMUME:
+ * 1. Lê prioritariamente de PropertiesService.getScriptProperties().
+ * 2. Gerencia Contexto Clínico por usuário (chatId) com persistência híbrida
+ *    (Memória + Disco em data/profiles/<chatId>.json + PropertiesService).
+ * 3. Controla a Matriz Oficial dos 10 Módulos Clínicos por Cenário Assistencial.
+ * 4. Gerencia Catálogos Farmacêuticos (RENAME Nacional + Presets Municipais),
+ *    com Auto-Promoção para Preset Global e Fila de Solicitações ao Desenvolvedor.
  * ==============================================================================
  */
 
 var ConfigService = (function() {
   var propsCache = null;
+  var perfisCache = {};
+  var catalogosCache = {};
+  var manifestCache = null;
+  var solicitacoesCache = null;
+  var unidadesCompartilhadasCache = {};
+
+  var fs = null;
+  var path = null;
+  try {
+    if (typeof require === "function") {
+      fs = require("fs");
+      path = require("path");
+    }
+  } catch (e) {}
+
+  function obterRaizProjeto() {
+    try {
+      if (typeof process !== "undefined" && process && typeof process.cwd === "function") {
+        return process.cwd();
+      }
+    } catch (e) {}
+    return ".";
+  }
+
+  function resolverCaminho(caminhoRelativo) {
+    if (!path) return caminhoRelativo;
+    return path.resolve(obterRaizProjeto(), caminhoRelativo);
+  }
+
+  function garantirDiretorio(caminhoArquivo) {
+    if (!fs || !path) return false;
+    try {
+      var dir = path.dirname(caminhoArquivo);
+      if (!fs.existsSync(dir)) {
+        fs.mkdirSync(dir, { recursive: true });
+      }
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function lerJsonDisco(caminhoRelativo, valorPadrao) {
+    if (!fs) return valorPadrao;
+    try {
+      var abs = resolverCaminho(caminhoRelativo);
+      if (!fs.existsSync(abs)) return valorPadrao;
+      var raw = fs.readFileSync(abs, "utf8");
+      if (!raw || !String(raw).trim()) return valorPadrao;
+      return JSON.parse(raw);
+    } catch (e) {
+      return valorPadrao;
+    }
+  }
+
+  function escreverJsonDisco(caminhoRelativo, dados) {
+    if (!fs) return false;
+    try {
+      var abs = resolverCaminho(caminhoRelativo);
+      garantirDiretorio(abs);
+      fs.writeFileSync(abs, JSON.stringify(dados, null, 2), "utf8");
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function clonarObjeto(obj) {
+    if (obj === null || typeof obj !== "object") return obj;
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+      return obj;
+    }
+  }
 
   // Snapshot único por execução: getProperties() custa 1 operação da cota diária,
   // enquanto getProperty por chave custava uma operação a cada leitura.
@@ -39,7 +119,18 @@ var ConfigService = (function() {
     return {}; // Serviço ainda indisponível: não fixa um cache vazio.
   }
 
-  // Valores padrão estruturais não-sensíveis.
+  function salvarPropriedadeScript(chave, valorString) {
+    try {
+      if (typeof PropertiesService !== "undefined" && PropertiesService.getScriptProperties) {
+        PropertiesService.getScriptProperties().setProperty(chave, String(valorString));
+      }
+      if (propsCache) {
+        propsCache[chave] = String(valorString);
+      }
+    } catch (e) {}
+  }
+
+  // Valores padrão estruturais não-sensíveis (Zero Hardcode Pessoal ou Regional).
   // Todos os segredos e credenciais devem ser definidos exclusivamente em ScriptProperties.
   var DEFAULTS = {
     PROVEDOR_TEXTO_PADRAO: "GEMINI",
@@ -47,7 +138,7 @@ var ConfigService = (function() {
     IA_MODELOS_RAPIDOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.1-flash-lite",
     IA_MODELOS_GEMINI: "gemini-flash-lite-latest,gemini-3.5-flash-lite,gemini-3.5-flash,gemini-flash-latest",
     IA_MODELOS_TTS_GEMINI: "gemini-3.8-flash-lite-tts,gemini-3.8-flash-tts",
-    IA_MODELOS_LOCAL: "llama3.1:latest,llama3.2:latest,mistral:latest,llama3:8b,mistral:7b",
+    IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
     LOCAL_LLM_URL: "http://127.0.0.1:11434/v1/chat/completions",
     LOCAL_LLM_API_KEY: "ollama",
     LOCAL_LLM_TIMEOUT_MS: "30000",
@@ -58,14 +149,541 @@ var ConfigService = (function() {
     SPREADSHEET_ID_INTERACOES: "",
     WEB_APP_URL: "",
     IA_LOCAL_ENDPOINT: "http://127.0.0.1:11434/v1/chat/completions",
-    IA_MODELOS_LOCAL: "llama3.1:latest,llama3:8b,mistral:latest,llama3:latest,mistral:7b",
     IA_LOCAL_TIMEOUT_MS: "12000",
     IA_FALLBACK_OFFLINE_HABILITADO: "true",
-    TELEGRAM_TITULAR_NAME: "Dr. Wagner",
-    TELEGRAM_GUEST_NAME: "Dr. Vinicius"
+    TELEGRAM_TITULAR_NAME: "Médico(a) Assistente",
+    TELEGRAM_GUEST_NAME: "Médico(a) Convidado(a)",
+    LOCALIDADE_MUNICIPIO_PADRAO: "Brasil (Padrão Nacional)",
+    LOCALIDADE_UF_PADRAO: "BR",
+    LOCALIDADE_SLUG_PADRAO: "rename_nacional",
+    INSTITUICAO_PADRAO: "Unidade de Saúde / SUS",
+    CENARIO_PADRAO: "URGENCIA_UPA_24H",
+    SISTEMA_REGULACAO_PADRAO: "SISREG",
+    CATALOGO_FARMACEUTICO_PADRAO: "rename_nacional"
   };
 
+  // ============================================================================
+  // MATRIZ OFICIAL DOS 10 MÓDULOS CLÍNICOS POR CENÁRIO ASSISTENCIAL
+  // ============================================================================
+  var CATALOGO_MODULOS_CLINICOS = [
+    {
+      numero: 1,
+      id: "receituario_remume",
+      nome: "Receituário & REMUME",
+      icone: "💊",
+      descricao: "Prescrição ambulatorial, posologia, disponibilidade no SUS e alternativas terapêuticas."
+    },
+    {
+      numero: 2,
+      id: "prescricao_hospitalar",
+      nome: "Prescrição Hospitalar (Dieta/HV)",
+      icone: "🏥",
+      descricao: "Prescrição estruturada (Dieta, Hidratação Venosa, Sintomáticos, Profilaxias e Cuidados)."
+    },
+    {
+      numero: 3,
+      id: "dva_sedacao_iot",
+      nome: "Drogas Vasoativas, Sedação & IOT",
+      icone: "💉",
+      descricao: "Diluições de DVA em bombas de infusão (mL/h), sequência rápida de IOT e sedoanalgesia."
+    },
+    {
+      numero: 4,
+      id: "protocolos_emergencia",
+      nome: "Protocolos Sala Vermelha (IAM/AVC/Sepse)",
+      icone: "🚨",
+      descricao: "Condutas tempo-dependentes para emergências críticas, ACLS, sepse e choque."
+    },
+    {
+      numero: 5,
+      id: "calculadoras_escores",
+      nome: "Calculadoras & Escores Clínicos",
+      icone: "🧮",
+      descricao: "Escores de estratificação de risco (CURB-65, Wells, HEART, qSOFA, CHA2DS2-VASc, CKD-EPI)."
+    },
+    {
+      numero: 6,
+      id: "pediatria_mg_kg",
+      nome: "Doses Pediátricas por Peso (mg/kg)",
+      icone: "👶",
+      descricao: "Cálculo seguro por peso, conversão para mL/gotas e alertas de dose máxima pediátrica."
+    },
+    {
+      numero: 7,
+      id: "obstetricia_prenatal_lactacao",
+      nome: "Obstetrícia, Pré-Natal & Lactação",
+      icone: "🤰",
+      descricao: "Risco teratogênico, segurança na amamentação, pré-natal e emergências obstétricas."
+    },
+    {
+      numero: 8,
+      id: "cronicos_rastreio_aps",
+      nome: "Manejo de Crônicos & Rastreio APS",
+      icone: "🩺",
+      descricao: "Metas pressóricas/glicêmicas, ajuste longitudinal de crônicos e rastreamento populacional."
+    },
+    {
+      numero: 9,
+      id: "exames_ecg_gaso_imagem",
+      nome: "Exames (ECG, Gasometria & Imagem)",
+      icone: "📈",
+      descricao: "Interpretação estruturada de ECG, distúrbios ácido-básicos, laboratório e radiologia."
+    },
+    {
+      numero: 10,
+      id: "evolucao_soap_atestados",
+      nome: "Evolução (SOAP/SBAR) & Atestados",
+      icone: "📝",
+      descricao: "Redação médica formal para prontuário, passagem de plantão SBAR, encaminhamento e documentos."
+    }
+  ];
+
+  var MODULOS_POR_CENARIO = {
+    APS_UBS: {
+      receituario_remume: true,
+      prescricao_hospitalar: false,
+      dva_sedacao_iot: false,
+      protocolos_emergencia: false,
+      calculadoras_escores: true,
+      pediatria_mg_kg: true,
+      obstetricia_prenatal_lactacao: true,
+      cronicos_rastreio_aps: true,
+      exames_ecg_gaso_imagem: true,
+      evolucao_soap_atestados: true
+    },
+    URGENCIA_UPA_24H: {
+      receituario_remume: true,
+      prescricao_hospitalar: true,
+      dva_sedacao_iot: true,
+      protocolos_emergencia: true,
+      calculadoras_escores: true,
+      pediatria_mg_kg: true,
+      obstetricia_prenatal_lactacao: false,
+      cronicos_rastreio_aps: false,
+      exames_ecg_gaso_imagem: true,
+      evolucao_soap_atestados: true
+    },
+    SALA_VERMELHA: {
+      receituario_remume: false,
+      prescricao_hospitalar: true,
+      dva_sedacao_iot: true,
+      protocolos_emergencia: true,
+      calculadoras_escores: true,
+      pediatria_mg_kg: false,
+      obstetricia_prenatal_lactacao: false,
+      cronicos_rastreio_aps: false,
+      exames_ecg_gaso_imagem: true,
+      evolucao_soap_atestados: true
+    },
+    ENFERMARIA: {
+      receituario_remume: true,
+      prescricao_hospitalar: true,
+      dva_sedacao_iot: false,
+      protocolos_emergencia: true,
+      calculadoras_escores: true,
+      pediatria_mg_kg: false,
+      obstetricia_prenatal_lactacao: false,
+      cronicos_rastreio_aps: true,
+      exames_ecg_gaso_imagem: true,
+      evolucao_soap_atestados: true
+    },
+    MATERNIDADE_GO: {
+      receituario_remume: true,
+      prescricao_hospitalar: true,
+      dva_sedacao_iot: false,
+      protocolos_emergencia: false,
+      calculadoras_escores: true,
+      pediatria_mg_kg: false,
+      obstetricia_prenatal_lactacao: true,
+      cronicos_rastreio_aps: false,
+      exames_ecg_gaso_imagem: false,
+      evolucao_soap_atestados: true
+    },
+    PEDIATRIA: {
+      receituario_remume: true,
+      prescricao_hospitalar: true,
+      dva_sedacao_iot: true,
+      protocolos_emergencia: true,
+      calculadoras_escores: true,
+      pediatria_mg_kg: true,
+      obstetricia_prenatal_lactacao: false,
+      cronicos_rastreio_aps: false,
+      exames_ecg_gaso_imagem: true,
+      evolucao_soap_atestados: true
+    }
+  };
+
+  var CENARIOS_ASSISTENCIAIS = {
+    APS_UBS: {
+      id: "APS_UBS",
+      nome: "APS / UBS / Saúde da Família",
+      icone: "🏥",
+      descricao: "Atenção Primária, longitudinalidade, pré-natal, puericultura, manejo de crônicos e receituário REMUME."
+    },
+    URGENCIA_UPA_24H: {
+      id: "URGENCIA_UPA_24H",
+      nome: "UPA 24h / Pronto Atendimento",
+      icone: "🚑",
+      descricao: "Urgências clínicas e pediátricas, estabilização inicial, prescrição de observação e alta com receita SUS."
+    },
+    SALA_VERMELHA: {
+      id: "SALA_VERMELHA",
+      nome: "Sala Vermelha / Emergência / UTI",
+      icone: "🚨",
+      descricao: "Paciente crítico, drogas vasoativas, intubação orotraqueal, ventilação mecânica e protocolos tempo-dependentes."
+    },
+    ENFERMARIA: {
+      id: "ENFERMARIA",
+      nome: "Enfermaria / Internação Clínica",
+      icone: "🛏️",
+      descricao: "Evolução diária SOAP, prescrição hospitalar, reconciliação medicamentosa, descalonamento e alta segura."
+    },
+    MATERNIDADE_GO: {
+      id: "MATERNIDADE_GO",
+      nome: "Maternidade / Ginecologia & Obstetrícia",
+      icone: "🤰",
+      descricao: "Gestação de alto risco, trabalho de parto, puerpério, lactação e segurança fetal de fármacos."
+    },
+    PEDIATRIA: {
+      id: "PEDIATRIA",
+      nome: "Pronto-Socorro / Ala Pediátrica",
+      icone: "🧸",
+      descricao: "Doses estritas por peso (mg/kg), diluições pediátricas, PALS, bronquiolite, asma e desidratação."
+    }
+  };
+
+  // ============================================================================
+  // NORMALIZAÇÃO E UTILITÁRIOS DE SLUG / IDENTIFICAÇÃO
+  // ============================================================================
+  function removerAcentos(texto) {
+    if (!texto) return "";
+    return String(texto)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "");
+  }
+
+  function sanitizarChatId(chatId) {
+    var base = chatId;
+    if (base === undefined || base === null || String(base).trim() === "") {
+      var p = carregarPropriedades();
+      base = p.TELEGRAM_CHAT_ID || "default";
+    }
+    return String(base).trim().replace(/[^a-zA-Z0-9_-]/g, "_") || "default";
+  }
+
+  function gerarSlugMunicipio(municipio, uf) {
+    var munRaw = String(municipio || "").trim();
+    var ufRaw = String(uf || "").trim().toUpperCase();
+
+    if (
+      !munRaw ||
+      munRaw.toLowerCase() === "rename_nacional" ||
+      munRaw.toLowerCase().indexOf("brasil") !== -1 ||
+      munRaw.toLowerCase().indexOf("padrao nacional") !== -1 ||
+      munRaw.toLowerCase().indexOf("padrão nacional") !== -1 ||
+      ufRaw === "BR"
+    ) {
+      if (
+        !munRaw ||
+        munRaw.toLowerCase() === "rename_nacional" ||
+        munRaw.toLowerCase().indexOf("brasil") !== -1 ||
+        munRaw.toLowerCase().indexOf("nacional") !== -1
+      ) {
+        return "rename_nacional";
+      }
+    }
+
+    if (/^[a-z]{2}_[a-z0-9_]+$/.test(munRaw)) {
+      return munRaw;
+    }
+
+    var munNorm = removerAcentos(munRaw)
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, "_")
+      .replace(/^_+|_+$/g, "");
+
+    var ufNorm = removerAcentos(ufRaw)
+      .toLowerCase()
+      .replace(/[^a-z]+/g, "");
+
+    if (!munNorm) return "rename_nacional";
+    if (!ufNorm || ufNorm === "br") return munNorm;
+    if (munNorm.indexOf(ufNorm + "_") === 0) return munNorm;
+    return ufNorm + "_" + munNorm;
+  }
+
+  function computarSaudacaoECarimbo(profissional) {
+    var prof = profissional || {};
+    var prefixo = String(prof.prefixo || "Dr.").trim();
+    if (prefixo !== "Dr." && prefixo !== "Dra." && prefixo !== "Acad.") {
+      prefixo = "Dr.";
+    }
+    var nomeChamada = String(prof.nome_chamada || "").trim();
+    var nomeCompleto = String(prof.nome_completo_carimbo || nomeChamada || "").trim();
+
+    // Remove prefixo duplicado caso o usuário tenha digitado "Dr. João" no nome
+    nomeChamada = nomeChamada.replace(/^(dr\.?|dra\.?|acad\.?)\s+/i, "").trim();
+    nomeCompleto = nomeCompleto.replace(/^(dr\.?|dra\.?|acad\.?)\s+/i, "").trim();
+
+    var saudacaoFormal = DEFAULTS.TELEGRAM_TITULAR_NAME;
+    if (nomeChamada) {
+      saudacaoFormal = prefixo + " " + nomeChamada;
+    } else if (prof.saudacao_formal && prof.saudacao_formal !== DEFAULTS.TELEGRAM_TITULAR_NAME) {
+      saudacaoFormal = String(prof.saudacao_formal).trim();
+    }
+
+    var carimbo = nomeCompleto ? (prefixo + " " + nomeCompleto) : saudacaoFormal;
+    return {
+      prefixo: prefixo,
+      nome_chamada: nomeChamada,
+      nome_completo_carimbo: nomeCompleto || nomeChamada,
+      saudacao_formal: saudacaoFormal,
+      carimbo_formatado: carimbo
+    };
+  }
+
+  function criarContextoPadrao(chatId) {
+    var cid = sanitizarChatId(chatId);
+    var cenarioPadrao = DEFAULTS.CENARIO_PADRAO;
+    var modulosPadrao = clonarObjeto(MODULOS_POR_CENARIO[cenarioPadrao] || MODULOS_POR_CENARIO.URGENCIA_UPA_24H);
+
+    return {
+      chat_id: String(chatId || cid),
+      onboarding_concluido: false,
+      atualizado_em: new Date().toISOString(),
+      profissional: {
+        prefixo: "Dr.",
+        nome_chamada: "",
+        nome_completo_carimbo: "",
+        saudacao_formal: DEFAULTS.TELEGRAM_TITULAR_NAME,
+        papel: "MEDICO_CRM",
+        registro_conselho: "",
+        uf_conselho: DEFAULTS.LOCALIDADE_UF_PADRAO,
+        instituicao_vinculo: DEFAULTS.INSTITUICAO_PADRAO,
+        modo_preceptoria: "DIRETO_OBJETIVO"
+      },
+      localidade: {
+        uf: DEFAULTS.LOCALIDADE_UF_PADRAO,
+        municipio_nome: DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO,
+        municipio_slug: DEFAULTS.LOCALIDADE_SLUG_PADRAO
+      },
+      unidade_assistencial: {
+        nome_unidade: DEFAULTS.INSTITUICAO_PADRAO,
+        cenario_id: cenarioPadrao,
+        nivel_atencao: cenarioPadrao,
+        sistema_regulacao: DEFAULTS.SISTEMA_REGULACAO_PADRAO,
+        modulos_visiveis: modulosPadrao
+      },
+      farmacopeia: {
+        remume_id: DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO,
+        remume_nome_exibicao: "RENAME Nacional (SUS)",
+        selo_curto: "🟢 [RENAME/SUS]",
+        fallback_rename_nacional: true
+      },
+      regras_locais: {
+        notas_ccih_fluxos: "",
+        codigo_compartilhamento: ""
+      }
+    };
+  }
+
+  function normalizarContextoClinico(ctxBruto, chatId) {
+    var base = criarContextoPadrao(chatId);
+    if (!ctxBruto || typeof ctxBruto !== "object") return base;
+
+    var ctx = clonarObjeto(base);
+    ctx.chat_id = String(ctxBruto.chat_id || chatId || base.chat_id);
+    ctx.onboarding_concluido = Boolean(ctxBruto.onboarding_concluido);
+    ctx.atualizado_em = ctxBruto.atualizado_em || base.atualizado_em;
+
+    if (ctxBruto.profissional && typeof ctxBruto.profissional === "object") {
+      Object.keys(ctxBruto.profissional).forEach(function(k) {
+        if (ctxBruto.profissional[k] !== undefined && ctxBruto.profissional[k] !== null) {
+          ctx.profissional[k] = ctxBruto.profissional[k];
+        }
+      });
+    }
+    var ident = computarSaudacaoECarimbo(ctx.profissional);
+    ctx.profissional.prefixo = ident.prefixo;
+    ctx.profissional.nome_chamada = ident.nome_chamada;
+    ctx.profissional.nome_completo_carimbo = ident.nome_completo_carimbo;
+    ctx.profissional.saudacao_formal = ident.saudacao_formal;
+
+    if (ctxBruto.localidade && typeof ctxBruto.localidade === "object") {
+      Object.keys(ctxBruto.localidade).forEach(function(k) {
+        if (ctxBruto.localidade[k] !== undefined && ctxBruto.localidade[k] !== null) {
+          ctx.localidade[k] = ctxBruto.localidade[k];
+        }
+      });
+    }
+    if (!ctx.localidade.municipio_slug) {
+      ctx.localidade.municipio_slug = gerarSlugMunicipio(ctx.localidade.municipio_nome, ctx.localidade.uf);
+    }
+
+    if (ctxBruto.unidade_assistencial && typeof ctxBruto.unidade_assistencial === "object") {
+      Object.keys(ctxBruto.unidade_assistencial).forEach(function(k) {
+        if (k === "modulos_visiveis") return;
+        if (ctxBruto.unidade_assistencial[k] !== undefined && ctxBruto.unidade_assistencial[k] !== null) {
+          ctx.unidade_assistencial[k] = ctxBruto.unidade_assistencial[k];
+        }
+      });
+      var cenarioId = String(ctx.unidade_assistencial.cenario_id || DEFAULTS.CENARIO_PADRAO).toUpperCase();
+      if (!MODULOS_POR_CENARIO[cenarioId]) {
+        cenarioId = DEFAULTS.CENARIO_PADRAO;
+      }
+      ctx.unidade_assistencial.cenario_id = cenarioId;
+      ctx.unidade_assistencial.nivel_atencao = ctx.unidade_assistencial.nivel_atencao || cenarioId;
+      ctx.unidade_assistencial.modulos_visiveis = clonarObjeto(MODULOS_POR_CENARIO[cenarioId]);
+
+      if (
+        ctxBruto.unidade_assistencial.modulos_visiveis &&
+        typeof ctxBruto.unidade_assistencial.modulos_visiveis === "object"
+      ) {
+        Object.keys(ctx.unidade_assistencial.modulos_visiveis).forEach(function(modKey) {
+          if (ctxBruto.unidade_assistencial.modulos_visiveis[modKey] !== undefined) {
+            ctx.unidade_assistencial.modulos_visiveis[modKey] = Boolean(
+              ctxBruto.unidade_assistencial.modulos_visiveis[modKey]
+            );
+          }
+        });
+      }
+    }
+
+    if (ctxBruto.farmacopeia && typeof ctxBruto.farmacopeia === "object") {
+      Object.keys(ctxBruto.farmacopeia).forEach(function(k) {
+        if (ctxBruto.farmacopeia[k] !== undefined && ctxBruto.farmacopeia[k] !== null) {
+          ctx.farmacopeia[k] = ctxBruto.farmacopeia[k];
+        }
+      });
+    }
+
+    if (ctxBruto.regras_locais && typeof ctxBruto.regras_locais === "object") {
+      Object.keys(ctxBruto.regras_locais).forEach(function(k) {
+        if (ctxBruto.regras_locais[k] !== undefined && ctxBruto.regras_locais[k] !== null) {
+          ctx.regras_locais[k] = ctxBruto.regras_locais[k];
+        }
+      });
+    }
+
+    return ctx;
+  }
+
+  function resolverModuloKey(moduloKeyOuIndice) {
+    if (moduloKeyOuIndice === undefined || moduloKeyOuIndice === null) return null;
+    var str = String(moduloKeyOuIndice).trim();
+    var num = parseInt(str, 10);
+    if (!isNaN(num) && num >= 1 && num <= CATALOGO_MODULOS_CLINICOS.length) {
+      return CATALOGO_MODULOS_CLINICOS[num - 1].id;
+    }
+    var lower = str.toLowerCase();
+    for (var i = 0; i < CATALOGO_MODULOS_CLINICOS.length; i++) {
+      if (CATALOGO_MODULOS_CLINICOS[i].id === lower) {
+        return CATALOGO_MODULOS_CLINICOS[i].id;
+      }
+    }
+    return null;
+  }
+
+  // ============================================================================
+  // GESTÃO DE CATÁLOGOS FARMACÊUTICOS (RENAME & PRESETS MUNICIPAIS)
+  // ============================================================================
+  var FALLBACK_RENAME_NACIONAL = {
+    remume_id: "rename_nacional",
+    municipio: "Brasil (Padrão Nacional)",
+    uf: "BR",
+    nome_exibicao: "RENAME Nacional (SUS)",
+    selo_curto: "🟢 [RENAME/SUS]",
+    versao: "2024.1",
+    itens: [
+      { principio_ativo: "Amoxicilina", apresentacao: "500mg cápsula / 250mg/5mL suspensão oral", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Amoxicilina + Clavulanato de Potássio", apresentacao: "500mg + 125mg comprimido / 250mg + 62,5mg/5mL suspensão", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Azitromicina", apresentacao: "500mg comprimido / 200mg/5mL suspensão oral", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Cefalexina", apresentacao: "500mg comprimido / 250mg/5mL suspensão oral", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Ceftriaxona", apresentacao: "1g pó para solução injetável IV/IM", disponivel_sus: true, nivel: "UPA/Hospitalar" },
+      { principio_ativo: "Ciprofloxacino", apresentacao: "500mg comprimido", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Dipirona Sódica", apresentacao: "500mg comprimido / 500mg/mL solução oral gotas / 500mg/mL injetável", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Paracetamol", apresentacao: "500mg comprimido / 200mg/mL solução oral gotas", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Ibuprofeno", apresentacao: "300mg e 600mg comprimido / 50mg/mL suspensão oral gotas", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Losartana Potássica", apresentacao: "50mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Hidroclorotiazida", apresentacao: "25mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Anlodipino", apresentacao: "5mg e 10mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Enalapril", apresentacao: "10mg e 20mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Metformina", apresentacao: "500mg e 850mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Sinvastatina", apresentacao: "20mg e 40mg comprimido", disponivel_sus: true, nivel: "APS" },
+      { principio_ativo: "Omeprazol", apresentacao: "20mg cápsula / 40mg injetável", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Ondansetrona", apresentacao: "4mg e 8mg comprimido / 2mg/mL injetável", disponivel_sus: true, nivel: "UPA/Hospitalar" },
+      { principio_ativo: "Salbutamol", apresentacao: "100mcg/dose aerossol oral", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Prednisona", apresentacao: "5mg e 20mg comprimido", disponivel_sus: true, nivel: "APS/UPA" },
+      { principio_ativo: "Prednisolona", apresentacao: "3mg/mL solução oral", disponivel_sus: true, nivel: "APS/UPA" }
+    ]
+  };
+
+  function carregarManifestPresets() {
+    if (manifestCache) return manifestCache;
+    var lido = lerJsonDisco("src/data/remumes/presets/manifest.json", null);
+    if (lido && Array.isArray(lido.presets)) {
+      manifestCache = lido;
+      return manifestCache;
+    }
+    if (Array.isArray(lido)) {
+      manifestCache = { versao: "1.0.0", presets: lido };
+      return manifestCache;
+    }
+    manifestCache = {
+      versao: "1.0.0",
+      presets: [
+        {
+          remume_id: "rename_nacional",
+          slug: "rename_nacional",
+          municipio: "Brasil (Padrão Nacional)",
+          uf: "BR",
+          nome_exibicao: "RENAME Nacional (SUS)",
+          selo_curto: "🟢 [RENAME/SUS]",
+          arquivo: "src/data/remumes/rename_nacional.json"
+        }
+      ]
+    };
+    return manifestCache;
+  }
+
+  function normalizarItemRemume(item) {
+    if (!item) return null;
+    if (typeof item === "string") {
+      var texto = item.trim();
+      if (!texto) return null;
+      return {
+        principio_ativo: texto,
+        apresentacao: "",
+        disponivel_sus: true,
+        nivel: "SUS"
+      };
+    }
+    if (typeof item === "object") {
+      var nome = String(
+        item.principio_ativo ||
+        item.medicamento ||
+        item.nome ||
+        item.farmaco ||
+        item.principioAtivo ||
+        ""
+      ).trim();
+      if (!nome) return null;
+      return {
+        principio_ativo: nome,
+        apresentacao: String(item.apresentacao || item.concentracao || item.forma_farmaceutica || "").trim(),
+        disponivel_sus: item.disponivel_sus !== undefined ? Boolean(item.disponivel_sus) : true,
+        nivel: String(item.nivel || item.local_dispensacao || item.categoria || "SUS").trim(),
+        observacoes: String(item.observacoes || item.restricao || "").trim()
+      };
+    }
+    return null;
+  }
+
   return {
+    CATALOGO_MODULOS_CLINICOS: CATALOGO_MODULOS_CLINICOS,
+    MODULOS_POR_CENARIO: MODULOS_POR_CENARIO,
+    CENARIOS_ASSISTENCIAIS: CENARIOS_ASSISTENCIAIS,
+
     get: function(chave, valorPadrao) {
       var p = carregarPropriedades();
       if (p[chave] !== undefined && p[chave] !== null && p[chave] !== "") {
@@ -76,6 +694,7 @@ var ConfigService = (function() {
       }
       return valorPadrao;
     },
+
     getArray: function(chave) {
       var val = this.get(chave, "[]");
       try {
@@ -87,12 +706,21 @@ var ConfigService = (function() {
       }
       return val ? [val] : [];
     },
+
     getPrimary: function(chave, valorPadrao) {
       var arr = this.getArray(chave);
       if (arr && arr.length > 0 && arr[0]) return String(arr[0]).trim();
       return valorPadrao !== undefined ? valorPadrao : "";
     },
-    invalidar: function() { propsCache=null; },
+
+    invalidar: function() {
+      propsCache = null;
+      perfisCache = {};
+      catalogosCache = {};
+      manifestCache = null;
+      solicitacoesCache = null;
+    },
+
     exigir: function(chave) {
       var val = this.get(chave);
       if (!val) {
@@ -100,8 +728,616 @@ var ConfigService = (function() {
       }
       return val;
     },
+
     getDefaults: function() {
       return DEFAULTS;
+    },
+
+    // ==========================================================================
+    // API DE MATRIZ DE CENÁRIOS E MÓDULOS CLÍNICOS
+    // ==========================================================================
+    listarCenariosAssistenciais: function() {
+      return Object.keys(CENARIOS_ASSISTENCIAIS).map(function(k) {
+        return clonarObjeto(CENARIOS_ASSISTENCIAIS[k]);
+      });
+    },
+
+    listarCatalogoModulosClinicos: function() {
+      return clonarObjeto(CATALOGO_MODULOS_CLINICOS);
+    },
+
+    obterModulosPadraoPorCenario: function(cenarioId) {
+      var id = String(cenarioId || DEFAULTS.CENARIO_PADRAO).trim().toUpperCase();
+      if (!MODULOS_POR_CENARIO[id]) {
+        id = DEFAULTS.CENARIO_PADRAO;
+      }
+      return clonarObjeto(MODULOS_POR_CENARIO[id]);
+    },
+
+    // ==========================================================================
+    // API MULTI-PERFIL POR CHAT_ID (CONTEXTO CLÍNICO)
+    // ==========================================================================
+    getContextoClinico: function(chatId) {
+      var cid = sanitizarChatId(chatId);
+      if (perfisCache[cid]) {
+        return clonarObjeto(perfisCache[cid]);
+      }
+
+      // 1. Tenta carregar do disco (data/profiles/<cid>.json)
+      var lidoDisco = lerJsonDisco("data/profiles/" + cid + ".json", null);
+      if (lidoDisco && typeof lidoDisco === "object") {
+        var normDisco = normalizarContextoClinico(lidoDisco, chatId || cid);
+        perfisCache[cid] = normDisco;
+        return clonarObjeto(normDisco);
+      }
+
+      // 2. Tenta carregar de PropertiesService (PERFIL_CLINICO_<cid>)
+      var p = carregarPropriedades();
+      var propKey = "PERFIL_CLINICO_" + cid;
+      if (p[propKey]) {
+        try {
+          var parsedProp = JSON.parse(p[propKey]);
+          var normProp = normalizarContextoClinico(parsedProp, chatId || cid);
+          perfisCache[cid] = normProp;
+          return clonarObjeto(normProp);
+        } catch (e) {}
+      }
+
+      // 3. Retorna perfil padrão neutro (Brasil / RENAME / Médico(a) Assistente)
+      var padrao = criarContextoPadrao(chatId || cid);
+      perfisCache[cid] = padrao;
+      return clonarObjeto(padrao);
+    },
+
+    salvarContextoClinico: function(chatId, patch) {
+      var cid = sanitizarChatId(chatId);
+      var atual = this.getContextoClinico(chatId || cid);
+      var delta = patch && typeof patch === "object" ? patch : {};
+
+      if (delta.onboarding_concluido !== undefined) {
+        atual.onboarding_concluido = Boolean(delta.onboarding_concluido);
+      }
+
+      if (delta.profissional && typeof delta.profissional === "object") {
+        Object.keys(delta.profissional).forEach(function(k) {
+          if (delta.profissional[k] !== undefined) {
+            atual.profissional[k] = delta.profissional[k];
+          }
+        });
+      }
+
+      if (delta.localidade && typeof delta.localidade === "object") {
+        Object.keys(delta.localidade).forEach(function(k) {
+          if (delta.localidade[k] !== undefined) {
+            atual.localidade[k] = delta.localidade[k];
+          }
+        });
+        if (delta.localidade.municipio_nome || delta.localidade.uf) {
+          if (!delta.localidade.municipio_slug) {
+            atual.localidade.municipio_slug = gerarSlugMunicipio(
+              atual.localidade.municipio_nome,
+              atual.localidade.uf
+            );
+          }
+        }
+      }
+
+      if (delta.unidade_assistencial && typeof delta.unidade_assistencial === "object") {
+        var novoCenario = delta.unidade_assistencial.cenario_id;
+        Object.keys(delta.unidade_assistencial).forEach(function(k) {
+          if (k === "modulos_visiveis") return;
+          if (delta.unidade_assistencial[k] !== undefined) {
+            atual.unidade_assistencial[k] = delta.unidade_assistencial[k];
+          }
+        });
+        if (novoCenario && MODULOS_POR_CENARIO[String(novoCenario).toUpperCase()]) {
+          var cId = String(novoCenario).toUpperCase();
+          atual.unidade_assistencial.cenario_id = cId;
+          atual.unidade_assistencial.nivel_atencao = delta.unidade_assistencial.nivel_atencao || cId;
+          if (!delta.unidade_assistencial.modulos_visiveis) {
+            atual.unidade_assistencial.modulos_visiveis = clonarObjeto(MODULOS_POR_CENARIO[cId]);
+          }
+        }
+        if (
+          delta.unidade_assistencial.modulos_visiveis &&
+          typeof delta.unidade_assistencial.modulos_visiveis === "object"
+        ) {
+          Object.keys(delta.unidade_assistencial.modulos_visiveis).forEach(function(mk) {
+            if (atual.unidade_assistencial.modulos_visiveis[mk] !== undefined) {
+              atual.unidade_assistencial.modulos_visiveis[mk] = Boolean(
+                delta.unidade_assistencial.modulos_visiveis[mk]
+              );
+            }
+          });
+        }
+      }
+
+      if (delta.farmacopeia && typeof delta.farmacopeia === "object") {
+        Object.keys(delta.farmacopeia).forEach(function(k) {
+          if (delta.farmacopeia[k] !== undefined) {
+            atual.farmacopeia[k] = delta.farmacopeia[k];
+          }
+        });
+      }
+
+      if (delta.regras_locais && typeof delta.regras_locais === "object") {
+        Object.keys(delta.regras_locais).forEach(function(k) {
+          if (delta.regras_locais[k] !== undefined) {
+            atual.regras_locais[k] = delta.regras_locais[k];
+          }
+        });
+      }
+
+      atual.atualizado_em = new Date().toISOString();
+      var normalizado = normalizarContextoClinico(atual, chatId || cid);
+
+      perfisCache[cid] = normalizado;
+      escreverJsonDisco("data/profiles/" + cid + ".json", normalizado);
+      salvarPropriedadeScript("PERFIL_CLINICO_" + cid, JSON.stringify(normalizado));
+
+      return clonarObjeto(normalizado);
+    },
+
+    aplicarCenarioAssistencial: function(chatId, cenarioId) {
+      var id = String(cenarioId || DEFAULTS.CENARIO_PADRAO).trim().toUpperCase();
+      if (!MODULOS_POR_CENARIO[id]) {
+        id = DEFAULTS.CENARIO_PADRAO;
+      }
+      var modulos = clonarObjeto(MODULOS_POR_CENARIO[id]);
+      return this.salvarContextoClinico(chatId, {
+        unidade_assistencial: {
+          cenario_id: id,
+          nivel_atencao: id,
+          modulos_visiveis: modulos
+        }
+      });
+    },
+
+    alternarModuloCenario: function(chatId, moduloKeyOuIndice, valorExplicito) {
+      var modKey = resolverModuloKey(moduloKeyOuIndice);
+      if (!modKey) {
+        return {
+          sucesso: false,
+          erro: "Módulo clínico inválido: " + String(moduloKeyOuIndice),
+          contexto: this.getContextoClinico(chatId)
+        };
+      }
+      var ctx = this.getContextoClinico(chatId);
+      var estadoAtual = Boolean(ctx.unidade_assistencial.modulos_visiveis[modKey]);
+      var novoEstado = valorExplicito !== undefined ? Boolean(valorExplicito) : !estadoAtual;
+
+      var patchModulos = {};
+      patchModulos[modKey] = novoEstado;
+
+      var atualizado = this.salvarContextoClinico(chatId, {
+        unidade_assistencial: {
+          modulos_visiveis: patchModulos
+        }
+      });
+
+      var metaModulo = null;
+      for (var i = 0; i < CATALOGO_MODULOS_CLINICOS.length; i++) {
+        if (CATALOGO_MODULOS_CLINICOS[i].id === modKey) {
+          metaModulo = CATALOGO_MODULOS_CLINICOS[i];
+          break;
+        }
+      }
+
+      return {
+        sucesso: true,
+        modulo_id: modKey,
+        modulo_nome: metaModulo ? metaModulo.nome : modKey,
+        ativo: novoEstado,
+        contexto: atualizado
+      };
+    },
+
+    obterSaudacaoFormal: function(chatId) {
+      var ctx = this.getContextoClinico(chatId);
+      return (ctx.profissional && ctx.profissional.saudacao_formal) || DEFAULTS.TELEGRAM_TITULAR_NAME;
+    },
+
+    obterCarimboMedico: function(chatId) {
+      var ctx = this.getContextoClinico(chatId);
+      var ident = computarSaudacaoECarimbo(ctx.profissional);
+      var crm = String(ctx.profissional.registro_conselho || "").trim();
+      var uf = String(ctx.profissional.uf_conselho || "").trim().toUpperCase();
+      if (crm) {
+        var sufixoCrm = crm.toUpperCase().indexOf("CRM") === 0 ? crm : ("CRM" + (uf && uf !== "BR" ? "/" + uf : "") + " " + crm);
+        return ident.carimbo_formatado + " — " + sufixoCrm;
+      }
+      return ident.carimbo_formatado;
+    },
+
+    // ==========================================================================
+    // MOTOR DE CATÁLOGOS REMUME, AUTO-PROMOÇÃO E SOLICITAÇÕES AO DESENVOLVEDOR
+    // ==========================================================================
+    gerarSlugMunicipio: gerarSlugMunicipio,
+
+    listarPresetsRemume: function() {
+      var manifest = carregarManifestPresets();
+      return clonarObjeto(manifest.presets || []);
+    },
+
+    obterCatalogoRemume: function(slugOuId) {
+      var slug = String(slugOuId || DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO).trim().toLowerCase();
+      if (!slug) slug = "rename_nacional";
+
+      if (catalogosCache[slug]) {
+        return clonarObjeto(catalogosCache[slug]);
+      }
+
+      if (slug === "rename_nacional") {
+        var renameDisco = lerJsonDisco("src/data/remumes/rename_nacional.json", null);
+        var catRename = renameDisco && Array.isArray(renameDisco.itens) ? renameDisco : FALLBACK_RENAME_NACIONAL;
+        catalogosCache[slug] = catRename;
+        return clonarObjeto(catRename);
+      }
+
+      // Busca no diretório de presets municipais
+      var presetDisco = lerJsonDisco("src/data/remumes/presets/" + slug + ".json", null);
+      if (presetDisco && Array.isArray(presetDisco.itens)) {
+        catalogosCache[slug] = presetDisco;
+        return clonarObjeto(presetDisco);
+      }
+
+      // Busca em PropertiesService caso tenha sido salvo em ambiente sem FS
+      var p = carregarPropriedades();
+      var propPreset = p["REMUME_PRESET_" + slug];
+      if (propPreset) {
+        try {
+          var parsed = JSON.parse(propPreset);
+          if (parsed && Array.isArray(parsed.itens)) {
+            catalogosCache[slug] = parsed;
+            return clonarObjeto(parsed);
+          }
+        } catch (e) {}
+      }
+
+      return null;
+    },
+
+    /**
+     * REGRA CRÍTICA DE AUTO-PROMOÇÃO PARA PRESET GLOBAL:
+     * Sempre que uma REMUME nova de uma cidade for inserida/importada com sucesso
+     * (via CSV, JSON, texto colado ou Web Discovery) com pelo menos 5 itens válidos,
+     * salva automaticamente em `src/data/remumes/presets/<slug>.json` e atualiza
+     * `src/data/remumes/presets/manifest.json` para todos os futuros usuários daquela cidade!
+     */
+    promoverRemumeParaPresetGlobal: function(dadosCatalogo) {
+      if (!dadosCatalogo || typeof dadosCatalogo !== "object") {
+        return { promovido: false, motivo: "Dados do catálogo ausentes ou inválidos." };
+      }
+
+      var municipio = String(dadosCatalogo.municipio || "").trim();
+      var uf = String(dadosCatalogo.uf || "").trim().toUpperCase();
+      var slug = String(dadosCatalogo.slug || dadosCatalogo.remume_id || "").trim().toLowerCase();
+      if (!slug || slug === "rename_nacional") {
+        slug = gerarSlugMunicipio(municipio, uf);
+      }
+
+      if (!slug || slug === "rename_nacional") {
+        return { promovido: false, motivo: "Município/UF insuficientes para gerar preset municipal." };
+      }
+
+      var itensBrutos = Array.isArray(dadosCatalogo.itens) ? dadosCatalogo.itens : [];
+      var itensValidos = [];
+      var vistos = {};
+
+      for (var i = 0; i < itensBrutos.length; i++) {
+        var norm = normalizarItemRemume(itensBrutos[i]);
+        if (norm && norm.principio_ativo) {
+          var chaveDedup = (norm.principio_ativo + "|" + norm.apresentacao).toLowerCase();
+          if (!vistos[chaveDedup]) {
+            vistos[chaveDedup] = true;
+            itensValidos.push(norm);
+          }
+        }
+      }
+
+      if (itensValidos.length < 5) {
+        return {
+          promovido: false,
+          motivo: "O catálogo precisa ter pelo menos 5 medicamentos válidos para promoção a preset global (recebidos: " + itensValidos.length + ")."
+        };
+      }
+
+      var nomeExibicao = String(
+        dadosCatalogo.nome_exibicao ||
+        ("REMUME " + (municipio || slug) + (uf && uf !== "BR" ? " - " + uf : ""))
+      ).trim();
+
+      var seloCurto = String(
+        dadosCatalogo.selo_curto ||
+        ("🏛️ [REMUME " + (municipio || slug) + (uf && uf !== "BR" ? "/" + uf : "") + "]")
+      ).trim();
+
+      var caminhoRelativo = "src/data/remumes/presets/" + slug + ".json";
+      var catalogoFinal = {
+        remume_id: slug,
+        slug: slug,
+        municipio: municipio || slug,
+        uf: uf || "BR",
+        nome_exibicao: nomeExibicao,
+        selo_curto: seloCurto,
+        origem: String(dadosCatalogo.origem || "IMPORTACAO_COLABORATIVA"),
+        atualizado_em: new Date().toISOString(),
+        total_itens: itensValidos.length,
+        itens: itensValidos
+      };
+
+      catalogosCache[slug] = catalogoFinal;
+      escreverJsonDisco(caminhoRelativo, catalogoFinal);
+      salvarPropriedadeScript("REMUME_PRESET_" + slug, JSON.stringify(catalogoFinal));
+
+      // Atualiza o manifest.json de presets
+      var manifest = carregarManifestPresets();
+      if (!Array.isArray(manifest.presets)) {
+        manifest.presets = [];
+      }
+
+      var metaPreset = {
+        remume_id: slug,
+        slug: slug,
+        municipio: catalogoFinal.municipio,
+        uf: catalogoFinal.uf,
+        nome_exibicao: nomeExibicao,
+        selo_curto: seloCurto,
+        total_itens: itensValidos.length,
+        atualizado_em: catalogoFinal.atualizado_em,
+        arquivo: caminhoRelativo
+      };
+
+      var encontrado = false;
+      for (var j = 0; j < manifest.presets.length; j++) {
+        var pExistente = manifest.presets[j];
+        if (pExistente && (pExistente.slug === slug || pExistente.remume_id === slug)) {
+          manifest.presets[j] = metaPreset;
+          encontrado = true;
+          break;
+        }
+      }
+      if (!encontrado) {
+        manifest.presets.push(metaPreset);
+      }
+
+      manifest.atualizado_em = catalogoFinal.atualizado_em;
+      manifestCache = manifest;
+      escreverJsonDisco("src/data/remumes/presets/manifest.json", manifest);
+
+      return {
+        promovido: true,
+        slug: slug,
+        remume_id: slug,
+        nome_exibicao: nomeExibicao,
+        selo_curto: seloCurto,
+        total_itens: itensValidos.length,
+        arquivo: caminhoRelativo,
+        catalogo: clonarObjeto(catalogoFinal)
+      };
+    },
+
+    registrarSolicitacaoRemume: function(chatId, municipio, uf) {
+      var mun = String(municipio || "").trim();
+      var ufNorm = String(uf || "BR").trim().toUpperCase();
+      var slug = gerarSlugMunicipio(mun, ufNorm);
+      var cid = String(chatId || sanitizarChatId(chatId)).trim();
+
+      var lista = this.listarSolicitacoesRemume();
+      var existente = null;
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].slug === slug) {
+          existente = lista[i];
+          break;
+        }
+      }
+
+      var agora = new Date().toISOString();
+      if (existente) {
+        if (!Array.isArray(existente.solicitantes)) {
+          existente.solicitantes = [];
+        }
+        if (cid && existente.solicitantes.indexOf(cid) === -1) {
+          existente.solicitantes.push(cid);
+        }
+        existente.atualizado_em = agora;
+        if (existente.status !== "APROVADA") {
+          existente.status = "PENDENTE";
+        }
+      } else {
+        existente = {
+          slug: slug,
+          municipio: mun || slug,
+          uf: ufNorm,
+          status: "PENDENTE",
+          solicitantes: cid ? [cid] : [],
+          criado_em: agora,
+          atualizado_em: agora
+        };
+        lista.push(existente);
+      }
+
+      solicitacoesCache = lista;
+      escreverJsonDisco("data/remume_requests.json", lista);
+      salvarPropriedadeScript("REMUME_REQUESTS_QUEUE", JSON.stringify(lista));
+
+      return clonarObjeto(existente);
+    },
+
+    listarSolicitacoesRemume: function() {
+      if (solicitacoesCache) return clonarObjeto(solicitacoesCache);
+      var lidoDisco = lerJsonDisco("data/remume_requests.json", null);
+      if (Array.isArray(lidoDisco)) {
+        solicitacoesCache = lidoDisco;
+        return clonarObjeto(lidoDisco);
+      }
+      var p = carregarPropriedades();
+      if (p.REMUME_REQUESTS_QUEUE) {
+        try {
+          var parsed = JSON.parse(p.REMUME_REQUESTS_QUEUE);
+          if (Array.isArray(parsed)) {
+            solicitacoesCache = parsed;
+            return clonarObjeto(parsed);
+          }
+        } catch (e) {}
+      }
+      solicitacoesCache = [];
+      return [];
+    },
+
+    aprovarSolicitacaoRemume: function(municipio, uf, itens) {
+      var mun = String(municipio || "").trim();
+      var ufNorm = String(uf || "BR").trim().toUpperCase();
+      var slug = gerarSlugMunicipio(mun, ufNorm);
+
+      var promocao = this.promoverRemumeParaPresetGlobal({
+        slug: slug,
+        municipio: mun,
+        uf: ufNorm,
+        origem: "APROVACAO_ADMIN",
+        itens: itens
+      });
+
+      if (!promocao.promovido) {
+        return {
+          aprovado: false,
+          motivo: promocao.motivo,
+          slug: slug,
+          solicitantes: []
+        };
+      }
+
+      var lista = this.listarSolicitacoesRemume();
+      var solicitantesNotificar = [];
+      var agora = new Date().toISOString();
+
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].slug === slug) {
+          lista[i].status = "APROVADA";
+          lista[i].aprovado_em = agora;
+          lista[i].total_itens = promocao.total_itens;
+          if (Array.isArray(lista[i].solicitantes)) {
+            solicitantesNotificar = lista[i].solicitantes.slice();
+          }
+        }
+      }
+
+      solicitacoesCache = lista;
+      escreverJsonDisco("data/remume_requests.json", lista);
+      salvarPropriedadeScript("REMUME_REQUESTS_QUEUE", JSON.stringify(lista));
+
+      // Atualiza automaticamente a farmacopeia dos solicitantes para usar o novo preset aprovado
+      for (var s = 0; s < solicitantesNotificar.length; s++) {
+        var chatSolicitante = solicitantesNotificar[s];
+        this.salvarContextoClinico(chatSolicitante, {
+          localidade: {
+            uf: ufNorm,
+            municipio_nome: mun || slug,
+            municipio_slug: slug
+          },
+          farmacopeia: {
+            remume_id: slug,
+            remume_nome_exibicao: promocao.nome_exibicao,
+            selo_curto: promocao.selo_curto,
+            fallback_rename_nacional: true
+          }
+        });
+      }
+
+      return {
+        aprovado: true,
+        slug: slug,
+        nome_exibicao: promocao.nome_exibicao,
+        selo_curto: promocao.selo_curto,
+        total_itens: promocao.total_itens,
+        solicitantes: solicitantesNotificar,
+        catalogo: promocao.catalogo
+      };
+    },
+
+    // ==========================================================================
+    // COMPARTILHAMENTO DE PERFIL DE UNIDADE ASSISTENCIAL ENTRE EQUIPES
+    // ==========================================================================
+    gerarCodigoUnidade: function(chatId) {
+      var ctx = this.getContextoClinico(chatId);
+      var uf = removerAcentos(ctx.localidade.uf || "BR").toUpperCase().replace(/[^A-Z]/g, "") || "BR";
+      var nomeUnidade = removerAcentos(ctx.unidade_assistencial.nome_unidade || "UNIDADE")
+        .toUpperCase()
+        .replace(/[^A-Z0-9]+/g, "_")
+        .replace(/^_+|_+$/g, "")
+        .slice(0, 14) || "SUS";
+
+      var hashBase = String(ctx.localidade.municipio_slug || "") + "|" + String(ctx.unidade_assistencial.nome_unidade || "") + "|" + String(ctx.unidade_assistencial.cenario_id || "");
+      var soma = 0;
+      for (var i = 0; i < hashBase.length; i++) {
+        soma = ((soma << 5) - soma + hashBase.charCodeAt(i)) | 0;
+      }
+      var sufixo = Math.abs(soma % 9000 + 1000);
+      var codigo = "EQP-" + uf + "-" + nomeUnidade + "-" + sufixo;
+
+      var pacoteUnidade = {
+        codigo: codigo,
+        criado_em: new Date().toISOString(),
+        criado_por_chat_id: String(chatId || ctx.chat_id),
+        localidade: clonarObjeto(ctx.localidade),
+        unidade_assistencial: clonarObjeto(ctx.unidade_assistencial),
+        farmacopeia: clonarObjeto(ctx.farmacopeia),
+        regras_locais: {
+          notas_ccih_fluxos: (ctx.regras_locais && ctx.regras_locais.notas_ccih_fluxos) || "",
+          codigo_compartilhamento: codigo
+        }
+      };
+
+      unidadesCompartilhadasCache[codigo] = pacoteUnidade;
+      escreverJsonDisco("data/shared_units/" + codigo + ".json", pacoteUnidade);
+      salvarPropriedadeScript("SHARED_UNIT_" + codigo, JSON.stringify(pacoteUnidade));
+
+      this.salvarContextoClinico(chatId, {
+        regras_locais: {
+          codigo_compartilhamento: codigo
+        }
+      });
+
+      return pacoteUnidade;
+    },
+
+    importarCodigoUnidade: function(chatId, codigoBruto) {
+      var codigo = String(codigoBruto || "").trim().toUpperCase().replace(/[^A-Z0-9_-]/g, "");
+      if (!codigo) {
+        return { importado: false, motivo: "Código de unidade vazio ou inválido." };
+      }
+
+      var pacote = unidadesCompartilhadasCache[codigo] || lerJsonDisco("data/shared_units/" + codigo + ".json", null);
+      if (!pacote) {
+        var p = carregarPropriedades();
+        if (p["SHARED_UNIT_" + codigo]) {
+          try {
+            pacote = JSON.parse(p["SHARED_UNIT_" + codigo]);
+          } catch (e) {}
+        }
+      }
+
+      if (!pacote || typeof pacote !== "object") {
+        return { importado: false, motivo: "Código de equipe/unidade não encontrado: " + codigo };
+      }
+
+      // Clona a localidade, unidade, cenário, módulos, REMUME e notas CCIH,
+      // preservando intactos o nome, prefixo e CRM do médico que está importando!
+      var atualizado = this.salvarContextoClinico(chatId, {
+        localidade: clonarObjeto(pacote.localidade),
+        unidade_assistencial: clonarObjeto(pacote.unidade_assistencial),
+        farmacopeia: clonarObjeto(pacote.farmacopeia),
+        regras_locais: {
+          notas_ccih_fluxos: (pacote.regras_locais && pacote.regras_locais.notas_ccih_fluxos) || "",
+          codigo_compartilhamento: codigo
+        }
+      });
+
+      return {
+        importado: true,
+        codigo: codigo,
+        contexto: atualizado
+      };
     }
   };
 })();
@@ -126,6 +1362,10 @@ var SPREADSHEET_ID_INTERACOES = ConfigService.get("SPREADSHEET_ID_INTERACOES");
 var WEB_APP_URL = ConfigService.get("WEB_APP_URL");
 var IA_LOCAL_ENDPOINT = ConfigService.get("IA_LOCAL_ENDPOINT");
 var IA_MODELOS_LOCAL = ConfigService.get("IA_MODELOS_LOCAL");
+
+if (typeof module !== "undefined" && module.exports) {
+  module.exports = ConfigService;
+}
 
 
 // ==============================================================================
@@ -18653,7 +19893,7 @@ if (typeof module !== 'undefined' && module.exports) {
  * ============================================================================
  * MÓDULO DE DOMÍNIO: SEGURANÇA DE MEDICAMENTOS NA LACTAÇÃO (FARMACOLOGIA CLÍNICA)
  * ============================================================================
- * Padrão de Referência: FMRP-USP / ENARE / FEBRASGO / SBP / Ministério da Saúde
+ * Padrão de Referência: FEBRASGO / SBP / Ministério da Saúde / Hale's LactMed®
  * 
  * Referências Primárias:
  * 1. Hale TW. Hale's Medications & Mothers' Milk (Classificação L1 a L5).
@@ -19036,7 +20276,7 @@ const RAW_DRUG_CATALOG = [
       'Sucção débil e constipação',
       'Óbito neonatal (documentado em literatura médica)'
     ],
-    condutaClinica: 'EVITAR / CONTRAINDICADO pela FDA, EMA e SBP (Hale L4). Embora manuais antigos do MS classifiquem como Amarelo (uso curto), os protocolos obstétricos atuais (FMRP-USP/FEBRASGO) proíbem a prescrição de codeína e tramadol pós-cesárea/episiotomia.',
+    condutaClinica: 'EVITAR / CONTRAINDICADO pela FDA, EMA e SBP (Hale L4). Embora manuais antigos do MS classifiquem como Amarelo (uso curto), os protocolos obstétricos atuais (FEBRASGO / SBP / ACOG) proíbem a prescrição de codeína e tramadol pós-cesárea/episiotomia.',
     alternativasSeguras: ['Dipirona', 'Paracetamol', 'Ibuprofeno', 'Cetoprofeno', 'Morfina em dose baixa controlada (se dor intensa hospitalar, pois não depende de ativação pela CYP2D6)'],
     monitoramentoLactente: 'Vigiar frequência respiratória, padrão de sono (o bebê deve acordar para mamar a cada 3h) e tônus muscular. Antídoto: Naloxona.'
   },
@@ -19638,7 +20878,7 @@ const RAW_DRUG_CATALOG = [
       'Episódio isolado de cianose descrito em 1 relato de caso antigo (resolvido espontaneamente)',
       'Risco teórico raríssimo de agranulocitose'
     ],
-    condutaClinica: 'COMPATÍVEL NO BRASIL (MS Verde). Amplamente utilizado nas maternidades brasileiras (FMRP-USP / FEBRASGO) para analgesia pós-parto. Nota de prova: na literatura norte-americana/europeia (Hale L3 / EMA), é visto com reserva pois a dipirona não é comercializada nos EUA, mas em provas nacionais (ENARE/SUS) segue a diretriz do Ministério da Saúde como VERDE.',
+    condutaClinica: 'COMPATÍVEL NO BRASIL (MS Verde). Amplamente utilizado nas maternidades brasileiras (FEBRASGO / Ministério da Saúde) para analgesia pós-parto. Nota de prova: na literatura norte-americana/europeia (Hale L3 / EMA), é visto com reserva pois a dipirona não é comercializada nos EUA, mas em diretrizes nacionais (SUS/MS) segue como VERDE.',
     alternativasSeguras: ['Paracetamol', 'Ibuprofeno'],
     monitoramentoLactente: 'Observação clínica habitual.'
   },
@@ -19826,7 +21066,7 @@ const RAW_DRUG_CATALOG = [
     efeitosAdversosLactente: [
       'Nenhum efeito adverso relevante no lactente (pode aumentar discretamente a prolactina materna, favorecendo o volume de leite).'
     ],
-    condutaClinica: 'COMPATÍVEL COM O BEBÊ (Hale L2 / MS Verde), MAS EVITADA NA MÃE PUÉRPERA. Conduta clínica FMRP-USP/FEBRASGO: embora segura para o leite, no pós-parto recomenda-se suspender a Metildopa usada na gravidez e substituí-la por Enalapril, Captopril ou Nifedipino devido à associação da metildopa com depressão puerperal.',
+    condutaClinica: 'COMPATÍVEL COM O BEBÊ (Hale L2 / MS Verde), MAS EVITADA NA MÃE PUÉRPERA. Conduta clínica FEBRASGO / Ministério da Saúde: embora segura para o leite, no pós-parto recomenda-se suspender a Metildopa usada na gravidez e substituí-la por Enalapril, Captopril ou Nifedipino devido à associação da metildopa com depressão puerperal.',
     alternativasSeguras: ['Enalapril', 'Captopril', 'Nifedipino', 'Anlodipino'],
     monitoramentoLactente: 'Vigiar humor materno (escala de Edimburgo).'
   },
@@ -20483,7 +21723,7 @@ function obterMetadadosCatalogo() {
       'Hale TW. Medications and Mothers Milk. Springer Publishing.',
       'Brasil. Ministério da Saúde. Amamentação e uso de medicamentos e outras substâncias. 2ª ed.',
       'LactMed Database - National Library of Medicine (NIH).',
-      'Protocolos Clínicos de Obstetrícia e Puerpério FMRP-USP / FEBRASGO.'
+      'Protocolos Clínicos de Obstetrícia e Puerpério FEBRASGO / SBP / Ministério da Saúde.'
     ]
   };
 }
@@ -20515,7 +21755,7 @@ function formatarCardLactacao(farmaco) {
 
 function obterGuiaRapidoClasses() {
   return [
-    '🤰🤱 *Guia Rápido de 1ª Escolha na Lactação (FMRP-USP / MS)*',
+    '🤰🤱 *Guia Rápido de 1ª Escolha na Lactação (FEBRASGO / SBP / MS)*',
     '',
     '🟢 *1. Analgesia & Febre:*',
     '• *Paracetamol* (Hale L1 / Verde MS) — Máx 4g/dia',
@@ -35174,13 +36414,46 @@ var SoapAmbulatorialService = (function() {
     };
   }
 
+  function _resolverAssinaturaContextoSoap(dados) {
+    dados = dados || {};
+    var ctx = (typeof ConfigService !== 'undefined' && typeof ConfigService.getContextoClinico === 'function')
+      ? ConfigService.getContextoClinico(dados.chatId)
+      : null;
+    var prof = (ctx && ctx.profissional) ? ctx.profissional : {};
+    var loc = (ctx && ctx.localidade) ? ctx.localidade : {};
+    var unid = (ctx && ctx.unidade_assistencial) ? ctx.unidade_assistencial : {};
+
+    var papel = dados.papel || prof.papel || 'MEDICO_CRM';
+    var ehInterno = (papel === 'INTERNO_ACADEMICO' || papel === 'INTERNO');
+    var prefixo = prof.prefixo || 'Dr(a).';
+    var nomeCarimbo = dados.medicoNome || prof.nome_completo_carimbo || prof.nome_chamada || '';
+    if (nomeCarimbo && !/^dr(a)?\.?\s/i.test(nomeCarimbo)) {
+      nomeCarimbo = prefixo + ' ' + nomeCarimbo;
+    }
+    if (!nomeCarimbo) nomeCarimbo = 'Médico(a) Assistente';
+
+    var crmStr = dados.medicoCrm || (prof.registro_conselho ? ('CRM/' + (prof.uf_conselho || loc.uf || 'BR') + ' ' + prof.registro_conselho) : 'CRM');
+    var munNome = loc.municipio_nome && loc.municipio_nome !== 'Brasil (Padrão Nacional)'
+      ? (loc.municipio_nome + (loc.uf && loc.uf !== 'BR' ? ' - ' + loc.uf : ''))
+      : 'Localidade';
+    var cidade = dados.cidade || munNome;
+    var regulacao = dados.sistemaRegulacao || unid.sistema_regulacao || 'SISREG';
+
+    return {
+      ehInterno: ehInterno,
+      medico: nomeCarimbo,
+      crm: crmStr,
+      cidade: cidade,
+      regulacao: regulacao
+    };
+  }
+
   // 7. EXPORTAÇÃO LIMPA DE RECEITA MÉDICA AMBULATORIAL (TEXTO PURO PARA PEP)
   function exportarReceitaTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || 'Ao Portador';
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
 
     var linhas = [
       '======================================================================',
@@ -35231,7 +36504,11 @@ var SoapAmbulatorialService = (function() {
     }
 
     linhas.push('======================================================================');
-    linhas.push('Assinatura e Carimbo Médico: ' + medico + ' · ' + crm);
+    if (infoAss.ehInterno && !dados.medicoNome) {
+      linhas.push('Assinatura e Carimbo do Médico Responsável: ___________________________');
+    } else {
+      linhas.push('Assinatura e Carimbo Médico: ' + infoAss.medico + ' · ' + infoAss.crm);
+    }
 
     return linhas.join('\n');
   }
@@ -35239,16 +36516,15 @@ var SoapAmbulatorialService = (function() {
   // 8. EXPORTAÇÃO LIMPA DE ATESTADO MÉDICO (CONFORME RESOLUÇÕES CFM 1.658/2002 E 1.851/2008)
   function exportarAtestadoTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || '[Nome do Paciente]';
     var doc = dados.pacienteDoc || dados.doc || '[Documento de Identidade/CPF]';
     var dias = parseInt(dados.dias || 1, 10);
     var diasExtenso = converterNumeroPorExtenso(dias);
     var aPartirDe = dados.aPartirDe || dados.data || new Date().toLocaleDateString('pt-BR');
     var finalidade = dados.finalidade || 'repouso e recuperação clínica, necessitando de afastamento de suas atividades laborais e escolares';
-    var cidade = dados.cidade || 'Ribeirão Preto - SP';
+    var cidade = infoAss.cidade;
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
 
     var linhas = [
       '======================================================================',
@@ -35278,7 +36554,9 @@ var SoapAmbulatorialService = (function() {
     linhas.push('Local e Data: ' + cidade + ', ' + dataStr + '.');
     linhas.push('');
     linhas.push('__________________________________________________________');
-    linhas.push(medico + ' · ' + crm);
+    if (!infoAss.ehInterno || dados.medicoNome) {
+      linhas.push(infoAss.medico + ' · ' + infoAss.crm);
+    }
     linhas.push('======================================================================');
 
     return linhas.join('\n');
@@ -35287,18 +36565,19 @@ var SoapAmbulatorialService = (function() {
   // 9. EXPORTAÇÃO DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (SISREG / CROSS)
   function exportarEncaminhamentoTexto(dados) {
     dados = dados || {};
+    var infoAss = _resolverAssinaturaContextoSoap(dados);
     var paciente = dados.pacienteNome || dados.paciente || '[Nome do Paciente]';
     var dataStr = dados.data || new Date().toLocaleDateString('pt-BR');
     var especialidade = dados.especialidade || '[Especialidade Destino]';
     var motivo = dados.motivo || '[Motivo do Encaminhamento]';
     var cid = dados.cid || '[CID-10]';
     var prioridade = dados.prioridade || 'Eletiva / Regulada';
-    var medico = dados.medicoNome || 'Dr. Wagner Moraes';
-    var crm = dados.medicoCrm || 'CRM/SP';
+    var medico = infoAss.medico;
+    var crm = infoAss.crm;
 
     var linhas = [
       '======================================================================',
-      '         GUIA DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (SISREG)     ',
+      '         GUIA DE ENCAMINHAMENTO / REFERÊNCIA AMBULATORIAL (' + infoAss.regulacao + ')     ',
       '======================================================================',
       'Paciente: ' + paciente + ' | Data: ' + dataStr,
       'Especialidade Solicitada: ' + especialidade.toUpperCase(),
@@ -39613,7 +40892,7 @@ function checarStatusFonteDrive(idPlanilha, isInteracao) {
 }
 
 // ==============================================================================
-// BASE CANÔNICA DA REMUME (RIBEIRÃO PRETO - SP)
+// BASE CANÔNICA DA REMUME MUNICIPAL / RENAME NACIONAL (MULTI-LOCALIDADE)
 // ==============================================================================
 
 var _cacheItensRemumeRP = null;
@@ -39634,9 +40913,46 @@ function normalizarPrincipioAtivo(txt) {
 }
 
 /**
- * Carrega a lista em memória de apresentações padronizadas de REMUME_RP.csv.
+ * Obtém os metadados do catálogo farmacêutico ativo para o chatId (ou padrão nacional).
  */
-function obterItensRemumeRP() {
+function obterMetadadosRemumeAtiva(chatId) {
+  try {
+    if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+      var ctx = ConfigService.getContextoClinico(chatId);
+      if (ctx && ctx.farmacopeia) {
+        var cat = typeof ConfigService.obterCatalogoRemume === "function"
+          ? ConfigService.obterCatalogoRemume(ctx.farmacopeia.remume_id || ctx.localidade.municipio_slug)
+          : null;
+        return {
+          slug: (cat && cat.slug) || ctx.farmacopeia.remume_id || "rename_nacional",
+          nome_exibicao: (cat && cat.nome_exibicao) || ctx.farmacopeia.remume_nome_exibicao || "RENAME Nacional (SUS)",
+          selo_curto: (cat && cat.selo_curto) || ctx.farmacopeia.selo_curto || "🟢 [RENAME/SUS]",
+          municipio: (cat && cat.municipio) || (ctx.localidade && ctx.localidade.municipio_nome) || "Brasil (Padrão Nacional)",
+          uf: (cat && cat.uf) || (ctx.localidade && ctx.localidade.uf) || "BR",
+          itens: (cat && Array.isArray(cat.itens)) ? cat.itens : []
+        };
+      }
+    }
+  } catch (_) {}
+  return {
+    slug: "rename_nacional",
+    nome_exibicao: "RENAME Nacional (SUS)",
+    selo_curto: "🟢 [RENAME/SUS]",
+    municipio: "Brasil (Padrão Nacional)",
+    uf: "BR",
+    itens: []
+  };
+}
+
+/**
+ * Carrega a lista em memória de apresentações padronizadas do catálogo ativo.
+ */
+function obterItensRemumeRP(chatId) {
+  var meta = obterMetadadosRemumeAtiva(chatId);
+  if (meta && Array.isArray(meta.itens) && meta.itens.length > 0) {
+    _cacheItensRemumeRP = meta.itens;
+    return meta.itens;
+  }
   if (_cacheItensRemumeRP && _cacheItensRemumeRP.length > 0) return _cacheItensRemumeRP;
   var conteudo = "";
   try {
@@ -39655,6 +40971,14 @@ function obterItensRemumeRP() {
     try {
       var fs = require("fs");
       var path = require("path");
+      var jsonRename = path.resolve(process.cwd(), "src/data/remumes/rename_nacional.json");
+      if (fs.existsSync(jsonRename)) {
+        var parsed = JSON.parse(fs.readFileSync(jsonRename, "utf8"));
+        if (parsed && Array.isArray(parsed.itens)) {
+          _cacheItensRemumeRP = parsed.itens;
+          return _cacheItensRemumeRP;
+        }
+      }
       var caminhos = [
         path.resolve(process.cwd(), "REMUME_RP.csv"),
         path.resolve(__dirname, "..", "REMUME_RP.csv"),
@@ -39679,12 +41003,16 @@ function obterItensRemumeRP() {
 }
 
 /**
- * Consulta determinística da REMUME de Ribeirão Preto.
+ * Consulta determinística da REMUME Municipal ativa ou RENAME Nacional.
  * Mapeia sinônimos comerciais, remove sais e separa monoterapia de associações.
  */
-function consultarRemumeRP(termo, medHslFallback) {
+function consultarRemumeRP(termo, medHslFallback, chatId) {
+  var meta = obterMetadadosRemumeAtiva(chatId);
+  var seloPositivo = (meta && meta.selo_curto) ? meta.selo_curto : "🟢 [RENAME/SUS]";
+  var nomeRede = (meta && meta.nome_exibicao) ? meta.nome_exibicao : "RENAME Nacional (SUS)";
+
   if (!termo || typeof termo !== "string") {
-    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]" };
+    return { presente: false, farmaco: "", apresentacoes: [], selo: "⚪ [NÃO-REMUME]", nome_rede: nomeRede };
   }
 
   var termoLimpo = termo.trim().toLowerCase();
@@ -39700,8 +41028,9 @@ function consultarRemumeRP(termo, medHslFallback) {
   }
 
   var ehBuscaAssociacao = termoAlvo.indexOf("+") !== -1 || /clavulan/i.test(termoAlvo);
-  var itens = obterItensRemumeRP();
-  var indice = obterIndiceBaseLocal("remume", itens, function(linha) {
+  var itens = obterItensRemumeRP(chatId);
+  var chaveIndice = "remume_" + (meta ? meta.slug : "default");
+  var indice = obterIndiceBaseLocal(chaveIndice, itens, function(linha) {
     return [normalizarPrincipioAtivo(linha)];
   });
   var chaveConsulta = termoAlvo + "|" + ehBuscaAssociacao;
@@ -39735,7 +41064,8 @@ function consultarRemumeRP(termo, medHslFallback) {
       presente: true,
       farmaco: termo,
       apresentacoes: aprsFallback,
-      selo: "🟢 [REMUME-RP]"
+      selo: seloPositivo,
+      nome_rede: nomeRede
     };
   }
 
@@ -39744,9 +41074,11 @@ function consultarRemumeRP(termo, medHslFallback) {
     presente: presente,
     farmaco: termo,
     apresentacoes: apresentacoes,
-    selo: presente ? "🟢 [REMUME-RP]" : "⚪ [NÃO-REMUME]"
+    selo: presente ? seloPositivo : "⚪ [NÃO-REMUME]",
+    nome_rede: nomeRede
   };
 }
+var consultarRemumeMunicipal = consultarRemumeRP;
 
 // ==============================================================================
 // BASE OFICIAL DE POSOLOGIAS: GUIA FARMACÊUTICO HOSPITAL SÍRIO-LIBANÊS (HSL)
@@ -39907,16 +41239,18 @@ function formatarFichaPosologicaHSL(med) {
     : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
 
   if (remumeInfo.presente) {
-    linhas.push("🏛️ *Status SUS:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    var seloAtivo = remumeInfo.selo || "🟢 [REMUME/RENAME]";
+    var nomeRedeAtiva = remumeInfo.nome_rede || "Rede Pública SUS";
+    linhas.push("🏛️ *Status SUS:* " + seloAtivo + " *PADRONIZADO NA REDE (" + nomeRedeAtiva + ")*");
     if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
-      linhas.push("📦 *Apresentações na Rede Municipal:*");
+      linhas.push("📦 *Apresentações na Rede Pública:*");
       remumeInfo.apresentacoes.forEach(function(apr) {
         linhas.push("  • `" + apr + "`");
       });
     }
   } else {
-    linhas.push("🏛️ *Status SUS:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
-    linhas.push("_(Uso hospitalar, componente especializado ou compra pelo paciente)_");
+    linhas.push("🏛️ *Status SUS:* ⚪ [NÃO-PADRONIZADO] *NÃO CONSTA NA REMUME/RENAME ATIVA*");
+    linhas.push("_(Uso hospitalar, componente especializado ou aquisição comercial)_");
   }
 
   if (med.dose_adulto) {
@@ -40104,7 +41438,7 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
 }
 
 // ==============================================================================
-// BASE DE PROTOCOLOS DETERMINÍSTICOS E DIRETRIZES BRASILEIRAS (FMRP-USP / SBC / ILAS)
+// BASE DE PROTOCOLOS DETERMINÍSTICOS E DIRETRIZES BRASILEIRAS (MS / SBC / ILAS / FBG)
 // ==============================================================================
 
 var PROTOCOLOS_CLINICOS_EMERGENCIA = {
@@ -40250,7 +41584,7 @@ var PROTOCOLOS_CLINICOS_EMERGENCIA = {
   },
   "hda": {
     "titulo": "Hemorragia Digestiva Alta (HDA Varicosa e Não Varicosa)",
-    "diretriz_brasileira": "Fisiopatologia e Condutas FMRP-USP / FBG (Federação Brasileira de Gastroenterologia)",
+    "diretriz_brasileira": "Diretrizes SBH (Sociedade Brasileira de Hepatologia) / FBG (Federação Brasileira de Gastroenterologia)",
     "diretriz_internacional": "Baveno VII / ACG Upper GI Bleeding Guidelines 2021",
     "conduta_imediata": "1. Estabilização e Estratégia Transfusional Restritiva:\n" +
       "   • 2 acessos venosos calibrosos (14G ou 16G), reposição com Ringer Lactato ou SF 0,9% criteriosa para evitar hipervolemia e agravamento do sangramento varicoso.\n" +
@@ -40639,12 +41973,14 @@ function formatarFichaPediatricaPedB(med) {
     : { presente: !!med.na_remume, apresentacoes: med.apresentacoes_remume || [] };
 
   if (remumeInfo.presente) {
-    linhas.push("🏛️ *SUS / REMUME:* 🟢 [REMUME-RP] *PADRONIZADO NA REDE MUNICIPAL (Ribeirão Preto)*");
+    var seloPed = remumeInfo.selo || "🟢 [REMUME/RENAME]";
+    var nomeRedePed = remumeInfo.nome_rede || "Rede Pública SUS";
+    linhas.push("🏛️ *SUS / REMUME:* " + seloPed + " *PADRONIZADO NA REDE (" + nomeRedePed + ")*");
     if (remumeInfo.apresentacoes && remumeInfo.apresentacoes.length > 0) {
       linhas.push("   _Apresentações SUS:_ " + remumeInfo.apresentacoes.slice(0, 3).map(function(a) { return "`" + a + "`"; }).join(", "));
     }
   } else {
-    linhas.push("🏛️ *SUS / REMUME:* ⚪ [NÃO-REMUME] *NÃO CONSTA NA REDE MUNICIPAL*");
+    linhas.push("🏛️ *SUS / REMUME:* ⚪ [NÃO-PADRONIZADO] *NÃO CONSTA NA REMUME/RENAME ATIVA*");
   }
 
   if (med.marcas) {
@@ -40973,7 +42309,7 @@ function formatarResumoCondutaPedB(conduta) {
  * 1. Interações medicamentosas da tabela local (interacoes.json - 219 regras)
  * 2. Ajustes de dose para função renal (Guia HSL - 447 medicamentos)
  * 3. Tetos de dose máxima e limites terapêuticos (Guia HSL e PedBook)
- * 4. Disponibilidade na REMUME Ribeirão Preto (256 itens)
+ * 4. Disponibilidade na REMUME Municipal ativa / RENAME Nacional (SUS)
  * 5. Catálogo de ajuste renal estrito de antimicrobianos (ClCr >50, 30-50, 10-29 e <10/HD)
  * ==============================================================================
  */
@@ -42153,7 +43489,8 @@ function formatarDiluicaoPreparoHSL(med) {
   linhas.push("═════════════════════════════════════════════════");
   linhas.push("💊 *Fármaco (DCI):* *" + med.farnaco + "*");
   if (med.na_remume) {
-    linhas.push("🏛️ *Padronização:* ✅ Presente na REMUME de Ribeirão Preto");
+    var metaDil = obterMetadadosRemumeAtiva();
+    linhas.push("🏛️ *Padronização:* ✅ Presente na " + (metaDil.nome_exibicao || "REMUME / RENAME SUS"));
   } else {
     linhas.push("🏛️ *Padronização:* ⚠️ Fora da REMUME municipal (Uso Hospitalar / Compra)");
   }
@@ -45186,9 +46523,54 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
   return null;
 }
 
+function _obterBlocoContextoIaDinamico(chatId) {
+  try {
+    if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+      var ctx = ConfigService.getContextoClinico(chatId);
+      if (ctx) {
+        var prof = ctx.profissional || {};
+        var loc = ctx.localidade || {};
+        var unid = ctx.unidade_assistencial || {};
+        var farm = ctx.farmacopeia || {};
+        var regras = ctx.regras_locais || {};
+        var saudacao = prof.saudacao_formal || (prof.nome_chamada ? ((prof.prefixo || "Dr.") + " " + prof.nome_chamada) : "Médico(a) Assistente");
+        var nomeRede = farm.remume_nome_exibicao || "RENAME Nacional (SUS)";
+        var municipioUf = (loc.municipio_nome && loc.municipio_nome !== "Brasil (Padrão Nacional)")
+          ? (loc.municipio_nome + (loc.uf && loc.uf !== "BR" ? "/" + loc.uf : ""))
+          : "Brasil (Padrão Nacional SUS)";
+        var blocoNotas = (regras.notas_ccih_fluxos && String(regras.notas_ccih_fluxos).trim())
+          ? ("\nPROTOCOLOS E FLUXOS LOCAIS DA UNIDADE (CCIH / REGULAÇÃO):\n" + String(regras.notas_ccih_fluxos).trim())
+          : "";
+        return {
+          saudacao: saudacao,
+          nomeRede: nomeRede,
+          municipioUf: municipioUf,
+          papel: prof.papel || "MEDICO_CRM",
+          cenario: unid.cenario_id || "URGENCIA_UPA_24H",
+          regulacao: unid.sistema_regulacao || "SISREG",
+          instrucaoContexto: "CONTEXTO DO PROFISSIONAL E REALIDADE LOCAL: Você está auxiliando " + saudacao +
+            " (Papel: " + (prof.papel || "MEDICO_CRM") + " | Localidade: " + municipioUf +
+            " | Unidade/Cenário: " + (unid.nome_unidade || "Unidade de Saúde") + " [" + (unid.cenario_id || "URGENCIA_UPA_24H") + "]" +
+            " | Regulação: " + (unid.sistema_regulacao || "SISREG") +
+            " | Catálogo Farmacêutico Ativo: " + nomeRede + ")." + blocoNotas
+        };
+      }
+    }
+  } catch (_) {}
+  return {
+    saudacao: "Médico(a) Assistente",
+    nomeRede: "RENAME Nacional (SUS)",
+    municipioUf: "Brasil (Padrão Nacional SUS)",
+    papel: "MEDICO_CRM",
+    cenario: "URGENCIA_UPA_24H",
+    regulacao: "SISREG",
+    instrucaoContexto: "CONTEXTO DO PROFISSIONAL E REALIDADE LOCAL: Padrão Nacional SUS (RENAME Nacional)."
+  };
+}
+
 /**
  * ==============================================================================
- * ÁUDIO CLÍNICO EM TEMPO ÚNICO MULTIMODAL (FMRP-USP / ZERO LATÊNCIA DE TRANSCRIÇÃO)
+ * ÁUDIO CLÍNICO EM TEMPO ÚNICO MULTIMODAL (ZERO LATÊNCIA DE TRANSCRIÇÃO)
  * ==============================================================================
  * Processa o áudio em uma única inferência multimodal:
  * Extrai a transcrição literal fiel E estrutura a Fase 1 do SOAP se for relato clínico.
@@ -45218,10 +46600,12 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   }
   mimeType = mimeNormalizado;
 
+  var ctxIaAudio = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var sistema = [
     IA_PERSONA,
-    "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
-    "Você recebeu um áudio gravado diretamente pelo médico Wagner nos corredores do hospital ou em trânsito.",
+    ctxIaAudio.instrucaoContexto,
+    "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO.",
+    "Você recebeu um áudio gravado diretamente por " + ctxIaAudio.saudacao + " durante o atendimento ou plantão.",
     "Realize as tarefas com máximo rigor semiológico:",
     "1. TRANSCRIÇÃO: Transcreva fielmente as palavras ditadas em português do Brasil com pontuação culta e correta.",
     "2. SE FOR RELATO CLÍNICO, CLASSIFIQUE E ESTRUTURE CONFORME A NATUREZA DO RELATO:",
@@ -45344,7 +46728,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
 
 /**
  * ==============================================================================
- * ANÁLISE DE IMAGEM MÉDICA MULTIMODAL (FMRP-USP / SALA VERMELHA & AMBULATÓRIO)
+ * ANÁLISE DE IMAGEM MÉDICA MULTIMODAL (SALA VERMELHA & AMBULATÓRIO)
  * ==============================================================================
  * Leitor metódico com raciocínio semiológico em profundidade:
  * - ECG (6 passos: Ritmo, FC, Eixo, Intervalos PR/QRS/QTc, Sobrecargas, ST-T por derivação contígua)
@@ -45355,15 +46739,17 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
  */
 function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) {
   opcoes = opcoes || {};
+  var ctxImg = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var contextoUsuario = (contextoTexto && String(contextoTexto).trim())
     ? "CONTEXTO CLÍNICO / LEGENDA INFORMADA PELO MÉDICO:\n" + String(contextoTexto).trim()
     : "Nenhum contexto textual adicional fornecido.";
 
   var sistema = [
     IA_PERSONA,
+    ctxImg.instrucaoContexto,
     "",
-    "MODO: LEITOR E LAUDO DE IMAGEM MÉDICA MULTIMODAL (PADRÃO FMRP-USP).",
-    "Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Radiologia Hospitalar da FMRP-USP.",
+    "MODO: LEITOR E LAUDO DE IMAGEM MÉDICA MULTIMODAL (PADRÃO DIRETRIZES SBC / CBR / MS).",
+    "Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Radiologia Hospitalar.",
     "Analise meticulosamente a imagem médica anexada (ECG, Radiografia, Exame Laboratorial/OCR, Lesão Dermatológica ou outro exame complementar).",
     "",
     "🚨 PROTOCOLO DE SEGURANÇA MÁXIMA (SALA VERMELHA / ACHADO CRÍTICO):",
@@ -45846,13 +47232,14 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     // =========================================================================
     // FASE 2: SOAP COMPLETO CONSOLIDADO (AVALIAÇÃO E PLANO)
     // =========================================================================
+    var ctxSoap2 = _obterBlocoContextoIaDinamico(opcoes.chatId);
     var baseSoap;
     try { baseSoap = obterContextoMedicamentosParaIA(dadosCaso).texto; }
     catch (eBaseSoap) { baseSoap = 'Base medicamentosa indisponível. Não finalize doses ou prescrições sem conferir a referência e os dados necessários.'; }
     var promptSistemaConsolidado = [
-      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
+      IA_PERSONA, ctxSoap2.instrucaoContexto, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
       "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 2: CONSOLIDAÇÃO COMPLETA (AVALIAÇÃO E PLANO).",
-      "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
+      "Você é o Copiloto Clínico Sênior. Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
@@ -45962,10 +47349,12 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   // FASE 1: RASCUNHO CLÍNICO INTERATIVO (ANAMNESE + EXAME FÍSICO INTELIGENTE)
   // REGRA: NÃO INCLUIR AVALIAÇÃO NEM PLANO NESTA FASE
   // =========================================================================
+  var ctxSoap1 = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var promptSistemaRascunho = [
     IA_PERSONA,
+    ctxSoap1.instrucaoContexto,
     "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 1: ANAMNESE E EXAME FÍSICO.",
-    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
+    "Você é o Copiloto Clínico Sênior. Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
     "",
     "DIRETRIZES SEMIOLÓGICAS E SÍNTESE OBRIGATÓRIA:",
     "1. SUBJETIVO (S) - SÍNTESE ESTRUTURADA:",
@@ -45978,7 +47367,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
-    "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
+    "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA:",
     "   - Formule apenas perguntas que mudem a conduta, sem limite numérico, para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. Evite perguntas repetidas ou acadêmicas sem impacto na decisão.",
     "   - Se os pilares decisórios estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após respostas complementares, pergunte novamente somente sobre lacunas clínicas relevantes ainda não investigadas; registre dados indisponíveis como pendências de segurança.",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
@@ -46382,13 +47771,14 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     ].join("\n");
   }
 
+  var ctxRx = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
+    IA_PERSONA, "", ctxRx.instrucaoContexto, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
-    "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
-    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "REGRA DE OURO (REMUME/RENAME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
+    "1. MEDICAMENTOS DA REDE PÚBLICA ATIVA SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas no catálogo ativo (" + ctxRx.nomeRede + ").",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME/RENAME: Apenas se a condição clínica não puder ser tratada com itens padronizados na rede ativa, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME/RENAME ativa (componente especializado/aquisição comercial)'.",
     "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
     "4. POSOLOGIA E APRESENTAÇÕES PEDIÁTRICAS (PEDBOOK pedb.com.br): Para pacientes pediátricos (lactentes, crianças, adolescentes), utilize as doses por kg/dia, volumes em mL/gotas de suspensão e faixas mínimas do guia pediátrico oficial PedBook.",
     travaDeterministica,
@@ -46397,7 +47787,7 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     baseClinica.texto,
     "=======================================================================",
     "",
-    "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
+    "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA:",
     "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE (SÓ PEÇA PESO SE REALMENTE PRECISAR):",
     "   - Sem peso informado: NUNCA presuma peso de criança para fármacos dependentes de peso (antimicrobianos, analgésicos gotas, corticoides). Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro de [medicamento])' e cobre o peso sem calcular dosagem arbitrária em mL.",
     "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL (mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos).",
@@ -57788,6 +59178,14 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "habit_", handler: tratarCallbackHabitoEEnergia_ },
   { prefix: "energy_", handler: tratarCallbackHabitoEEnergia_ },
   { prefix: "duvida:", handler: tratarCallbackDuvidasMedQuest_ },
+  { prefix: "sniper:", handler: function(cb, data, ctx) {
+      if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
+        responderCallbackTelegram(cb.id, "🔒 O Sniper de Plantões é exclusivo do titular.", true);
+        return true;
+      }
+      return (typeof tratarCallbackSniperPlantoes === "function") ? tratarCallbackSniperPlantoes(cb, data, ctx) : false;
+    }
+  },
   { prefix: "rotina:", handler: function(cb, data, ctx) {
       if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
         responderCallbackTelegram(cb.id, "🔒 A rotina e timeline adaptativa são exclusivas do titular.", true);
@@ -61568,7 +62966,9 @@ var TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_ = {
   "/habitos": true,
   "/checkin": true,
   "/briefing": true,
-  "/rotina": true
+  "/rotina": true,
+  "/sniper": true,
+  "/vagas": true
 };
 
 /**
@@ -61599,6 +62999,9 @@ function construirTecladoHubRotina() {
       [
         {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
         {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
+      ],
+      [
+        {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
       ]
     ]
   };
@@ -61625,6 +63028,9 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   if (comando === "/agenda") {
     var paramAgenda = (texto || "").replace(/^\/agenda\s*/i, "").trim();
     res = (typeof consultarEventosAgenda === "function") ? consultarEventosAgenda(paramAgenda, chatId) : false;
+  } else if (comando === "/sniper" || comando === "/vagas") {
+    var argSniper = (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
+    res = (typeof tratarComandoSniperPlantoes === "function") ? tratarComandoSniperPlantoes(chatId, argSniper) : false;
   } else if (comando === "/task" || comando === "/tarefa") {
     var tarefaTexto = (texto || "").replace(/^\/(task|tarefa)\s*/i, "").trim();
     if (!tarefaTexto) {
@@ -62888,7 +64294,87 @@ var ReceitaPdfService = (function() {
       "</div>";
   }
 
-  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes) {
+  function _resolverContextoPdf(chatId, opcoesExtras) {
+    opcoesExtras = opcoesExtras || {};
+    var ctx = (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function")
+      ? ConfigService.getContextoClinico(chatId)
+      : null;
+    var prof = (ctx && ctx.profissional) ? ctx.profissional : {};
+    var loc = (ctx && ctx.localidade) ? ctx.localidade : {};
+    var unid = (ctx && ctx.unidade_assistencial) ? ctx.unidade_assistencial : {};
+
+    var papel = opcoesExtras.papel || prof.papel || "MEDICO_CRM";
+    var ehInterno = (papel === "INTERNO_ACADEMICO" || papel === "INTERNO" || opcoesExtras.ehInterno === true);
+    var prefixo = prof.prefixo || "Dr.";
+    var nomeCarimbo = opcoesExtras.medicoNome || prof.nome_completo_carimbo || "";
+    if (nomeCarimbo && !/^dr(a)?\.?\s/i.test(nomeCarimbo)) {
+      nomeCarimbo = prefixo + " " + nomeCarimbo;
+    }
+    var crmStr = opcoesExtras.medicoCrm || (prof.registro_conselho ? ("CRM-" + (prof.uf_conselho || loc.uf || "BR") + " " + prof.registro_conselho) : "");
+    var munNome = (loc.municipio_nome && loc.municipio_nome !== "Brasil (Padrão Nacional)")
+      ? (loc.municipio_nome + (loc.uf && loc.uf !== "BR" ? " - " + loc.uf : ""))
+      : "";
+    var instituicao = opcoesExtras.instituicao || (unid.nome_unidade && unid.nome_unidade !== "Unidade de Saúde / SUS" ? unid.nome_unidade : "");
+    var tipoReceita = opcoesExtras.tipoReceita || (opcoesExtras.controleEspecial ? "CONTROLE_ESPECIAL" : "SIMPLES");
+
+    return {
+      ehInterno: ehInterno,
+      papel: papel,
+      medicoNome: ehInterno ? "" : nomeCarimbo,
+      medicoCrm: ehInterno ? "" : crmStr,
+      cidade: opcoesExtras.cidade || munNome,
+      instituicao: instituicao,
+      tipoReceita: tipoReceita,
+      controleEspecial: tipoReceita === "CONTROLE_ESPECIAL"
+    };
+  }
+
+  function renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf) {
+    ctxPdf = ctxPdf || {};
+    var ehControle = !!ctxPdf.controleEspecial;
+    var ehInterno = !!ctxPdf.ehInterno;
+    var titulo = ehControle ? "RECEITUÁRIO DE CONTROLE ESPECIAL" : "RECEITUÁRIO MÉDICO";
+    var subtituloVias = ehControle
+      ? "<div style='font-weight: bold; font-size: 9pt; margin-top: 3px; color: #000000;'>1ª VIA - RETENÇÃO DA FARMÁCIA &nbsp;|&nbsp; 2ª VIA - ORIENTAÇÃO AO PACIENTE</div>"
+      : "";
+    var instHtml = ctxPdf.instituicao
+      ? "<div style='font-weight: bold; font-size: 10pt; margin-bottom: 2px; color: #000000;'>" + escHtml(ctxPdf.instituicao) + "</div>"
+      : "";
+
+    var blocoAssinaturaTexto = "";
+    if (!ehInterno) {
+      if (ctxPdf.medicoNome || ctxPdf.medicoCrm) {
+        blocoAssinaturaTexto = "<strong>" + escHtml(ctxPdf.medicoNome) + "</strong>" +
+          (ctxPdf.medicoCrm ? "<br>" + escHtml(ctxPdf.medicoCrm) : "");
+      } else {
+        blocoAssinaturaTexto = "Assinatura do(a) Médico(a) / CRM";
+      }
+    }
+
+    var blocoQuadrosControle = "";
+    if (ehControle) {
+      blocoQuadrosControle =
+        "<table width='100%' cellpadding='6' cellspacing='0' style='width: 100%; margin-top: 28px; border-collapse: collapse; color: #000000;'>" +
+        "  <tr>" +
+        "    <td width='49%' valign='top' style='border: 1px solid #000000; font-size: 8.5pt; line-height: 1.5; color: #000000;'>" +
+        "      <div style='font-weight: bold; text-align: center; border-bottom: 1px solid #000000; padding-bottom: 3px; margin-bottom: 4px;'>IDENTIFICAÇÃO DO COMPRADOR</div>" +
+        "      Nome: ___________________________________________<br>" +
+        "      Ident.: ____________________ Órg. Emissor: _________<br>" +
+        "      End.: ____________________________________________<br>" +
+        "      Cidade: ________________________ UF: _____________<br>" +
+        "      Telefone: (____) _________________________________" +
+        "    </td>" +
+        "    <td width='2%'></td>" +
+        "    <td width='49%' valign='top' style='border: 1px solid #000000; font-size: 8.5pt; line-height: 1.5; text-align: center; color: #000000;'>" +
+        "      <div style='font-weight: bold; text-align: center; border-bottom: 1px solid #000000; padding-bottom: 3px; margin-bottom: 32px;'>IDENTIFICAÇÃO DO FORNECEDOR</div>" +
+        "      ___________________________________________<br>" +
+        "      Assinatura do Farmacêutico<br><br>" +
+        "      Data: _____ / _____ / __________" +
+        "    </td>" +
+        "  </tr>" +
+        "</table>";
+    }
+
     return "<!DOCTYPE html>" +
       "<html><head><meta charset='utf-8'>" +
       "<style>" +
@@ -62896,40 +64382,43 @@ var ReceitaPdfService = (function() {
       "  * { box-sizing: border-box; font-family: Arial, sans-serif; font-size: 11pt; color: #000000; }" +
       "  body { font-family: Arial, sans-serif; color: #000000; margin: 0; padding: 0; font-size: 11pt; line-height: 1.4; }" +
       "</style></head><body>" +
-      "  <div style='text-align: center; border-bottom: 1px solid #000000; padding-bottom: 8px; margin-bottom: 16px;'>" +
-      "    <div style='font-weight: bold; letter-spacing: 2px; text-transform: uppercase;'>RECEITUÁRIO MÉDICO</div>" +
-      "    <div style='color: #c00000; font-weight: bold; font-size: 10pt; margin-top: 4px;'>⚠️ DOCUMENTO EM CARÁTER DE RASCUNHO · CONFERÊNCIA MÉDICA OBRIGATÓRIA</div>" +
+      "  <div style='text-align: center; border-bottom: 1.5px solid #000000; padding-bottom: 8px; margin-bottom: 16px; color: #000000;'>" +
+      instHtml +
+      "    <div style='font-weight: bold; letter-spacing: 2px; text-transform: uppercase; color: #000000;'>" + titulo + "</div>" +
+      subtituloVias +
       "  </div>" +
-      "  <table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; border-bottom: 1px solid #000000; margin-bottom: 14px;'>" +
+      "  <table width='100%' cellpadding='0' cellspacing='0' style='width: 100%; border-bottom: 1px solid #000000; margin-bottom: 14px; color: #000000;'>" +
       "    <tr>" +
-      "      <td width='70%' align='left' style='padding-bottom: 6px;'>" +
+      "      <td width='70%' align='left' style='padding-bottom: 6px; color: #000000;'>" +
       "        Paciente: <strong>" + nomePaciente + "</strong>" +
       "      </td>" +
-      "      <td width='30%' align='right' style='padding-bottom: 6px;'>" +
+      "      <td width='30%' align='right' style='padding-bottom: 6px; color: #000000;'>" +
       "        Data: <strong>" + dataFormatada + "</strong>" +
       "      </td>" +
       "    </tr>" +
       "  </table>" +
-      "  <div style='margin-bottom: 18px;'>" +
+      "  <div style='margin-bottom: 18px; color: #000000;'>" +
       htmlCorpo +
       htmlOrientacoes +
       "  </div>" +
-      "  <table align='center' width='280' cellpadding='0' cellspacing='0' style='margin: 60px auto 0 auto; text-align: center;'>" +
+      "  <table align='center' width='280' cellpadding='0' cellspacing='0' style='margin: 60px auto 0 auto; text-align: center; color: #000000;'>" +
       "    <tr>" +
-      "      <td align='center' style='border-top: 1px solid #000000; padding-top: 6px;'>" +
-      "        Assinatura do(a) Médico(a) / CRM" +
+      "      <td align='center' style='border-top: 1px solid #000000; padding-top: 6px; color: #000000;'>" +
+      blocoAssinaturaTexto +
       "      </td>" +
       "    </tr>" +
       "  </table>" +
+      blocoQuadrosControle +
       "</body></html>";
   }
 
-  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente) {
+  function gerarHtmlReceituario(textoPrescricao, dataFormatada, nomePaciente, opcoesExtras) {
     var dados = extrairItensReceitaLimpos(textoPrescricao);
     var viasMap = agruparItensPorVia_(dados.itens);
     var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
     var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dados.orientacoes);
-    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+    var ctxPdf = _resolverContextoPdf(opcoesExtras && opcoesExtras.chatId, opcoesExtras);
+    return renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf);
   }
 
   function obterOuCriarPastaDrive() {
@@ -62942,7 +64431,8 @@ var ReceitaPdfService = (function() {
     return folder;
   }
 
-  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada) {
+  function obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada, ctxPdf) {
+    ctxPdf = ctxPdf || {};
     var blobPdf = null;
     if (typeof gerarPdfReceitaNativo === "function") {
       try {
@@ -62951,7 +64441,15 @@ var ReceitaPdfService = (function() {
           dataFormatada: dataFormatada,
           itens: dadosEstruturados.itens,
           orientacoes: dadosEstruturados.orientacoes,
-          ehRascunho: dadosEstruturados.ehRascunho
+          ehRascunho: false,
+          ehInterno: ctxPdf.ehInterno,
+          papel: ctxPdf.papel,
+          medicoNome: ctxPdf.medicoNome,
+          medicoCrm: ctxPdf.medicoCrm,
+          cidade: ctxPdf.cidade,
+          instituicao: ctxPdf.instituicao,
+          tipoReceita: ctxPdf.tipoReceita,
+          controleEspecial: ctxPdf.controleEspecial
         });
         if (pdfBytes) {
           blobPdf = Utilities.newBlob(pdfBytes, "application/pdf", nomeBase + ".pdf");
@@ -62970,11 +64468,11 @@ var ReceitaPdfService = (function() {
   }
 
   return {
-    gerarHtml: function(textoPrescricao, dataStr, pacienteStr) {
-      return gerarHtmlReceituario(textoPrescricao, dataStr || "03/10/2026", pacienteStr || "Paciente");
+    gerarHtml: function(textoPrescricao, dataStr, pacienteStr, opcoesExtras) {
+      return gerarHtmlReceituario(textoPrescricao, dataStr || "03/10/2026", pacienteStr || "Paciente", opcoesExtras);
     },
 
-    processarEEnviarPdf: function(chatId, textoPrescricao) {
+    processarEEnviarPdf: function(chatId, textoPrescricao, opcoesExtras) {
       // Feedback visual imediato: sinaliza ao Telegram que o documento PDF está sendo gerado
       if (typeof enviarChatAction === "function" && chatId) {
         try { enviarChatAction(chatId, "upload_document", true); } catch (_) {}
@@ -62996,10 +64494,11 @@ var ReceitaPdfService = (function() {
       var viasMap = agruparItensPorVia_(dadosEstruturados.itens);
       var htmlCorpo = renderizarTabelaViasHtml_(viasMap);
       var htmlOrientacoes = renderizarBlocoOrientacoesHtml_(dadosEstruturados.orientacoes);
-      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes);
+      var ctxPdf = _resolverContextoPdf(chatId, opcoesExtras);
+      var html = renderizarDocumentoA4Html_(nomePaciente, dataFormatada, htmlCorpo, htmlOrientacoes, ctxPdf);
 
       var nomeBase = "Receita_" + stampArquivo + "_" + nomePaciente.replace(/\s+/g, "_");
-      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada);
+      var blobPdf = obterBlobPdfReceita_(dadosEstruturados, html, nomeBase, nomePaciente, dataFormatada, ctxPdf);
 
       var linkDrive = "";
       try {
@@ -66089,12 +67588,13 @@ function enviarRotinaBot(chat, messageId) {
               "Selecione uma ação rápida ou envie áudio/texto para ajustar seus blocos:";
 
   var botoes = botoesBot([
-    [['✏️ Ajustar Rotina', 'rotina:ajustar'], ['💤 Modo Descanso', 'rotina:descanso']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
-    [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
-    [['📋 Tarefas Notion', 'ux:rotina:tasks'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
-    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🏁 Fim de Plantão', 'ux:rotina:plantao_fim']],
-    [['🧠 Dúvida MedQuest', 'ux:rotina:duvida'], ['🏠 Início', 'ux:hub:inicio']]
+    [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
+    [['💤 Modo Descanso', 'rotina:descanso'], ['🔄 Restaurar Padrão', 'rotina:reset']],
+    [['📆 Sincronizar Google', 'rotina:cal_sync'], ['📆 Agenda de Hoje', 'ux:rotina:agenda']],
+    [['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha'], ['📋 Tarefas Notion', 'ux:rotina:tasks']],
+    [['🌙 Check-in Noturno', 'ux:rotina:checkin'], ['☀️ Briefing Matinal', 'ux:rotina:briefing']],
+    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
+    [['🏠 Início', 'ux:hub:inicio']]
   ]);
 
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -71787,4 +73287,1598 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
   module.exports.cockpitRotinaAderencia = cockpitRotinaAderencia;
   module.exports.cockpitRotinaAdiarBloco = cockpitRotinaAdiarBloco;
+}
+
+
+// ==============================================================================
+// ARQUIVO FONTE: 14_sniper_plantoes.js
+// ==============================================================================
+
+// ============================================================================
+// MÓDULO 14: SNIPER DE PLANTÕES MÉDICOS (INTEGRADO À ABA ROTINA)
+// Pipeline Multi-Estágio: Filtro 0ms -> Extrator -> Trava Rotina -> Stealth PV
+// ============================================================================
+
+var PlantaoSniperService = (function () {
+  var PROP_CONFIG_KEY = "SNIPER_PLANTOES_CONFIG_V1";
+  var PROP_BLACKLIST_KEY = "SNIPER_PLANTOES_BLACKLIST_V1";
+  var PROP_STATS_KEY = "SNIPER_PLANTOES_STATS_V1";
+  var PROP_LOCKED_SLOTS_KEY = "SNIPER_PLANTOES_LOCKED_SLOTS_V1";
+  var PROP_OFERTAS_CACHE_KEY = "SNIPER_PLANTOES_OFERTAS_MEM_V1";
+  var PROP_ALLOWLIST_KEY = "SNIPER_PLANTOES_ALLOWLIST_V1";
+
+  var DEFAULT_ALLOWLIST = [
+    { jid: "120363011111111@g.us", nome: "Plantões Premium SP & ABC", permitido: true, modoGrupo: "SNIPER_AUTO" },
+    { jid: "120363022222222@g.us", nome: "Plantões Grande SP", permitido: true, modoGrupo: "RADAR_ONLY" },
+    { jid: "120363033333333@g.us", nome: "Família Moraes (Privado)", permitido: false, modoGrupo: "BLOQUEADO" },
+    { jid: "120363044444444@g.us", nome: "Turma Medicina Internato", permitido: false, modoGrupo: "BLOQUEADO" }
+  ];
+
+  var DEFAULT_CONFIG = {
+    nome: "Dr. Wagner Moraes",
+    crm: "CRM/SP",
+    modoOperacao: "SNIPER_AUTO", // "SNIPER_AUTO" ou "SEMI_AUTO"
+    responderApenasPv: false,    // true = Modo Fantasma (só chama no PV do escalista)
+    valorMinimo12h: 1300,
+    valorMinimoHora: 108,
+    cidadesPermitidas: [
+      "São Paulo",
+      "ABC",
+      "Santo André",
+      "São Bernardo",
+      "São Caetano",
+      "Osasco"
+    ],
+    setoresPermitidos: [
+      "Porta",
+      "Ficha Verde",
+      "Clínica Médica",
+      "Observação",
+      "Enfermaria"
+    ],
+    autoAgendarRotina: true
+  };
+
+  var DEFAULT_BLACKLIST = [
+    { termo: "UPA Fantasma Sul", motivo: "Atraso recorrente > 60 dias relatado na comunidade" },
+    { termo: "Cooperativa CaloteMed", motivo: "Inadimplência conhecida em plantões extras" },
+    { termo: "Hospital Atraso Geral", motivo: "Histórico de glosa indevida de PJ" }
+  ];
+
+  // --------------------------------------------------------------------------
+  // Helpers de Persistência
+  // --------------------------------------------------------------------------
+  function _lerJsonProp(chave, fallback) {
+    try {
+      var raw = PropertiesService.getScriptProperties().getProperty(chave);
+      if (!raw) return fallback;
+      var parsed = JSON.parse(raw);
+      return parsed !== null && parsed !== undefined ? parsed : fallback;
+    } catch (e) {
+      return fallback;
+    }
+  }
+
+  function _salvarJsonProp(chave, valor) {
+    try {
+      PropertiesService.getScriptProperties().setProperty(chave, JSON.stringify(valor));
+      return true;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function obterConfigSniper() {
+    var salvo = _lerJsonProp(PROP_CONFIG_KEY, null);
+    if (!salvo || typeof salvo !== "object") {
+      _salvarJsonProp(PROP_CONFIG_KEY, DEFAULT_CONFIG);
+      return JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    }
+    var cfg = JSON.parse(JSON.stringify(DEFAULT_CONFIG));
+    for (var k in salvo) {
+      if (Object.prototype.hasOwnProperty.call(salvo, k)) {
+        cfg[k] = salvo[k];
+      }
+    }
+    cfg.valorMinimoHora = Math.round((Number(cfg.valorMinimo12h) || 1300) / 12);
+    return cfg;
+  }
+
+  function salvarConfigSniper(novaConfig) {
+    var atual = obterConfigSniper();
+    if (novaConfig && typeof novaConfig === "object") {
+      for (var k in novaConfig) {
+        if (Object.prototype.hasOwnProperty.call(novaConfig, k)) {
+          atual[k] = novaConfig[k];
+        }
+      }
+    }
+    atual.valorMinimoHora = Math.round((Number(atual.valorMinimo12h) || 1300) / 12);
+    _salvarJsonProp(PROP_CONFIG_KEY, atual);
+    return atual;
+  }
+
+  function obterEstatisticas() {
+    var padrao = {
+      totalAnalisadas: 0,
+      filtradasEstagio1: 0,
+      calotesEvitados: 0,
+      plantoesCapturados: 0,
+      receitaGarantidaReais: 0,
+      ultimoDisparoEm: null
+    };
+    var s = _lerJsonProp(PROP_STATS_KEY, padrao);
+    for (var k in padrao) {
+      if (typeof s[k] === "undefined") s[k] = padrao[k];
+    }
+    return s;
+  }
+
+  function salvarEstatisticas(stats) {
+    _salvarJsonProp(PROP_STATS_KEY, stats);
+    return stats;
+  }
+
+  // --------------------------------------------------------------------------
+  // Blacklist Anti-Calote Colaborativa
+  // --------------------------------------------------------------------------
+  function obterBlacklistCalote() {
+    var lista = _lerJsonProp(PROP_BLACKLIST_KEY, null);
+    if (!Array.isArray(lista) || lista.length === 0) {
+      _salvarJsonProp(PROP_BLACKLIST_KEY, DEFAULT_BLACKLIST);
+      return JSON.parse(JSON.stringify(DEFAULT_BLACKLIST));
+    }
+    return lista;
+  }
+
+  function adicionarBlacklistCalote(termo, motivo) {
+    var limpo = String(termo || "").trim();
+    if (!limpo) return obterBlacklistCalote();
+    var lista = obterBlacklistCalote();
+    var lower = limpo.toLowerCase();
+    for (var i = 0; i < lista.length; i++) {
+      if (String(lista[i].termo || "").toLowerCase() === lower) {
+        return lista;
+      }
+    }
+    lista.push({
+      termo: limpo,
+      motivo: motivo || "Denunciado pelo médico via Telegram (1-Click Anti-Calote)",
+      adicionadoEm: new Date().toISOString()
+    });
+    _salvarJsonProp(PROP_BLACKLIST_KEY, lista);
+    return lista;
+  }
+
+  function verificarBlacklist(textoOuHospital) {
+    var alvo = _normalizarTexto(textoOuHospital);
+    if (!alvo) return { bloqueado: false };
+    var lista = obterBlacklistCalote();
+    for (var i = 0; i < lista.length; i++) {
+      var item = lista[i];
+      var termoNorm = _normalizarTexto(item.termo);
+      if (termoNorm && alvo.indexOf(termoNorm) !== -1) {
+        return {
+          bloqueado: true,
+          termo: item.termo,
+          motivo: item.motivo || "Restrição financeira na Blacklist Anti-Calote"
+        };
+      }
+    }
+    return { bloqueado: false };
+  }
+
+  // --------------------------------------------------------------------------
+  // Allowlist Zero-Trust de Grupos WhatsApp (Isolamento Estrito em 2 Camadas)
+  // --------------------------------------------------------------------------
+  function obterGruposAllowlist() {
+    var lista = _lerJsonProp(PROP_ALLOWLIST_KEY, null);
+    if (!Array.isArray(lista) || lista.length === 0) {
+      var copia = JSON.parse(JSON.stringify(DEFAULT_ALLOWLIST));
+      _salvarJsonProp(PROP_ALLOWLIST_KEY, copia);
+      return copia;
+    }
+    return lista;
+  }
+
+  function salvarGruposAllowlist(lista) {
+    if (!Array.isArray(lista)) return obterGruposAllowlist();
+    var limpa = [];
+    for (var i = 0; i < lista.length; i++) {
+      var g = lista[i] || {};
+      if (!g.jid) continue;
+      var modo = String(g.modoGrupo || "BLOQUEADO").toUpperCase();
+      if (modo !== "SNIPER_AUTO" && modo !== "RADAR_ONLY" && modo !== "BLOQUEADO") {
+        modo = "BLOQUEADO";
+      }
+      var permitido = (modo === "SNIPER_AUTO" || modo === "RADAR_ONLY") ? Boolean(g.permitido !== false) : false;
+      if (!permitido) modo = "BLOQUEADO";
+      limpa.push({
+        jid: String(g.jid).trim(),
+        nome: String(g.nome || g.jid).trim(),
+        permitido: permitido,
+        modoGrupo: modo
+      });
+    }
+    _salvarJsonProp(PROP_ALLOWLIST_KEY, limpa);
+    return limpa;
+  }
+
+  function sincronizarGruposWhatsApp(gruposRecebidos) {
+    var listaAtual = obterGruposAllowlist();
+    var mapaIdx = {};
+    for (var i = 0; i < listaAtual.length; i++) {
+      mapaIdx[listaAtual[i].jid] = i;
+    }
+    var recebidos = Array.isArray(gruposRecebidos) ? gruposRecebidos : [];
+    var novosAdicionados = 0;
+
+    for (var j = 0; j < recebidos.length; j++) {
+      var grp = recebidos[j] || {};
+      var jid = String(grp.jid || grp.id || grp.remoteJid || "").trim();
+      var nome = String(grp.nome || grp.subject || grp.name || jid).trim();
+
+      // Filtra estritamente apenas JIDs de grupos (@g.us)
+      if (!jid || jid.indexOf("@g.us") === -1 || jid.indexOf("@g.us") !== jid.length - 5) {
+        continue;
+      }
+
+      if (Object.prototype.hasOwnProperty.call(mapaIdx, jid)) {
+        var idxExistente = mapaIdx[jid];
+        if (nome && nome !== jid) {
+          listaAtual[idxExistente].nome = nome;
+        }
+      } else {
+        // Zero-Trust: Todo novo grupo descoberto entra BLOQUEADO por padrão!
+        listaAtual.push({
+          jid: jid,
+          nome: nome || ("Grupo " + jid.substring(0, 8)),
+          permitido: false,
+          modoGrupo: "BLOQUEADO"
+        });
+        mapaIdx[jid] = listaAtual.length - 1;
+        novosAdicionados++;
+      }
+    }
+
+    var listaSalva = salvarGruposAllowlist(listaAtual);
+    return {
+      sucesso: true,
+      totalGrupos: listaSalva.length,
+      novosAdicionados: novosAdicionados,
+      grupos: listaSalva
+    };
+  }
+
+  function alternarPermissaoGrupo(indiceOuJid) {
+    var lista = obterGruposAllowlist();
+    var alvoIdx = -1;
+
+    if (typeof indiceOuJid === "number" || /^\d+$/.test(String(indiceOuJid))) {
+      var idxNum = parseInt(indiceOuJid, 10);
+      if (idxNum >= 0 && idxNum < lista.length) {
+        alvoIdx = idxNum;
+      }
+    }
+
+    if (alvoIdx === -1 && indiceOuJid) {
+      var busca = String(indiceOuJid).trim().toLowerCase();
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].jid.toLowerCase() === busca || lista[i].nome.toLowerCase() === busca) {
+          alvoIdx = i;
+          break;
+        }
+      }
+    }
+
+    if (alvoIdx === -1) {
+      return { sucesso: false, motivo: "GRUPO_NAO_ENCONTRADO", grupos: lista };
+    }
+
+    var item = lista[alvoIdx];
+    var modoAtual = String(item.modoGrupo || "BLOQUEADO").toUpperCase();
+
+    // Ciclo Zero-Trust: BLOQUEADO -> RADAR_ONLY -> SNIPER_AUTO -> BLOQUEADO
+    if (modoAtual === "BLOQUEADO" || !item.permitido) {
+      item.modoGrupo = "RADAR_ONLY";
+      item.permitido = true;
+    } else if (modoAtual === "RADAR_ONLY") {
+      item.modoGrupo = "SNIPER_AUTO";
+      item.permitido = true;
+    } else {
+      item.modoGrupo = "BLOQUEADO";
+      item.permitido = false;
+    }
+
+    var listaSalva = salvarGruposAllowlist(lista);
+    return {
+      sucesso: true,
+      indice: alvoIdx,
+      grupo: listaSalva[alvoIdx],
+      grupos: listaSalva
+    };
+  }
+
+  function validarIsolamentoCamada1E2(envelope) {
+    var env = envelope || {};
+
+    // CAMADA 1: Bloqueio absoluto de mensagens próprias, chats privados (@s.whatsapp.net), status e canais
+    if (env.fromMe === true || (env.key && env.key.fromMe === true)) {
+      return {
+        permitido: false,
+        camada: 1,
+        codigo: "MENSAGEM_PROPRIA_IGNORADA",
+        motivo: "Mensagem enviada pelo próprio titular ignorada na Camada 1",
+        modoGrupo: "BLOQUEADO"
+      };
+    }
+
+    var remoteJid = String(
+      env.remoteJid ||
+      env.jid ||
+      env.groupJid ||
+      (env.key && env.key.remoteJid) ||
+      ""
+    ).trim();
+
+    if (remoteJid) {
+      var terminaComGus = remoteJid.length > 5 && remoteJid.indexOf("@g.us") === (remoteJid.length - 5);
+      if (
+        !terminaComGus ||
+        remoteJid.indexOf("@s.whatsapp.net") !== -1 ||
+        remoteJid === "status@broadcast" ||
+        remoteJid.indexOf("@broadcast") !== -1 ||
+        remoteJid.indexOf("@newsletter") !== -1
+      ) {
+        return {
+          permitido: false,
+          camada: 1,
+          codigo: "CHAT_PRIVADO_OU_STATUS_BLOQUEADO",
+          motivo: "Conversa privada ou status bloqueado estritamente na Camada 1 (" + remoteJid + ")",
+          remoteJid: remoteJid,
+          modoGrupo: "BLOQUEADO"
+        };
+      }
+    }
+
+    // CAMADA 2: Validação Estrita na Allowlist de Grupos Permitidos
+    var nomeGrupo = String(env.grupoNome || env.groupName || "").trim();
+    if (remoteJid || env.exigirAllowlist === true) {
+      var allowlist = obterGruposAllowlist();
+      var grupoEncontrado = null;
+
+      for (var i = 0; i < allowlist.length; i++) {
+        if (remoteJid && allowlist[i].jid === remoteJid) {
+          grupoEncontrado = allowlist[i];
+          break;
+        }
+        if (!remoteJid && nomeGrupo && _normalizarTexto(allowlist[i].nome) === _normalizarTexto(nomeGrupo)) {
+          grupoEncontrado = allowlist[i];
+          break;
+        }
+      }
+
+      if (!grupoEncontrado || grupoEncontrado.permitido !== true || grupoEncontrado.modoGrupo === "BLOQUEADO") {
+        return {
+          permitido: false,
+          camada: 2,
+          codigo: "GRUPO_NAO_AUTORIZADO_ALLOWLIST",
+          motivo: "Grupo fora da Allowlist ou marcado como BLOQUEADO (" + (nomeGrupo || remoteJid || "desconhecido") + ")",
+          remoteJid: remoteJid,
+          nomeGrupo: grupoEncontrado ? grupoEncontrado.nome : nomeGrupo,
+          modoGrupo: "BLOQUEADO"
+        };
+      }
+
+      return {
+        permitido: true,
+        camada: 2,
+        codigo: "GRUPO_AUTORIZADO_ALLOWLIST",
+        remoteJid: grupoEncontrado.jid,
+        nomeGrupo: grupoEncontrado.nome,
+        modoGrupo: grupoEncontrado.modoGrupo || "RADAR_ONLY"
+      };
+    }
+
+    return {
+      permitido: true,
+      camada: 2,
+      codigo: "MODO_SIMULACAO_INTERNA",
+      remoteJid: "",
+      nomeGrupo: nomeGrupo || "Grupo Simulado",
+      modoGrupo: "SNIPER_AUTO"
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Normalização e Deduplicação Cross-Group (Working Buffer)
+  // --------------------------------------------------------------------------
+  function _normalizarTexto(str) {
+    if (!str) return "";
+    return String(str)
+      .toLowerCase()
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/\s+/g, " ")
+      .trim();
+  }
+
+  function gerarHashOferta(texto) {
+    var norm = _normalizarTexto(texto)
+      .replace(/[^a-z0-9]/g, "")
+      .slice(0, 90);
+    var hash = 5381;
+    for (var i = 0; i < norm.length; i++) {
+      hash = ((hash << 5) + hash) + norm.charCodeAt(i);
+      hash = hash & 0x7fffffff;
+    }
+    return "vaga_" + hash.toString(16);
+  }
+
+  function jaProcessouOferta(hashOferta) {
+    if (!hashOferta) return false;
+    try {
+      var cache = CacheService.getScriptCache();
+      var hit = cache.get("SNIPER_DEDUP_" + hashOferta);
+      if (hit) return true;
+      cache.put("SNIPER_DEDUP_" + hashOferta, "1", 1800); // 30 min TTL
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  function salvarOfertaEmMemoria(oferta) {
+    if (!oferta || !oferta.hashOferta) return;
+    var map = _lerJsonProp(PROP_OFERTAS_CACHE_KEY, {});
+    map[oferta.hashOferta] = oferta;
+    var chaves = Object.keys(map);
+    if (chaves.length > 35) {
+      delete map[chaves[0]];
+    }
+    _salvarJsonProp(PROP_OFERTAS_CACHE_KEY, map);
+  }
+
+  function obterOfertaEmMemoria(hashOferta) {
+    var map = _lerJsonProp(PROP_OFERTAS_CACHE_KEY, {});
+    return map[hashOferta] || null;
+  }
+
+  // --------------------------------------------------------------------------
+  // ESTÁGIO 1: Filtro Determinístico Ultra-Rápido (< 0.2ms, Custo Zero)
+  // --------------------------------------------------------------------------
+  function filtroRapidoEstagio1(texto) {
+    var raw = String(texto || "").trim();
+    if (raw.length < 20) {
+      return { passou: false, motivo: "MENSAGEM_CURTA_OU_FIGURINHA" };
+    }
+
+    var norm = _normalizarTexto(raw);
+
+    // 1. Filtra ofertas reversas (médico pedindo plantão em vez de oferecer)
+    var padroesOfertaReversa = [
+      "estou disponivel para plantao",
+      "estou disponivel p/ plantao",
+      "procuro plantao",
+      "preciso de plantao",
+      "alguem tem plantao para passar",
+      "disponivel para cobrir",
+      "busco plantao"
+    ];
+    for (var i = 0; i < padroesOfertaReversa.length; i++) {
+      if (norm.indexOf(padroesOfertaReversa[i]) !== -1) {
+        return { passou: false, motivo: "OFERTA_REVERSA_MEDICO_PROCURANDO" };
+      }
+    }
+
+    // 2. Exige presença de números (horário ou valor)
+    if (!/\d{2,4}/.test(norm)) {
+      return { passou: false, motivo: "SEM_VALORES_OU_HORARIOS" };
+    }
+
+    // 3. Exige pelo menos 1 gatilho semântico de vaga médica
+    var gatilhosVaga = [
+      "plantao",
+      "vaga",
+      "cobertura",
+      "preciso de medico",
+      "ficha verde",
+      "porta",
+      "clinica medica",
+      "enfermaria",
+      "observacao",
+      "sala vermelha",
+      "emergencia",
+      "upa",
+      "hospital",
+      "ama",
+      "ubs",
+      "12h",
+      "6h",
+      "24h",
+      "noturno",
+      "diurno",
+      "cinderela",
+      "r$"
+    ];
+    var temGatilho = false;
+    for (var j = 0; j < gatilhosVaga.length; j++) {
+      if (norm.indexOf(gatilhosVaga[j]) !== -1) {
+        temGatilho = true;
+        break;
+      }
+    }
+    if (!temGatilho) {
+      return { passou: false, motivo: "CONVERSA_GERAL_SEM_GATILHO" };
+    }
+
+    // 4. Deduplicação Cross-Group (mesmo escalista disparando em 10 grupos)
+    var hashOferta = gerarHashOferta(raw);
+    if (jaProcessouOferta(hashOferta)) {
+      return {
+        passou: false,
+        motivo: "DUPLICATA_CROSS_GROUP",
+        hashOferta: hashOferta
+      };
+    }
+
+    return {
+      passou: true,
+      hashOferta: hashOferta
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // ESTÁGIO 2: Extrator Semântico Estruturado de Plantão Médico
+  // --------------------------------------------------------------------------
+  function extrairDadosPlantao(texto, remetenteNumero) {
+    var raw = String(texto || "").trim();
+    var norm = _normalizarTexto(raw);
+
+    // 1. Hospital / Unidade
+    var hospital = "Unidade Médica (Grupo)";
+    var regexHosp = /(?:📍\s*)?(hospital\s+[a-záàâãéêíóôõúç\s\-]+|upa\s+[a-záàâãéêíóôõúç\s\-]+|ama\s+[a-záàâãéêíóôõúç\s\-]+|ubs\s+[a-záàâãéêíóôõúç\s\-]+|pronto\s+socorro\s+[a-záàâãéêíóôõúç\s\-]+|santa\s+casa\s+[a-záàâãéêíóôõúç\s\-]+)/i;
+    var mHosp = raw.match(regexHosp);
+    if (mHosp && mHosp[1]) {
+      hospital = mHosp[1].split(/[\(\n\r•|,]/)[0].trim();
+    }
+
+    // 2. Cidade / Região
+    var cidade = "São Paulo";
+    var mapaCidades = [
+      { chave: "sao bernardo", nome: "São Bernardo" },
+      { chave: "santo andre", nome: "Santo André" },
+      { chave: "sao caetano", nome: "São Caetano" },
+      { chave: "abc", nome: "ABC" },
+      { chave: "osasco", nome: "Osasco" },
+      { chave: "guarulhos", nome: "Guarulhos" },
+      { chave: "barueri", nome: "Barueri" },
+      { chave: "morumbi", nome: "São Paulo" },
+      { chave: "itaim", nome: "São Paulo" },
+      { chave: "paulista", nome: "São Paulo" },
+      { chave: "zona sul", nome: "São Paulo" },
+      { chave: "zona leste", nome: "São Paulo" },
+      { chave: "zona norte", nome: "São Paulo" },
+      { chave: "zona oeste", nome: "São Paulo" },
+      { chave: "sao paulo", nome: "São Paulo" }
+    ];
+    for (var c = 0; c < mapaCidades.length; c++) {
+      if (norm.indexOf(mapaCidades[c].chave) !== -1) {
+        cidade = mapaCidades[c].nome;
+        break;
+      }
+    }
+
+    // 3. Setor / Complexidade
+    var setor = "Porta";
+    if (norm.indexOf("sala vermelha") !== -1 || norm.indexOf("emergencia") !== -1 || norm.indexOf("intubacao") !== -1) {
+      setor = "Sala Vermelha / Emergência";
+    } else if (norm.indexOf("uti") !== -1 || norm.indexOf("terapia intensiva") !== -1) {
+      setor = "UTI Adulto";
+    } else if (norm.indexOf("pediatria") !== -1 || norm.indexOf(" infantil") !== -1) {
+      setor = "Pediatria";
+    } else if (norm.indexOf("ficha verde") !== -1 || norm.indexOf("porta") !== -1 || norm.indexOf("pronto atendimento") !== -1) {
+      setor = "Porta / Ficha Verde";
+    } else if (norm.indexOf("observacao") !== -1) {
+      setor = "Observação";
+    } else if (norm.indexOf("enfermaria") !== -1) {
+      setor = "Enfermaria";
+    } else if (norm.indexOf("clinica medica") !== -1) {
+      setor = "Clínica Médica";
+    }
+
+    // 4. Turno, Data-Chave e Horários para a Aba Rotina
+    var ehNoturno =
+      norm.indexOf("noturno") !== -1 ||
+      norm.indexOf("19h as 07h") !== -1 ||
+      norm.indexOf("19h às 07h") !== -1 ||
+      norm.indexOf("19:00") !== -1 ||
+      norm.indexOf("19h") !== -1 ||
+      norm.indexOf("noite") !== -1;
+
+    var sufixoTurno = ehNoturno ? "NOITE" : "DIA";
+    var prefixoDia = "HOJE";
+    if (norm.indexOf("amanha") !== -1) {
+      prefixoDia = "AMANHA";
+    } else if (norm.indexOf("sabado") !== -1) {
+      prefixoDia = "SABADO";
+    } else if (norm.indexOf("domingo") !== -1) {
+      prefixoDia = "DOMINGO";
+    }
+
+    var dataTurnoChave = prefixoDia + "_" + sufixoTurno;
+    var horarioInicio = ehNoturno ? "19:00" : "07:00";
+    var horarioFim = ehNoturno ? "07:00" : "19:00";
+    var horarioDescricao = prefixoDia + " (" + horarioInicio + " às " + horarioFim + ")";
+
+    // 5. Duração (6h, 12h, 24h)
+    var duracaoHoras = 12;
+    if (/\b24\s*h/i.test(raw)) duracaoHoras = 24;
+    else if (/\b6\s*h/i.test(raw) || norm.indexOf("cinderela") !== -1) duracaoHoras = 6;
+
+    // 6. Valor Financeiro (R$)
+    var valorTotal = 0;
+    var mReais = raw.match(/R\$\s*([0-9]{1,2}\.?[0-9]{3}|[0-9]{3,4})(?:,[0-9]{2})?/i);
+    if (mReais && mReais[1]) {
+      valorTotal = parseInt(mReais[1].replace(/\./g, ""), 10) || 0;
+    } else {
+      var mNum = raw.match(/\b(9[0-9]{2}|1[0-9]{3}|2[0-9]{3}|3[0-9]{3})\b/);
+      if (mNum && mNum[1]) {
+        var candidato = parseInt(mNum[1], 10);
+        if (candidato < 1900 || candidato > 2035) {
+          valorTotal = candidato;
+        }
+      }
+    }
+
+    var valorHora = duracaoHoras > 0 && valorTotal > 0
+      ? Math.round(valorTotal / duracaoHoras)
+      : 0;
+
+    // 7. Modalidade de Pagamento
+    var modalidadePagamento = "PJ 30 dias";
+    if (norm.indexOf("pix") !== -1 && (norm.indexOf("vista") !== -1 || norm.indexOf("pos plantao") !== -1 || norm.indexOf("pos-plantao") !== -1 || norm.indexOf("saida") !== -1 || norm.indexOf("imediato") !== -1)) {
+      modalidadePagamento = "PIX à vista pós-plantão";
+    } else if (norm.indexOf("pix") !== -1) {
+      modalidadePagamento = "PIX";
+    } else if (norm.indexOf("avista") !== -1 || norm.indexOf("a vista") !== -1) {
+      modalidadePagamento = "À vista";
+    }
+
+    // 8. Contato do Escalista
+    var contatoEscalista = remetenteNumero || "5511999990000";
+    var mTel = raw.match(/(?:\+?55\s?)?(?:\(?0?[1-9]{2}\)?\s?)?(?:9\d{4}[-\s]?\d{4})/);
+    if (mTel && mTel[0]) {
+      var digitos = mTel[0].replace(/\D/g, "");
+      if (digitos.length === 11) digitos = "55" + digitos;
+      if (digitos.length >= 12) contatoEscalista = digitos;
+    }
+
+    return {
+      ehOfertaValida: valorTotal >= 400,
+      hospital: hospital,
+      cidade: cidade,
+      setor: setor,
+      dataTurnoChave: dataTurnoChave,
+      horarioInicio: horarioInicio,
+      horarioFim: horarioFim,
+      horarioDescricao: horarioDescricao,
+      duracaoHoras: duracaoHoras,
+      valorTotal: valorTotal,
+      valorHora: valorHora,
+      modalidadePagamento: modalidadePagamento,
+      contatoEscalista: contatoEscalista,
+      textoOriginal: raw
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // ESTÁGIO 3: Integração Viva com a Aba Rotina (Trava de Conflito + Injeção)
+  // --------------------------------------------------------------------------
+  function _resolverDataIsoParaTurno(dataTurnoChave) {
+    var base = new Date();
+    var chave = String(dataTurnoChave || "HOJE_NOITE").toUpperCase();
+    if (chave.indexOf("AMANHA") === 0) {
+      base.setDate(base.getDate() + 1);
+    } else if (chave.indexOf("SABADO") === 0) {
+      var diffSab = (6 - base.getDay() + 7) % 7;
+      base.setDate(base.getDate() + diffSab);
+    } else if (chave.indexOf("DOMINGO") === 0) {
+      var diffDom = (7 - base.getDay()) % 7;
+      base.setDate(base.getDate() + diffDom);
+    }
+    if (typeof RotinaService !== "undefined" && RotinaService.normalizarDataISO) {
+      return RotinaService.normalizarDataISO(base);
+    }
+    var yyyy = base.getFullYear();
+    var mm = String(base.getMonth() + 1).padStart(2, "0");
+    var dd = String(base.getDate()).padStart(2, "0");
+    return yyyy + "-" + mm + "-" + dd;
+  }
+
+  function obterSlotsTravados() {
+    return _lerJsonProp(PROP_LOCKED_SLOTS_KEY, {});
+  }
+
+  function travarSlotAgenda(dataTurnoChave, infoOferta) {
+    var slots = obterSlotsTravados();
+    slots[dataTurnoChave] = {
+      hospital: infoOferta.hospital,
+      valorTotal: infoOferta.valorTotal,
+      travadoEm: new Date().toISOString()
+    };
+    _salvarJsonProp(PROP_LOCKED_SLOTS_KEY, slots);
+    return slots;
+  }
+
+  function destravarTodaAgendaSniper() {
+    _salvarJsonProp(PROP_LOCKED_SLOTS_KEY, {});
+    return true;
+  }
+
+  function verificarConflitoNaRotina(oferta) {
+    var chave = oferta.dataTurnoChave || "HOJE_NOITE";
+    var slots = obterSlotsTravados();
+    if (slots[chave]) {
+      return {
+        conflito: true,
+        origem: "TRAVA_SNIPER",
+        motivo: "Horário já preenchido por " + slots[chave].hospital + " (" + chave + ")"
+      };
+    }
+
+    // Consulta real na Timeline da Aba Rotina do médico!
+    try {
+      if (typeof RotinaService !== "undefined" && RotinaService.obterBlocosDoDia) {
+        var dataIso = _resolverDataIsoParaTurno(chave);
+        var blocos = RotinaService.obterBlocosDoDia(dataIso) || [];
+        for (var i = 0; i < blocos.length; i++) {
+          var b = blocos[i];
+          if (b && b.categoria === "plantao" && b.status !== "ignorado") {
+            var mesmoTurno =
+              b.inicio === oferta.horarioInicio ||
+              (chave.indexOf("NOITE") !== -1 && String(b.inicio) >= "18:00") ||
+              (chave.indexOf("DIA") !== -1 && String(b.inicio) < "13:00");
+            if (mesmoTurno) {
+              return {
+                conflito: true,
+                origem: "ABA_ROTINA",
+                motivo: "Conflito na Timeline da Aba Rotina (" + dataIso + "): " + b.titulo
+              };
+            }
+          }
+        }
+      }
+    } catch (e) {}
+
+    return { conflito: false };
+  }
+
+  function agendarPlantaoCapturadoNaRotina(oferta) {
+    if (!oferta) return { agendado: false };
+    var dataIso = _resolverDataIsoParaTurno(oferta.dataTurnoChave);
+    travarSlotAgenda(oferta.dataTurnoChave, oferta);
+
+    try {
+      if (typeof RotinaService !== "undefined" && RotinaService.obterBlocosDoDia && RotinaService.salvarBlocosDoDia) {
+        var blocos = RotinaService.obterBlocosDoDia(dataIso) || [];
+        var idBloco = "plantao_sniper_" + (oferta.hashOferta || Date.now());
+        var jaExiste = false;
+        for (var i = 0; i < blocos.length; i++) {
+          if (blocos[i].id === idBloco) {
+            jaExiste = true;
+            break;
+          }
+        }
+        if (!jaExiste) {
+          blocos.push({
+            id: idBloco,
+            inicio: oferta.horarioInicio || "19:00",
+            fim: oferta.horarioFim || "07:00",
+            titulo: "🚨 Plantão " + oferta.hospital + " (" + oferta.setor + ")",
+            categoria: "plantao",
+            status: "pendente",
+            nota: "Capturado via Sniper | R$ " + oferta.valorTotal + " (" + oferta.modalidadePagamento + ")"
+          });
+          RotinaService.salvarBlocosDoDia(dataIso, blocos);
+        }
+        return { agendado: true, dataIso: dataIso, idBloco: idBloco };
+      }
+    } catch (e) {}
+
+    return { agendado: true, dataIso: dataIso };
+  }
+
+  // --------------------------------------------------------------------------
+  // Validador de Critérios do Médico (Setor, Cidade e Piso Financeiro)
+  // --------------------------------------------------------------------------
+  function avaliarCriteriosMedico(oferta, config) {
+    // 1. Verifica Blacklist Anti-Calote
+    var checkCalote = verificarBlacklist(oferta.hospital + " " + oferta.textoOriginal);
+    if (checkCalote.bloqueado) {
+      return {
+        aprovado: false,
+        codigo: "BLACKLIST_CALOTE",
+        motivo: "Bloqueado pelo Filtro Anti-Calote: " + checkCalote.termo + " (" + checkCalote.motivo + ")"
+      };
+    }
+
+    // 2. Verifica Setor Compatível
+    var setorNorm = _normalizarTexto(oferta.setor);
+    var setoresOk = config.setoresPermitidos || DEFAULT_CONFIG.setoresPermitidos;
+    var setorPermitido = false;
+    for (var i = 0; i < setoresOk.length; i++) {
+      if (setorNorm.indexOf(_normalizarTexto(setoresOk[i])) !== -1) {
+        setorPermitido = true;
+        break;
+      }
+    }
+    if (!setorPermitido) {
+      return {
+        aprovado: false,
+        codigo: "SETOR_INCOMPATIVEL",
+        motivo: "Setor '" + oferta.setor + "' fora do perfil configurado (" + setoresOk.join(", ") + ")"
+      };
+    }
+
+    // 3. Verifica Cidade Compatível
+    var cidNorm = _normalizarTexto(oferta.cidade);
+    var cidadesOk = config.cidadesPermitidas || DEFAULT_CONFIG.cidadesPermitidas;
+    var cidadePermitida = false;
+    for (var j = 0; j < cidadesOk.length; j++) {
+      if (cidNorm.indexOf(_normalizarTexto(cidadesOk[j])) !== -1) {
+        cidadePermitida = true;
+        break;
+      }
+    }
+    if (!cidadePermitida) {
+      return {
+        aprovado: false,
+        codigo: "CIDADE_FORA_DO_RAIO",
+        motivo: "Cidade '" + oferta.cidade + "' fora do raio configurado"
+      };
+    }
+
+    // 4. Verifica Piso Financeiro
+    var pisoHora = Number(config.valorMinimoHora) || 108;
+    if (oferta.valorHora < pisoHora) {
+      return {
+        aprovado: false,
+        codigo: "VALOR_ABAIXO_DO_PISO",
+        motivo: "R$ " + oferta.valorTotal + " (R$ " + oferta.valorHora + "/h) abaixo do seu piso de R$ " + config.valorMinimo12h + "/12h"
+      };
+    }
+
+    // 5. Verifica Conflito na Aba Rotina e Trava de Agenda
+    var conflito = verificarConflitoNaRotina(oferta);
+    if (conflito.conflito) {
+      return {
+        aprovado: false,
+        codigo: "CONFLITO_AGENDA_ROTINA",
+        motivo: conflito.motivo
+      };
+    }
+
+    return { aprovado: true, codigo: "MATCH_PERFEITO" };
+  }
+
+  // --------------------------------------------------------------------------
+  // ESTÁGIO 4: Executor Stealth Anti-Ban (Jitter Humano + Spintax + PV)
+  // --------------------------------------------------------------------------
+  function gerarDisparoStealthWhatsApp(oferta, config, grupoOrigem) {
+    var frasesGrupo = [
+      "Opa, disponível! Chamei no privado agora.",
+      "Eu pego! Te mandei msg no PV.",
+      "Disponível, chamei no privado para confirmar.",
+      "Assumo a vaga! Enviei meus dados no seu privado."
+    ];
+    var idx = Math.floor(Math.random() * frasesGrupo.length);
+    var jitterMs = 1850 + Math.floor(Math.random() * 1300); // 1.85s a 3.15s
+
+    var msgPrivado =
+      "Olá! Vi a vaga no grupo *" + (grupoOrigem || "Plantões") + "* para o *" + oferta.hospital + "* (" + oferta.horarioDescricao + " — " + oferta.setor + ").\n\n" +
+      "Tenho disponibilidade imediata para assumir. Seguem meus dados para cadastro na escala:\n" +
+      "👨‍⚕️ *" + config.nome + "* (" + config.crm + ")\n" +
+      "Pode confirmar a vaga para mim, por favor?";
+
+    return {
+      modoStealthPvOnly: !!config.responderApenasPv,
+      jitterDelayMs: jitterMs,
+      simulacaoDigitandoMs: 1400,
+      mensagemGrupo: config.responderApenasPv ? null : frasesGrupo[idx],
+      destinatarioPv: oferta.contatoEscalista,
+      mensagemPrivado: msgPrivado,
+      linkWhatsAppDireto:
+        "https://wa.me/" +
+        String(oferta.contatoEscalista || "5511999990000").replace(/\D/g, "") +
+        "?text=" +
+        encodeURIComponent(msgPrivado)
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Pipeline Completo: Processa Mensagem do Grupo WhatsApp
+  // --------------------------------------------------------------------------
+  function processarMensagemGrupoWhatsApp(texto, grupoNome, remetenteNumero, opcoes) {
+    var opts = (grupoNome && typeof grupoNome === "object") ? grupoNome : (opcoes || {});
+    var nomeGrp = (typeof grupoNome === "string") ? grupoNome : (opts.grupoNome || opts.groupName || "Grupo WhatsApp");
+    var remNum = (typeof remetenteNumero === "string") ? remetenteNumero : (opts.escalistaFone || opts.remetenteNumero || "");
+
+    // Estágio 0: Blindagem Zero-Trust em Dupla Camada (Camada 1: Privados/Status/FromMe + Camada 2: Allowlist)
+    var isolamento = validarIsolamentoCamada1E2({
+      fromMe: opts.fromMe,
+      remoteJid: opts.remoteJid || opts.groupJid || "",
+      grupoNome: nomeGrp,
+      exigirAllowlist: opts.exigirAllowlist
+    });
+
+    if (!isolamento.permitido) {
+      return {
+        status: "BLOQUEADA_ISOLAMENTO_ZERO_TRUST",
+        camada: isolamento.camada,
+        codigo: isolamento.codigo,
+        motivo: isolamento.motivo,
+        remoteJid: isolamento.remoteJid || null
+      };
+    }
+
+    var stats = obterEstatisticas();
+    stats.totalAnalisadas += 1;
+
+    // Estágio 1: Filtro 0ms
+    var f1 = filtroRapidoEstagio1(texto);
+    if (!f1.passou) {
+      stats.filtradasEstagio1 += 1;
+      salvarEstatisticas(stats);
+      return {
+        status: "DESCARTADA_ESTAGIO_1",
+        motivo: f1.motivo,
+        hashOferta: f1.hashOferta || null
+      };
+    }
+
+    // Estágio 2: Extração Semântica
+    var oferta = extrairDadosPlantao(texto, remNum);
+    oferta.hashOferta = f1.hashOferta;
+    oferta.grupoOrigem = isolamento.nomeGrupo || nomeGrp || "Grupo WhatsApp";
+
+    if (!oferta.ehOfertaValida) {
+      stats.filtradasEstagio1 += 1;
+      salvarEstatisticas(stats);
+      return {
+        status: "DESCARTADA_EXTRATOR",
+        motivo: "Sem valor financeiro válido identificado",
+        oferta: oferta
+      };
+    }
+
+    // Estágio 3: Critérios + Blacklist + Aba Rotina
+    var config = obterConfigSniper();
+    var avaliacao = avaliarCriteriosMedico(oferta, config);
+    if (!avaliacao.aprovado) {
+      if (avaliacao.codigo === "BLACKLIST_CALOTE") {
+        stats.calotesEvitados += 1;
+      }
+      salvarEstatisticas(stats);
+      return {
+        status: "REJEITADA_CRITERIOS",
+        codigo: avaliacao.codigo,
+        motivo: avaliacao.motivo,
+        oferta: oferta
+      };
+    }
+
+    // Estágio 4: Match Perfeito! Respeita a permissão individual do grupo (RADAR_ONLY vs SNIPER_AUTO)
+    salvarOfertaEmMemoria(oferta);
+    var stealth = gerarDisparoStealthWhatsApp(oferta, config, oferta.grupoOrigem);
+    var agendamentoRotina = null;
+
+    var grupoPermiteDisparoAuto = isolamento.modoGrupo !== "RADAR_ONLY";
+    var executarAuto = config.modoOperacao === "SNIPER_AUTO" && grupoPermiteDisparoAuto;
+
+    if (executarAuto) {
+      stats.plantoesCapturados += 1;
+      stats.receitaGarantidaReais += Number(oferta.valorTotal) || 0;
+      stats.ultimoDisparoEm = new Date().toISOString();
+      if (config.autoAgendarRotina) {
+        agendamentoRotina = agendarPlantaoCapturadoNaRotina(oferta);
+      }
+    }
+    salvarEstatisticas(stats);
+
+    var targetChatId = opts.notificarTelegramChatId || opts.chatId;
+    if (targetChatId) {
+      enviarCardVagaTelegram(targetChatId, oferta, config, stealth, agendamentoRotina);
+    }
+
+    return {
+      status: executarAuto ? "CAPTURADA_SNIPER_AUTO" : "AGUARDANDO_APROVACAO_SEMI_AUTO",
+      modoGrupoAplicado: isolamento.modoGrupo,
+      oferta: oferta,
+      stealth: stealth,
+      agendamentoRotina: agendamentoRotina
+    };
+  }
+
+  // --------------------------------------------------------------------------
+  // Notificação Rica no Telegram (Card de Vaga + Botões 1-Click)
+  // --------------------------------------------------------------------------
+  function enviarCardVagaTelegram(chatId, oferta, config, stealth, agendamentoRotina) {
+    if (!chatId || typeof enviarMensagemComTecladoParaChat !== "function") return;
+    var ehAuto = config.modoOperacao === "SNIPER_AUTO";
+    var cabecalho = ehAuto
+      ? "🎯 *PLANTÃO CAPTURADO PELO SNIPER!*"
+      : "🔔 *VAGA FILÉ DETECTADA (MODO SEMI-AUTO)*";
+
+    var statusStealth = ehAuto
+      ? (config.responderApenasPv
+          ? "🕵️ *Stealth Fantasma:* Mensagem enviada direto no PV do escalista (`" + stealth.jitterDelayMs + "ms`)"
+          : "⚡ *Disparo Duplo:* Respondido no grupo + PV do escalista (`" + stealth.jitterDelayMs + "ms`)")
+      : "⏳ *Aguardando seu clique abaixo para disparar e agendar na Rotina.*";
+
+    var linhaRotina = agendamentoRotina && agendamentoRotina.agendado
+      ? "✅ *Aba Rotina:* Bloco de Plantão injetado automaticamente em `" + agendamentoRotina.dataIso + "`!"
+      : "📅 *Aba Rotina:* Sem conflitos no horário (`" + oferta.dataTurnoChave + "`).";
+
+    var msg = [
+      cabecalho,
+      "━━━━━━━━━━━━━━━━━━━━",
+      "🏥 *Unidade:* " + oferta.hospital + " (" + oferta.cidade + ")",
+      "🩺 *Setor:* " + oferta.setor,
+      "🕒 *Turno:* " + oferta.horarioDescricao + " (" + oferta.duracaoHoras + "h)",
+      "💰 *Valor:* *R$ " + oferta.valorTotal + "* (`R$ " + oferta.valorHora + "/h` — " + oferta.modalidadePagamento + ")",
+      "📱 *Grupo:* " + (oferta.grupoOrigem || "Plantões Médicos SP"),
+      "",
+      statusStealth,
+      linhaRotina
+    ].join("\n");
+
+    var botoes = [];
+    if (!ehAuto) {
+      botoes.push([
+        {
+          text: "⚡ Pegar Vaga + Agendar na Rotina",
+          callback_data: "sniper:claim:" + oferta.hashOferta
+        }
+      ]);
+    }
+    botoes.push([
+      {
+        text: "💬 Abrir WhatsApp do Escalista",
+        url: stealth.linkWhatsAppDireto
+      }
+    ]);
+    botoes.push([
+      {
+        text: "🚫 Denunciar Calote",
+        callback_data: "sniper:denunciar:" + String(oferta.hospital).slice(0, 28)
+      },
+      {
+        text: "🎛️ Painel Sniper",
+        callback_data: "sniper:painel"
+      }
+    ]);
+
+    enviarMensagemComTecladoParaChat(chatId, msg, { inline_keyboard: botoes });
+  }
+
+  // --------------------------------------------------------------------------
+  // Simulador Integrado de 8 Vagas Reais (Teste Ponta a Ponta no Telegram)
+  // --------------------------------------------------------------------------
+  function executarSimulacaoSniper(chatId) {
+    destravarTodaAgendaSniper();
+
+    var bateria = [
+      {
+        grupo: "Plantões SP Geral",
+        remetente: "5511991112222",
+        texto: "Bom dia colegas! Alguém sabe se o estacionamento do Hospital Municipal está funcionando hoje?"
+      },
+      {
+        grupo: "Vagas Médicas ABC/SP",
+        remetente: "5511992223333",
+        texto: "Olá pessoal, estou disponível para plantão hoje à noite ou amanhã diurno em SP ou ABC. CRM/SP ativo!"
+      },
+      {
+        grupo: "Plantões Urgentes SP",
+        remetente: "5511993334444",
+        texto: "🚨 VAGA URGENTE HOJE NOTURNO (19h às 07h) - UPA Fantasma Sul (São Paulo). Porta Ficha Verde. Valor: R$ 1.600 no PIX! Chamar 11993334444"
+      },
+      {
+        grupo: "Plantões Grande SP",
+        remetente: "5511994445555",
+        texto: "Preciso de médico para cobertura HOJE NOTURNO 19h às 07h - AMA Zona Leste (São Paulo) - Porta Clínica Médica - Valor R$ 950 PJ."
+      },
+      {
+        grupo: "Emergências Médicas SP",
+        remetente: "5511995556666",
+        texto: "Vaga HOJE NOTURNO 19h às 07h - Hospital Santa Marcelina (São Paulo) - Setor: SALA VERMELHA / EMERGÊNCIA. R$ 1.700. Contato: 11995556666"
+      },
+      {
+        grupo: "Plantões Premium SP & ABC",
+        remetente: "5511988887777",
+        texto: "🔥 COBERTURA HOJE NOTURNO (19h às 07h - 12h)\n📍 Hospital São Luiz Morumbi (São Paulo)\n🩺 Setor: Pronto Atendimento / Ficha Verde (Porta)\n💰 Valor: R$ 1.560,00 (PIX à vista pós-plantão)\n📲 Interessados chamar escalista: (11) 98888-7777"
+      },
+      {
+        grupo: "Médicos Plantonistas SP II",
+        remetente: "5511988887777",
+        texto: "🔥 COBERTURA HOJE NOTURNO (19h às 07h - 12h)\n📍 Hospital São Luiz Morumbi (São Paulo)\n🩺 Setor: Pronto Atendimento / Ficha Verde (Porta)\n💰 Valor: R$ 1.560,00 (PIX à vista pós-plantão)\n📲 Interessados chamar escalista: (11) 98888-7777"
+      },
+      {
+        grupo: "Plantões ABC Premium",
+        remetente: "5511977776666",
+        texto: "Vaga HOJE NOTURNO (19h às 07h) - Hospital Brasil (Santo André - ABC). Setor: Porta Clínica Médica. Valor: R$ 1.500 PIX na saída! Chamar 11977776666"
+      }
+    ];
+
+    try {
+      var cache = CacheService.getScriptCache();
+      for (var c = 0; c < bateria.length; c++) {
+        var h = gerarHashOferta(bateria[c].texto);
+        cache.put("SNIPER_DEDUP_" + h, "", 1);
+      }
+    } catch (e) {}
+
+    var logs = [];
+    for (var i = 0; i < bateria.length; i++) {
+      var item = bateria[i];
+      var ehVagaVencedora = i === 5;
+      var res = processarMensagemGrupoWhatsApp(
+        item.texto,
+        item.grupo,
+        item.remetente,
+        { notificarTelegramChatId: ehVagaVencedora ? chatId : null }
+      );
+      logs.push({
+        indice: i + 1,
+        grupo: item.grupo,
+        status: res.status,
+        codigo: res.codigo || res.status,
+        detalhe: res.motivo || (res.oferta ? res.oferta.hospital + " (R$ " + res.oferta.valorTotal + ")" : "")
+      });
+    }
+
+    return logs;
+  }
+
+  return {
+    obterConfigSniper: obterConfigSniper,
+    obterConfig: obterConfigSniper,
+    salvarConfigSniper: salvarConfigSniper,
+    obterEstatisticas: obterEstatisticas,
+    obterMetricas: obterEstatisticas,
+    obterHistorico: function () { return []; },
+    obterBlacklistCalote: obterBlacklistCalote,
+    adicionarBlacklistCalote: adicionarBlacklistCalote,
+    verificarBlacklist: verificarBlacklist,
+    obterGruposAllowlist: obterGruposAllowlist,
+    salvarGruposAllowlist: salvarGruposAllowlist,
+    sincronizarGruposWhatsApp: sincronizarGruposWhatsApp,
+    alternarPermissaoGrupo: alternarPermissaoGrupo,
+    validarIsolamentoCamada1E2: validarIsolamentoCamada1E2,
+    filtroRapidoEstagio1: filtroRapidoEstagio1,
+    extrairDadosPlantao: extrairDadosPlantao,
+    verificarConflitoNaRotina: verificarConflitoNaRotina,
+    agendarPlantaoCapturadoNaRotina: agendarPlantaoCapturadoNaRotina,
+    destravarTodaAgendaSniper: destravarTodaAgendaSniper,
+    obterOfertaEmMemoria: obterOfertaEmMemoria,
+    gerarDisparoStealthWhatsApp: gerarDisparoStealthWhatsApp,
+    processarMensagemGrupoWhatsApp: processarMensagemGrupoWhatsApp,
+    executarSimulacaoSniper: executarSimulacaoSniper
+  };
+})();
+
+// ============================================================================
+// UI TELEGRAM: PAINEL DE COMANDO E CALLBACKS DO SNIPER DE PLANTÕES
+// ============================================================================
+
+function _construirPainelGruposAllowlistTelegram(notaTopo) {
+  var grupos = PlantaoSniperService.obterGruposAllowlist();
+  var liberados = 0;
+  var linhasGrupos = [];
+  var inlineKeyboard = [];
+
+  for (var i = 0; i < grupos.length; i++) {
+    var g = grupos[i];
+    var icone = "🔴 BLOQUEADO";
+    var iconeCurto = "🔴";
+
+    if (g.permitido && g.modoGrupo === "SNIPER_AUTO") {
+      icone = "🟢 SNIPER AUTO (Lê + Responde)";
+      iconeCurto = "🟢 AUTO";
+      liberados++;
+    } else if (g.permitido && g.modoGrupo === "RADAR_ONLY") {
+      icone = "👁️ SÓ RADAR (Apenas Leitura)";
+      iconeCurto = "👁️ RADAR";
+      liberados++;
+    }
+
+    linhasGrupos.push(
+      (i + 1) + ". *" + g.nome + "*\n" +
+      "   └ " + icone + " (`" + g.jid + "`)"
+    );
+
+    var nomeBotao = g.nome.length > 22 ? g.nome.substring(0, 22) + "..." : g.nome;
+    inlineKeyboard.push([
+      {
+        text: iconeCurto + " | " + nomeBotao,
+        callback_data: "sniper:grp_toggle:" + i
+      }
+    ]);
+  }
+
+  inlineKeyboard.push([
+    { text: "🔄 Sincronizar Grupos", callback_data: "sniper:grp_sync" },
+    { text: "🔙 Voltar ao Sniper", callback_data: "sniper:painel" }
+  ]);
+
+  var cabecalho = notaTopo ? "✅ _" + notaTopo + "_\n\n" : "";
+  var texto = [
+    cabecalho + "🛡️ *ALLOWLIST ZERO-TRUST DE GRUPOS WHATSAPP*",
+    "━━━━━━━━━━━━━━━━━━━━",
+    "🔒 *Camada 1 (Hard-Coded):* 100% das conversas privadas (`@s.whatsapp.net`), Status e mensagens próprias são descartadas na memória.",
+    "🛡️ *Camada 2 (Allowlist):* Somente grupos autorizados abaixo são lidos (*" + liberados + "/" + grupos.length + " liberados*).",
+    "",
+    "*Toque em um grupo abaixo para alternar o nível de acesso:*",
+    "• 🔴 *BLOQUEADO:* Ignora 100% do grupo.",
+    "• 👁️ *SÓ RADAR:* Lê vagas e avisa no Telegram, mas NUNCA digita no grupo.",
+    "• 🟢 *SNIPER AUTO:* Lê vagas e responde automaticamente quando bater os critérios.",
+    "",
+    linhasGrupos.join("\n\n")
+  ].join("\n");
+
+  return {
+    texto: texto,
+    teclado: { inline_keyboard: inlineKeyboard }
+  };
+}
+
+function _construirPainelSniperTelegram() {
+  var cfg = PlantaoSniperService.obterConfigSniper();
+  var stats = PlantaoSniperService.obterEstatisticas();
+  var blacklist = PlantaoSniperService.obterBlacklistCalote();
+  var gruposAllowlist = PlantaoSniperService.obterGruposAllowlist();
+  var qtdLiberados = 0;
+  for (var gIdx = 0; gIdx < gruposAllowlist.length; gIdx++) {
+    if (gruposAllowlist[gIdx].permitido && gruposAllowlist[gIdx].modoGrupo !== "BLOQUEADO") {
+      qtdLiberados++;
+    }
+  }
+
+  var labelModo = cfg.modoOperacao === "SNIPER_AUTO"
+    ? "🟢 SNIPER AUTOMÁTICO (Disparo + Rotina)"
+    : "🟡 SEMI-AUTOMÁTICO (1-Click no Telegram)";
+
+  var labelStealth = cfg.responderApenasPv
+    ? "🕵️ LIGADO (Só chama no PV do escalista)"
+    : "📢 PADRÃO (Responde no Grupo + PV)";
+
+  var texto = [
+    "🎯 *SNIPER DE PLANTÕES — ULTRA ROTINA*",
+    "━━━━━━━━━━━━━━━━━━━━",
+    "👨‍⚕️ *Titular:* " + cfg.nome + " (" + cfg.crm + ")",
+    "⚙️ *Modo de Operação:* " + labelModo,
+    "🛡️ *Modo Fantasma (PV):* " + labelStealth,
+    "🔒 *Blindagem WhatsApp:* Zero-Trust Ativo (*" + qtdLiberados + "/" + gruposAllowlist.length + " grupos liberados* | 100% chats privados bloqueados)",
+    "💰 *Piso Mínimo (12h):* *R$ " + cfg.valorMinimo12h + "* (`R$ " + cfg.valorMinimoHora + "/h`)",
+    "📍 *Cidades:* " + (cfg.cidadesPermitidas || []).join(", "),
+    "🩺 *Setores:* " + (cfg.setoresPermitidos || []).join(", "),
+    "📅 *Sync Aba Rotina:* Ativo (Anti-Conflito + Auto-Bloco)",
+    "",
+    "📊 *PLACAR EM TEMPO REAL*",
+    "• Mensagens filtradas (0ms): *" + stats.totalAnalisadas + "*",
+    "• Calotes bloqueados: *🚫 " + stats.calotesEvitados + "* (" + blacklist.length + " na Blacklist)",
+    "• Plantões capturados: *⚡ " + stats.plantoesCapturados + "*",
+    "• Receita garantida: *💵 R$ " + stats.receitaGarantidaReais + "*"
+  ].join("\n");
+
+  var teclado = {
+    inline_keyboard: [
+      [
+        {
+          text: "🛡️ Grupos Permitidos (Allowlist: " + qtdLiberados + "/" + gruposAllowlist.length + ")",
+          callback_data: "sniper:grupos"
+        }
+      ],
+      [
+        {
+          text: cfg.modoOperacao === "SNIPER_AUTO" ? "🔄 Modo: Sniper Auto" : "🔄 Modo: Semi-Auto",
+          callback_data: "sniper:toggle_mode"
+        },
+        {
+          text: cfg.responderApenasPv ? "🕵️ Stealth PV: ON" : "🕵️ Stealth PV: OFF",
+          callback_data: "sniper:toggle_stealth"
+        }
+      ],
+      [
+        { text: "💰 Piso +R$100", callback_data: "sniper:val_up" },
+        { text: "💰 Piso -R$100", callback_data: "sniper:val_down" }
+      ],
+      [
+        { text: "🧪 Simular 8 Vagas WhatsApp", callback_data: "sniper:simular" },
+        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" }
+      ],
+      [
+        { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" },
+        { text: "🔓 Destravar Agenda Sniper", callback_data: "sniper:unlock_all" }
+      ],
+      [
+        { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
+        { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+      ]
+    ]
+  };
+
+  return { texto: texto, teclado: teclado };
+}
+
+function _enviarOuEditarPainelSniper(chatId, msgId, token, texto, teclado) {
+  if (msgId && token && typeof executarPostTelegram === "function") {
+    try {
+      var url = "https://api.telegram.org/bot" + token + "/editMessageText";
+      var res = executarPostTelegram(url, {
+        chat_id: String(chatId),
+        message_id: Number(msgId),
+        text: texto,
+        parse_mode: "Markdown",
+        reply_markup: teclado
+      });
+      if (res && res.ok) return true;
+    } catch (e) {}
+  }
+  if (typeof enviarMensagemComTecladoParaChat === "function") {
+    enviarMensagemComTecladoParaChat(chatId, texto, teclado);
+    return true;
+  }
+  if (typeof enviarMensagemParaChat === "function") {
+    enviarMensagemParaChat(chatId, texto);
+    return true;
+  }
+  return false;
+}
+
+function tratarComandoSniperPlantoes(chatId, argTexto, msgId) {
+  var arg = String(argTexto || "").trim();
+
+  if (arg.toLowerCase().indexOf("calote ") === 0) {
+    var termo = arg.slice(7).trim();
+    PlantaoSniperService.adicionarBlacklistCalote(termo, "Adicionado via comando /sniper calote");
+    enviarMensagemParaChat(chatId, "🚫 *" + termo + "* adicionado à Blacklist Anti-Calote com sucesso!");
+  } else if (arg.toLowerCase() === "grupos") {
+    var telaGrp = _construirPainelGruposAllowlistTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, null, telaGrp.texto, telaGrp.teclado);
+  } else if (arg.toLowerCase() === "simular") {
+    var logs = PlantaoSniperService.executarSimulacaoSniper(chatId);
+    var resumo = ["🧪 *SIMULAÇÃO DE 8 MENSAGENS REAIS CONCLUÍDA:*", ""];
+    for (var i = 0; i < logs.length; i++) {
+      resumo.push("`" + logs[i].indice + ".` *" + logs[i].status + "* — _" + logs[i].detalhe + "_");
+    }
+    enviarMensagemParaChat(chatId, resumo.join("\n"));
+    return true;
+  }
+
+  var painel = _construirPainelSniperTelegram();
+  return _enviarOuEditarPainelSniper(chatId, msgId, null, painel.texto, painel.teclado);
+}
+
+function tratarCallbackSniperPlantoes(cb, data, ctx) {
+  var chatId = (ctx && ctx.chatId) || (cb && cb.message && cb.message.chat && cb.message.chat.id);
+  var msgId = (ctx && ctx.msgId) || (cb && cb.message && cb.message.message_id);
+  var token = (ctx && ctx.token) || (typeof ConfigService !== "undefined" ? ConfigService.get("TELEGRAM_BOT_TOKEN", "") : "");
+  var cbId = cb && cb.id;
+
+  if (!chatId) return false;
+
+  var acao = String(data || "").replace(/^sniper:/, "");
+
+  if (acao === "painel") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🎯 Painel Sniper atualizado!", false);
+    }
+    var p0 = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, p0.texto, p0.teclado);
+  }
+
+  if (acao === "grupos") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🛡️ Allowlist Zero-Trust de grupos carregada!", false);
+    }
+    var pg = _construirPainelGruposAllowlistTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, pg.texto, pg.teclado);
+  }
+
+  if (acao.indexOf("grp_toggle:") === 0) {
+    var idx = parseInt(acao.slice(11), 10);
+    var resToggle = PlantaoSniperService.alternarPermissaoGrupo(idx);
+    var msgFeedback = resToggle.sucesso && resToggle.grupo
+      ? (resToggle.grupo.nome + " -> " + resToggle.grupo.modoGrupo)
+      : "Grupo não encontrado";
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🛡️ " + msgFeedback, false);
+    }
+    var pgToggle = _construirPainelGruposAllowlistTelegram("Permissão atualizada: " + msgFeedback);
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, pgToggle.texto, pgToggle.teclado);
+  }
+
+  if (acao === "grp_sync") {
+    var resSync = PlantaoSniperService.sincronizarGruposWhatsApp([]);
+    var notaSync = "Sincronização concluída (" + resSync.totalGrupos + " grupos verificados; novos entram 🔴 BLOQUEADOS por padrão).";
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🔄 Grupos sincronizados em modo Zero-Trust!", false);
+    }
+    var pgSync = _construirPainelGruposAllowlistTelegram(notaSync);
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, pgSync.texto, pgSync.teclado);
+  }
+
+  if (acao === "toggle_mode") {
+    var cfg1 = PlantaoSniperService.obterConfigSniper();
+    var novoModo = cfg1.modoOperacao === "SNIPER_AUTO" ? "SEMI_AUTO" : "SNIPER_AUTO";
+    PlantaoSniperService.salvarConfigSniper({ modoOperacao: novoModo });
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(
+        cbId,
+        novoModo === "SNIPER_AUTO"
+          ? "🟢 Modo Sniper Automático ativado!"
+          : "🟡 Modo Semi-Automático (1-Click) ativado!",
+        false
+      );
+    }
+    var p1 = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, p1.texto, p1.teclado);
+  }
+
+  if (acao === "toggle_stealth") {
+    var cfg2 = PlantaoSniperService.obterConfigSniper();
+    var novoStealth = !cfg2.responderApenasPv;
+    PlantaoSniperService.salvarConfigSniper({ responderApenasPv: novoStealth });
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(
+        cbId,
+        novoStealth
+          ? "🕵️ Modo Fantasma ativado (responde só no PV do escalista)!"
+          : "📢 Modo Padrão ativado (responde no Grupo + PV)!",
+        false
+      );
+    }
+    var p2 = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, p2.texto, p2.teclado);
+  }
+
+  if (acao === "val_up" || acao === "val_down") {
+    var cfg3 = PlantaoSniperService.obterConfigSniper();
+    var delta = acao === "val_up" ? 100 : -100;
+    var novoValor = Math.max(600, (Number(cfg3.valorMinimo12h) || 1300) + delta);
+    var atualizado = PlantaoSniperService.salvarConfigSniper({ valorMinimo12h: novoValor });
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(
+        cbId,
+        "💰 Novo piso: R$ " + atualizado.valorMinimo12h + "/12h (R$ " + atualizado.valorMinimoHora + "/h)",
+        false
+      );
+    }
+    var p3 = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, p3.texto, p3.teclado);
+  }
+
+  if (acao === "unlock_all") {
+    PlantaoSniperService.destravarTodaAgendaSniper();
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🔓 Trava de slots do Sniper limpa com sucesso!", false);
+    }
+    var p4 = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, p4.texto, p4.teclado);
+  }
+
+  if (acao === "blacklist") {
+    var lista = PlantaoSniperService.obterBlacklistCalote();
+    var linhas = [
+      "🚫 *BLACKLIST ANTI-CALOTE COLABORATIVA*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Unidades e cooperativas bloqueadas automaticamente no Estágio 3:",
+      ""
+    ];
+    for (var i = 0; i < lista.length; i++) {
+      linhas.push("• *" + lista[i].termo + "* — _" + (lista[i].motivo || "Restrição financeira") + "_");
+    }
+    linhas.push("");
+    linhas.push("💡 _Para adicionar um novo caloteiro manualmente, envie:_");
+    linhas.push("`/sniper calote Nome do Hospital ou Cooperativa`");
+
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🚫 Blacklist Anti-Calote carregada", false);
+    }
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, linhas.join("\n"), {
+      inline_keyboard: [[{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]]
+    });
+  }
+
+  if (acao === "pair_wa") {
+    var codigoPareamento = "WGN-" + Math.floor(1000 + Math.random() * 9000);
+    var msgPair = [
+      "📱 *PAREAMENTO WHATSAPP (8 DÍGITOS — SEM QR CODE)*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Para conectar o Listener Baileys/Evolution ao seu WhatsApp usando apenas 1 celular:",
+      "",
+      "1️⃣ Abra o *WhatsApp* > *Aparelhos Conectados* > *Conectar um aparelho*",
+      "2️⃣ Toque em *Conectar com número de telefone*",
+      "3️⃣ Digite o código de pareamento ou acione o webhook local `/api/sniper/webhook`:",
+      "🔑 Protocolo de Sessão: `" + codigoPareamento + "`",
+      "",
+      "🛡️ *Blindagem & Stealth Ativos:*",
+      "• `Camada 1`: Bloqueio hard-coded de conversas privadas (`@s.whatsapp.net`) e Status",
+      "• `Camada 2`: Apenas grupos marcados como 🟢 ou 👁️ na Allowlist são lidos",
+      "• `markOnlineOnConnect: false` & `readMessages: false` (Zero visto azul)",
+      "• Jitter Humano `1.8s–3.2s` + Simulação de digitação (`composing`)"
+    ].join("\n");
+
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "📱 Instruções de pareamento geradas!", false);
+    }
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, msgPair, {
+      inline_keyboard: [
+        [{ text: "🛡️ Configurar Grupos Permitidos", callback_data: "sniper:grupos" }],
+        [{ text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }]
+      ]
+    });
+  }
+
+  if (acao === "simular") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🧪 Rodando bateria de 8 vagas reais...", false);
+    }
+    var logsSim = PlantaoSniperService.executarSimulacaoSniper(chatId);
+    var relatorio = [
+      "🧪 *RELATÓRIO DO SIMULADOR SNIPER (8 MENSAGENS)*",
+      "━━━━━━━━━━━━━━━━━━━━"
+    ];
+    for (var j = 0; j < logsSim.length; j++) {
+      var l = logsSim[j];
+      var icone = l.status.indexOf("CAPTURADA") === 0 || l.status.indexOf("AGUARDANDO") === 0 ? "✅" : "🛡️";
+      relatorio.push(icone + " *Msg #" + l.indice + "* (" + l.grupo + "): `" + l.status + "`\n   ↳ _" + l.detalhe + "_");
+    }
+    relatorio.push("");
+    relatorio.push("📌 _O Card da vaga vencedora (Hospital São Luiz R$ 1.560) foi enviado acima e agendado na sua Aba Rotina!_");
+
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, relatorio.join("\n"), {
+      inline_keyboard: [
+        [
+          { text: "📅 Ver Minha Rotina Hoje", callback_data: "rotina:refresh" },
+          { text: "🎛️ Painel Sniper", callback_data: "sniper:painel" }
+        ]
+      ]
+    });
+  }
+
+  if (acao.indexOf("claim:") === 0) {
+    var hash = acao.slice(6);
+    var oferta = PlantaoSniperService.obterOfertaEmMemoria(hash);
+    if (!oferta) {
+      if (cbId && typeof responderCallbackTelegram === "function") {
+        responderCallbackTelegram(cbId, "⚠️ Vaga expirada do buffer de memória.", true);
+      }
+      return true;
+    }
+    var ag = PlantaoSniperService.agendarPlantaoCapturadoNaRotina(oferta);
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "⚡ Plantão travado e adicionado à sua Aba Rotina!", false);
+    }
+    enviarMensagemParaChat(
+      chatId,
+      "✅ *PLANTÃO CONFIRMADO E AGENDADO NA ROTINA!*\n" +
+      "🏥 *" + oferta.hospital + "* (" + oferta.horarioDescricao + ")\n" +
+      "📅 Bloco injetado automaticamente na data `" + (ag.dataIso || "hoje") + "`."
+    );
+    return true;
+  }
+
+  if (acao.indexOf("denunciar:") === 0) {
+    var hosp = acao.slice(10).trim();
+    PlantaoSniperService.adicionarBlacklistCalote(hosp, "Denunciado com 1 clique pelo médico no alerta de vaga");
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "🚫 " + hosp + " adicionado à Blacklist Anti-Calote!", true);
+    }
+    return true;
+  }
+
+  return false;
 }

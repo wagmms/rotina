@@ -1,0 +1,15 @@
+Você é o Preceptor Chefe de Medicina Interna e Emergência e Lead Software Architect.
+O usuário perguntou:
+"Você fez isso? Confrontar outros módulos de conduta do bot (como o preceptor clínico ou os nós de emergência de src/07c_telegram_consultas_e_ia.js)."
+
+Nós precisamos auditar e confrontar:
+1) Os protocolos de emergência de src/03_bases_locais.js (que são o grounding clínico determinístico injetado em gerarDialogoPreceptorSocratico em src/04_motores_ia.js e nas condutas de emergência):
+   - Sepse e Choque Séptico (ILAS / SSC / ARISE FLUIDS / CLOVERS: Ringer Lactato preferencial a SF, noradrenalina precoce periférica, corticoide se > 0,25 mcg/kg/min, controle de foco).
+   - Asma (GINA 2025/2026: Track 1 com CI + Formoterol de alívio preferencial em todas as etapas, proscrição de SABA isolado em monoterapia; Sulfato de magnésio 2g em 20 min na crise grave; alvo SpO2 93-95%).
+   - Cetoacidose Diabética (SBD / ADA: reposição de potássio mandatória ANTES de insulina se K < 3,5; transição para SG 5% ao atingir 200 mg/dL; transição segura para insulina basal SC 2h antes de desligar BIC para evitar cetoacidose de rebote; reconhecimento de CAD euglicêmica por iSGLT2).
+   - Anafilaxia (Adrenalina IM no vasto lateral 1:1.000 como única 1ª linha; decúbito dorsal sem levantar o paciente subitamente para evitar síndrome da veia cava vazia / empty ventricle).
+   - HDA (Baveno VII / SBH: estratégia transfusional restritiva Hb 7-8 g/dL; terlipressina 2mg bolus 4/4h + ceftriaxona 1g/dia por 7 dias em cirróticos antes da EDA).
+2) Os nós de emergência e consultas em src/07c_telegram_consultas_e_ia.js e src/04_ia_local_fallback.js:
+   - Garantir que as condutas de emergência e o raciocínio socrático do preceptor reflitam integralmente as pérolas do Tá de Clinicagem.
+
+Forneça um parecer claro e os patches cirúrgicos exatos para atualizar esses protocolos com zero regressões (mantendo as chaves e testes existentes 100% íntegros).

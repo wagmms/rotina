@@ -128,9 +128,18 @@ if (propsStore.TELEGRAM_BOT_TOKEN) {
   propsStore.TELEGRAM_BOT_TOKEN = sanitizarTokenTelegram(propsStore.TELEGRAM_BOT_TOKEN);
 }
 
-// Higieniza chaves de sistema legadas do arquivo de propriedades
+// Higieniza chaves de sistema legadas do arquivo de propriedades, preservando estado clínico e operacional legítimo
+const PREFIXOS_ESTADO_PRESERVADOS = [
+  'LEITO_', 'inbox_', 'outbox_', 'ctx_', 'modo_', 'ultima_', 'RECEITAS_',
+  'duvidas_', 'habito_', 'rotina_', 'ROTINA_', 'bloco_', 'BLOCOS_',
+  'CONTEXTO_CLINICO_', 'SOLICITACOES_REMUME_', 'REMUME_CUSTOM_',
+  'GCAL_', 'SNIPER_PLANTOES_', 'PESO_ATUAL', 'atendimento_', 'soapview_',
+  'PACIENTE_', 'PRONTUARIO_', 'PLANTAO_', 'PLANTÃO_'
+];
+
 for (const k of Object.keys(propsStore)) {
-  if (!ehVariavelPermitida(k) && !k.startsWith('LEITO_') && !k.startsWith('inbox_') && !k.startsWith('outbox_') && !k.startsWith('ctx_') && !k.startsWith('modo_') && !k.startsWith('ultima_') && !k.startsWith('RECEITAS_') && !k.startsWith('duvidas_') && !k.startsWith('habito_') && !k.startsWith('rotina_') && !k.startsWith('bloco_')) {
+  const preservar = ehVariavelPermitida(k) || PREFIXOS_ESTADO_PRESERVADOS.some((p) => k.startsWith(p));
+  if (!preservar) {
     delete propsStore[k];
   }
 }
@@ -1020,6 +1029,7 @@ const ctx = {
     }
   },
   GoogleCalendarService: googleCalendarInstance,
+  CatalogoRemumeService: require('../src/data/remumes/index.js'),
   process: process,
   require: require
 };
@@ -1234,10 +1244,7 @@ module.exports = {
       if (!metodoTrim || metodoTrim === '__proto__' || metodoTrim === 'constructor' || metodoTrim === 'prototype' || metodoTrim === 'toString' || metodoTrim === 'valueOf' || metodoTrim === 'hasOwnProperty' || metodoTrim === 'isPrototypeOf' || metodoTrim === 'propertyIsEnumerable') {
         throw new Error('Método solicitado inválido ou proibido.');
       }
-      let fn = _rpcMap[metodoTrim] || null;
-      if (!fn && Object.prototype.hasOwnProperty.call(ctx, metodoTrim) && typeof ctx[metodoTrim] === 'function') {
-        fn = ctx[metodoTrim];
-      }
+      const fn = _rpcMap[metodoTrim] || null;
       if (typeof fn !== 'function') {
         throw new Error(`Método do Cockpit não suportado: ${metodoTrim}`);
       }

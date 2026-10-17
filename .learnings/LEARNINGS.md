@@ -8,6 +8,36 @@ Corrections, insights, and knowledge gaps captured during development.
 
 ---
 
+## [LRN-20261017-001] best_practice
+
+**Logged**: 2026-10-17T13:10:00-03:00
+**Priority**: critical
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Blindagem de fronteiras HTTP, integridade do validador Ajv/Fastify, desacoplamento de RPC e parsing sintático de alergias clínicas.
+
+### Details
+1. **Ajv e `additionalProperties: false` em Fastify**: Schemas de entrada do Fastify que definem `additionalProperties: false` acionam o descarte automático (`removeAdditional`) de propriedades enviadas fora do formato rígido antes de chegar na rota. Para APIs clínicas com múltiplos clientes (PWA, bot, formulários legados), permitir campos compatíveis e `additionalProperties: true` no schema de entrada evita a mutilação silenciosa de dados vitais (`idade`, `alergias`, `pas`, `pad`).
+2. **Resolução de Alergias em Orações Compostas**: Analisar strings clínicas como um bloco único com regex simples causa falsos negativos graves se o paciente disser "alergia à amoxicilina; nega alergia à dipirona". O parsing deve obrigatoriamente segmentar o texto por orações/cláusulas adversativas (`split(/[;.\n/]+|\b(?:mas|porem|contudo|entretanto)\b/i)`) antes de avaliar marcadores de negação.
+3. **Isolamento de Sessões e Despacho RPC**: NUNCA permitir que strings literais ou reservadas (`'internal'`, `'bot'`) passem como credenciais válidas na camada de transporte HTTP externa (`/api/cockpit`). Requisições externas devem ser autenticadas via WebApp initData HMAC ou tokens criptográficos. No despachante RPC, a execução de funções de `ctx` deve ser estritamente restrita a um mapa estático (`_rpcMap`), proibindo reflexão dinâmica arbitrária.
+4. **Nunca Fabricar Negativas Clínicas**: Quando dados basais ou red flags não forem informados, o prontuário eletrônico deve omitir o campo ou sinalizar "Não informado", NUNCA gerando declarações afirmativas falsas ("Nega alergias", "Red Flags: Ausentes").
+
+### Suggested Action
+Segregar validação de sessão na camada de transporte HTTP, usar FTS5 nativo em SQLite para bases clínicas estáticas e manter testes de aceite cobrindo a integridade dos payloads.
+
+### Metadata
+- Source: audit_remediation
+- Related Files: `src/clinical/safety_guard.js`, `src/clinical/schemas/soap.schema.js`, `server/controllers/cockpit.controller.js`, `server/runtime.js`
+- Tags: security, ajv, fastify, soap, clinical_safety, rpc
+- Pattern-Key: backend.clinical_safety_http_boundaries
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
 ## [LRN-20261013-002] best_practice
 
 **Logged**: 2026-10-13T23:05:00-03:00
@@ -358,4 +388,31 @@ Sempre utilizar `gemini-3.8-live` para WebSockets Bidi, habilitar transcrições
 - First-Seen: 2026-10-16
 - Last-Seen: 2026-10-16
 
+
+
+## [LRN-20261017-AUD] Contratos clínicos e procedência precisam de provas independentes
+
+**Logged**: 2026-10-17
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+Na auditoria integral, nove suítes novas passaram apesar de reproduções demonstrarem descarte de dados SOAP, alergia positiva perdida por negação em outra oração, is_safe verdadeiro com alerta pediátrico crítico e classificação adulta de IMC em criança. Oito presets municipais e RENAME tinham os mesmos 255 itens do REMUME_RP.csv, com verificado:true.
+
+### Suggested Action
+Testar o payload do formulário contra o schema real e a resposta real contra a renderização; preservar dados ausentes como desconhecidos; verificar fonte/versão/conteúdo de catálogos, não só rótulos. Casos simulados não provam equivalência clínica entre modelos.
+
+### Metadata
+- Pattern-Key: clinical.contract-provenance-verification
+- Related Files: docs/auditorias/2026-10-17/reproducoes.cjs, src/clinical/, src/data/remumes/
+
+### Maintenance
+- Claim: no snapshot auditado, testes de componentes não cobrem os contratos e a procedência acima.
+- Scope: SOAP novo e catálogos REMUME/RENAME do Rotina
+- Type: reality
+- Validation: validated
+- Evidence: reproducoes.cjs e relatório de 17/10/2026
+- Revalidate: após correção desses contratos/dados
+- Disposition: retain
 

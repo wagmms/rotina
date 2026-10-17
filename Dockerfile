@@ -11,6 +11,7 @@ COPY server/ ./server/
 COPY src/ ./src/
 COPY server.js ./
 COPY REMUME_RP.csv ./
+COPY index.html cockpit_movel.html estacao_soap.js rotina_timeline.js sw.js manifest.json ./
 
 # Cria pasta de dados persistentes
 RUN mkdir -p /app/data

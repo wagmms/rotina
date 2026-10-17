@@ -2,7 +2,7 @@
  * ============================================================================
  * MÓDULO DE DOMÍNIO: SEGURANÇA DE MEDICAMENTOS NA LACTAÇÃO (FARMACOLOGIA CLÍNICA)
  * ============================================================================
- * Padrão de Referência: FMRP-USP / ENARE / FEBRASGO / SBP / Ministério da Saúde
+ * Padrão de Referência: FEBRASGO / SBP / Ministério da Saúde / Hale's LactMed®
  * 
  * Referências Primárias:
  * 1. Hale TW. Hale's Medications & Mothers' Milk (Classificação L1 a L5).
@@ -385,7 +385,7 @@ const RAW_DRUG_CATALOG = [
       'Sucção débil e constipação',
       'Óbito neonatal (documentado em literatura médica)'
     ],
-    condutaClinica: 'EVITAR / CONTRAINDICADO pela FDA, EMA e SBP (Hale L4). Embora manuais antigos do MS classifiquem como Amarelo (uso curto), os protocolos obstétricos atuais (FMRP-USP/FEBRASGO) proíbem a prescrição de codeína e tramadol pós-cesárea/episiotomia.',
+    condutaClinica: 'EVITAR / CONTRAINDICADO pela FDA, EMA e SBP (Hale L4). Embora manuais antigos do MS classifiquem como Amarelo (uso curto), os protocolos obstétricos atuais (FEBRASGO / SBP / ACOG) proíbem a prescrição de codeína e tramadol pós-cesárea/episiotomia.',
     alternativasSeguras: ['Dipirona', 'Paracetamol', 'Ibuprofeno', 'Cetoprofeno', 'Morfina em dose baixa controlada (se dor intensa hospitalar, pois não depende de ativação pela CYP2D6)'],
     monitoramentoLactente: 'Vigiar frequência respiratória, padrão de sono (o bebê deve acordar para mamar a cada 3h) e tônus muscular. Antídoto: Naloxona.'
   },
@@ -987,7 +987,7 @@ const RAW_DRUG_CATALOG = [
       'Episódio isolado de cianose descrito em 1 relato de caso antigo (resolvido espontaneamente)',
       'Risco teórico raríssimo de agranulocitose'
     ],
-    condutaClinica: 'COMPATÍVEL NO BRASIL (MS Verde). Amplamente utilizado nas maternidades brasileiras (FMRP-USP / FEBRASGO) para analgesia pós-parto. Nota de prova: na literatura norte-americana/europeia (Hale L3 / EMA), é visto com reserva pois a dipirona não é comercializada nos EUA, mas em provas nacionais (ENARE/SUS) segue a diretriz do Ministério da Saúde como VERDE.',
+    condutaClinica: 'COMPATÍVEL NO BRASIL (MS Verde). Amplamente utilizado nas maternidades brasileiras (FEBRASGO / Ministério da Saúde) para analgesia pós-parto. Nota de prova: na literatura norte-americana/europeia (Hale L3 / EMA), é visto com reserva pois a dipirona não é comercializada nos EUA, mas em diretrizes nacionais (SUS/MS) segue como VERDE.',
     alternativasSeguras: ['Paracetamol', 'Ibuprofeno'],
     monitoramentoLactente: 'Observação clínica habitual.'
   },
@@ -1175,7 +1175,7 @@ const RAW_DRUG_CATALOG = [
     efeitosAdversosLactente: [
       'Nenhum efeito adverso relevante no lactente (pode aumentar discretamente a prolactina materna, favorecendo o volume de leite).'
     ],
-    condutaClinica: 'COMPATÍVEL COM O BEBÊ (Hale L2 / MS Verde), MAS EVITADA NA MÃE PUÉRPERA. Conduta clínica FMRP-USP/FEBRASGO: embora segura para o leite, no pós-parto recomenda-se suspender a Metildopa usada na gravidez e substituí-la por Enalapril, Captopril ou Nifedipino devido à associação da metildopa com depressão puerperal.',
+    condutaClinica: 'COMPATÍVEL COM O BEBÊ (Hale L2 / MS Verde), MAS EVITADA NA MÃE PUÉRPERA. Conduta clínica FEBRASGO / Ministério da Saúde: embora segura para o leite, no pós-parto recomenda-se suspender a Metildopa usada na gravidez e substituí-la por Enalapril, Captopril ou Nifedipino devido à associação da metildopa com depressão puerperal.',
     alternativasSeguras: ['Enalapril', 'Captopril', 'Nifedipino', 'Anlodipino'],
     monitoramentoLactente: 'Vigiar humor materno (escala de Edimburgo).'
   },
@@ -1832,7 +1832,7 @@ function obterMetadadosCatalogo() {
       'Hale TW. Medications and Mothers Milk. Springer Publishing.',
       'Brasil. Ministério da Saúde. Amamentação e uso de medicamentos e outras substâncias. 2ª ed.',
       'LactMed Database - National Library of Medicine (NIH).',
-      'Protocolos Clínicos de Obstetrícia e Puerpério FMRP-USP / FEBRASGO.'
+      'Protocolos Clínicos de Obstetrícia e Puerpério FEBRASGO / SBP / Ministério da Saúde.'
     ]
   };
 }
@@ -1864,7 +1864,7 @@ function formatarCardLactacao(farmaco) {
 
 function obterGuiaRapidoClasses() {
   return [
-    '🤰🤱 *Guia Rápido de 1ª Escolha na Lactação (FMRP-USP / MS)*',
+    '🤰🤱 *Guia Rápido de 1ª Escolha na Lactação (FEBRASGO / SBP / MS)*',
     '',
     '🟢 *1. Analgesia & Febre:*',
     '• *Paracetamol* (Hale L1 / Verde MS) — Máx 4g/dia',
@@ -1899,7 +1899,7 @@ function obterGuiaRapidoClasses() {
 // 5. EXPORTAÇÃO DO MÓDULO (COMMONJS)
 // ============================================================================
 
-module.exports = Object.freeze({
+var LactacaoSegurancaService = Object.freeze({
   HALE_CATEGORIES,
   MS_CATEGORIES,
   consultarMedicamento,
@@ -1911,3 +1911,5 @@ module.exports = Object.freeze({
   formatarCardLactacao,
   obterGuiaRapidoClasses
 });
+var LactacaoSegurancaDomain = LactacaoSegurancaService;
+if (typeof module !== 'undefined' && module.exports) module.exports = LactacaoSegurancaService;

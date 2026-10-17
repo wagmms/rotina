@@ -23,7 +23,7 @@ function nomesFarmacosParaValidacao() {
   if (typeof MAPA_SINDROMES_APS !== "undefined") Object.keys(MAPA_SINDROMES_APS).forEach(function(k) {
     MAPA_SINDROMES_APS[k].forEach(adicionar);
   });
-  // Itens canônicos da REMUME Ribeirão Preto (CSV / RAM)
+  // Itens canônicos da REMUME Municipal / RENAME SUS ativa (CSV / RAM)
   if (typeof obterItensRemumeRP === "function") {
     try {
       obterItensRemumeRP().forEach(adicionar);
@@ -233,8 +233,10 @@ function montarRascunhoRxESoapAmbulatorial(params) {
     "1) " + nomeLinhaItem + " --- " + qtd,
     "   " + linhaPoso
   ];
+  var seloRede = remume.selo || "REMUME";
+  var nomeRede = remume.rede || "Rede Municipal / RENAME SUS";
   if (remume.presente) {
-    linhasPlano.push("🏛️ Status SUS: 🟢 [REMUME-RP] Padronizado na Rede Municipal (Ribeirão Preto).");
+    linhasPlano.push("🏛️ Status SUS: 🟢 [" + seloRede + "] Padronizado na Rede (" + nomeRede + ").");
     if (remume.apresentacoes && remume.apresentacoes.length > 1) {
       linhasPlano.push("   (Apresentações padronizadas na rede: " + remume.apresentacoes.slice(0, 3).join(", ") + ")");
     }
@@ -749,3 +751,42 @@ function processarEEntregarIA(chatId, funcaoGeradora, dados, tipoCache, messageI
 
   return entregarMensagemFinalIA_(chatId, textoFinal, teclado, messageIdParaEditar);
 }
+
+/**
+ * Formata o protocolo clínico de emergência com destaque para diretrizes BR/Internacional,
+ * pérolas TdC e alertas de segurança medicamentosa (ISMP Brasil).
+ * @param {string} termo Termo ou hipótese clínica consultada
+ * @return {string} Bloco formatado para Telegram ou string vazia
+ */
+function formatarBlocoProtocoloEmergenciaTelegram(termo) {
+  if (typeof obterProtocoloClinico !== "function") return "";
+  var prot = obterProtocoloClinico(termo);
+  if (!prot) return "";
+
+  var ancora = typeof obterAncoraSocraticaTdCEmergencia === "function"
+    ? obterAncoraSocraticaTdCEmergencia(termo)
+    : null;
+
+  var linhas = [
+    "🚨 *PROTOCOLO DE EMERGÊNCIA: " + prot.titulo.toUpperCase() + "*",
+    "🇧🇷 *Diretriz BR:* " + prot.diretriz_brasileira,
+    "🌐 *Diretriz Internacional:* " + prot.diretriz_internacional,
+    "",
+    "⚡ *Conduta Imediata:*",
+    prot.conduta_imediata
+  ];
+
+  if (prot.divergencia) {
+    linhas.push("");
+    linhas.push("⚖️ *Nuances e Divergências (SUS vs Internacional):*");
+    linhas.push(prot.divergencia);
+  }
+
+  if (ancora && ancora.perguntaSocratica) {
+    linhas.push("");
+    linhas.push("🧠 *Check-list do Preceptor (TdC):* _" + ancora.perguntaSocratica + "_");
+  }
+
+  return linhas.join("\n");
+}
+

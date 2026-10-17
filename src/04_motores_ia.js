@@ -45,7 +45,7 @@ var IA_INTENCOES_VALIDAS = [
 
 var IA_PERSONA = [
   "PERSONA - ASSISTENTE DE VIDA PESSOAL E CLÍNICO",
-  "- Você é um assistente de IA de apoio a Wagner (estudante de medicina em internato, psicólogo, interessado em psiquiatria).",
+  "- Você é um Copiloto Clínico e Assistente Médico de IA para atendimento, estudo e gestão de rotina hospitalar/ambulatorial.",
   "- Adote a postura de uma preceptoria experiente de hospital universitário: firme, técnica, instigante, densa e acolhedora.",
   "- Você NÃO é médico, NÃO assina prescrições e NÃO substitui a supervisão do preceptor ou da equipe assistente. Não afirme vínculo ou certificação institucional.",
   "- Português do Brasil. Técnico em medicina, simples em assuntos pessoais. Sem bajulação, sarcasmo, bronca ou infantilização.",
@@ -1576,9 +1576,54 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
   return null;
 }
 
+function _obterBlocoContextoIaDinamico(chatId) {
+  try {
+    if (typeof ConfigService !== "undefined" && typeof ConfigService.getContextoClinico === "function") {
+      var ctx = ConfigService.getContextoClinico(chatId);
+      if (ctx) {
+        var prof = ctx.profissional || {};
+        var loc = ctx.localidade || {};
+        var unid = ctx.unidade_assistencial || {};
+        var farm = ctx.farmacopeia || {};
+        var regras = ctx.regras_locais || {};
+        var saudacao = prof.saudacao_formal || (prof.nome_chamada ? ((prof.prefixo || "Dr.") + " " + prof.nome_chamada) : "Médico(a) Assistente");
+        var nomeRede = farm.remume_nome_exibicao || "RENAME Nacional (SUS)";
+        var municipioUf = (loc.municipio_nome && loc.municipio_nome !== "Brasil (Padrão Nacional)")
+          ? (loc.municipio_nome + (loc.uf && loc.uf !== "BR" ? "/" + loc.uf : ""))
+          : "Brasil (Padrão Nacional SUS)";
+        var blocoNotas = (regras.notas_ccih_fluxos && String(regras.notas_ccih_fluxos).trim())
+          ? ("\nPROTOCOLOS E FLUXOS LOCAIS DA UNIDADE (CCIH / REGULAÇÃO):\n" + String(regras.notas_ccih_fluxos).trim())
+          : "";
+        return {
+          saudacao: saudacao,
+          nomeRede: nomeRede,
+          municipioUf: municipioUf,
+          papel: prof.papel || "MEDICO_CRM",
+          cenario: unid.cenario_id || "URGENCIA_UPA_24H",
+          regulacao: unid.sistema_regulacao || "SISREG",
+          instrucaoContexto: "CONTEXTO DO PROFISSIONAL E REALIDADE LOCAL: Você está auxiliando " + saudacao +
+            " (Papel: " + (prof.papel || "MEDICO_CRM") + " | Localidade: " + municipioUf +
+            " | Unidade/Cenário: " + (unid.nome_unidade || "Unidade de Saúde") + " [" + (unid.cenario_id || "URGENCIA_UPA_24H") + "]" +
+            " | Regulação: " + (unid.sistema_regulacao || "SISREG") +
+            " | Catálogo Farmacêutico Ativo: " + nomeRede + ")." + blocoNotas
+        };
+      }
+    }
+  } catch (_) {}
+  return {
+    saudacao: "Médico(a) Assistente",
+    nomeRede: "RENAME Nacional (SUS)",
+    municipioUf: "Brasil (Padrão Nacional SUS)",
+    papel: "MEDICO_CRM",
+    cenario: "URGENCIA_UPA_24H",
+    regulacao: "SISREG",
+    instrucaoContexto: "CONTEXTO DO PROFISSIONAL E REALIDADE LOCAL: Padrão Nacional SUS (RENAME Nacional)."
+  };
+}
+
 /**
  * ==============================================================================
- * ÁUDIO CLÍNICO EM TEMPO ÚNICO MULTIMODAL (FMRP-USP / ZERO LATÊNCIA DE TRANSCRIÇÃO)
+ * ÁUDIO CLÍNICO EM TEMPO ÚNICO MULTIMODAL (ZERO LATÊNCIA DE TRANSCRIÇÃO)
  * ==============================================================================
  * Processa o áudio em uma única inferência multimodal:
  * Extrai a transcrição literal fiel E estrutura a Fase 1 do SOAP se for relato clínico.
@@ -1608,10 +1653,12 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
   }
   mimeType = mimeNormalizado;
 
+  var ctxIaAudio = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var sistema = [
     IA_PERSONA,
-    "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO (FMRP-USP).",
-    "Você recebeu um áudio gravado diretamente pelo médico Wagner nos corredores do hospital ou em trânsito.",
+    ctxIaAudio.instrucaoContexto,
+    "MODO: RECONHECIMENTO E ESTRUTURAÇÃO CLÍNICA DE ÁUDIO EM TEMPO ÚNICO.",
+    "Você recebeu um áudio gravado diretamente por " + ctxIaAudio.saudacao + " durante o atendimento ou plantão.",
     "Realize as tarefas com máximo rigor semiológico:",
     "1. TRANSCRIÇÃO: Transcreva fielmente as palavras ditadas em português do Brasil com pontuação culta e correta.",
     "2. SE FOR RELATO CLÍNICO, CLASSIFIQUE E ESTRUTURE CONFORME A NATUREZA DO RELATO:",
@@ -1734,7 +1781,7 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
 
 /**
  * ==============================================================================
- * ANÁLISE DE IMAGEM MÉDICA MULTIMODAL (FMRP-USP / SALA VERMELHA & AMBULATÓRIO)
+ * ANÁLISE DE IMAGEM MÉDICA MULTIMODAL (SALA VERMELHA & AMBULATÓRIO)
  * ==============================================================================
  * Leitor metódico com raciocínio semiológico em profundidade:
  * - ECG (6 passos: Ritmo, FC, Eixo, Intervalos PR/QRS/QTc, Sobrecargas, ST-T por derivação contígua)
@@ -1745,15 +1792,17 @@ function processarAudioClinicoMultimodal(base64Data, mimeType, opcoes) {
  */
 function analisarImagemMedicaComIA(base64Data, mimeType, contextoTexto, opcoes) {
   opcoes = opcoes || {};
+  var ctxImg = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var contextoUsuario = (contextoTexto && String(contextoTexto).trim())
     ? "CONTEXTO CLÍNICO / LEGENDA INFORMADA PELO MÉDICO:\n" + String(contextoTexto).trim()
     : "Nenhum contexto textual adicional fornecido.";
 
   var sistema = [
     IA_PERSONA,
+    ctxImg.instrucaoContexto,
     "",
-    "MODO: LEITOR E LAUDO DE IMAGEM MÉDICA MULTIMODAL (PADRÃO FMRP-USP).",
-    "Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Radiologia Hospitalar da FMRP-USP.",
+    "MODO: LEITOR E LAUDO DE IMAGEM MÉDICA MULTIMODAL (PADRÃO DIRETRIZES SBC / CBR / MS).",
+    "Você é o Preceptor Sênior de Clínica Médica, Cardiologia e Radiologia Hospitalar.",
     "Analise meticulosamente a imagem médica anexada (ECG, Radiografia, Exame Laboratorial/OCR, Lesão Dermatológica ou outro exame complementar).",
     "",
     "🚨 PROTOCOLO DE SEGURANÇA MÁXIMA (SALA VERMELHA / ACHADO CRÍTICO):",
@@ -2098,7 +2147,7 @@ function _iaAuditarRascunho(rascunho, dadosCaso, titulo, baseMedicamentos) {
 
 /**
  * ==============================================================================
- * FLUXO CLÍNICO SOAP EM DOIS TEMPOS (FMRP-USP / AMBULATÓRIO & PRONTO-SOCORRO)
+ * FLUXO CLÍNICO SOAP EM DOIS TEMPOS (AMBULATÓRIO & PRONTO-SOCORRO)
  * ==============================================================================
  * Fase 1: Anamnese organizada (QP, HDA, antecedentes, medicações, alergias) +
  *         Exame Físico inteligente (sistemas normais preenchidos + cobrança dirigida) +
@@ -2236,13 +2285,14 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     // =========================================================================
     // FASE 2: SOAP COMPLETO CONSOLIDADO (AVALIAÇÃO E PLANO)
     // =========================================================================
+    var ctxSoap2 = _obterBlocoContextoIaDinamico(opcoes.chatId);
     var baseSoap;
     try { baseSoap = obterContextoMedicamentosParaIA(dadosCaso).texto; }
     catch (eBaseSoap) { baseSoap = 'Base medicamentosa indisponível. Não finalize doses ou prescrições sem conferir a referência e os dados necessários.'; }
     var promptSistemaConsolidado = [
-      IA_PERSONA, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
+      IA_PERSONA, ctxSoap2.instrucaoContexto, IA_SEGURANCA_MEDICAMENTOSA, baseSoap,
       "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 2: CONSOLIDAÇÃO COMPLETA (AVALIAÇÃO E PLANO).",
-      "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
+      "Você é o Copiloto Clínico Sênior. Estruture o caso em prontuário SOAP definitivo, sintético e pronto para o PEP.",
       "",
       "DIRETRIZES TÉCNICAS E SÍNTESE OBRIGATÓRIA:",
       "1. SUBJETIVO (S): QP e HDA estruturadas, limpas e telegráficas. Antecedentes/Medicações/Alergias em 1 linha compacta ('Não informado' se ausentes). NUNCA crie parágrafos prolixos.",
@@ -2352,10 +2402,12 @@ function gerarSOAPComIA(casoClinico, opcoes) {
   // FASE 1: RASCUNHO CLÍNICO INTERATIVO (ANAMNESE + EXAME FÍSICO INTELIGENTE)
   // REGRA: NÃO INCLUIR AVALIAÇÃO NEM PLANO NESTA FASE
   // =========================================================================
+  var ctxSoap1 = _obterBlocoContextoIaDinamico(opcoes.chatId);
   var promptSistemaRascunho = [
     IA_PERSONA,
+    ctxSoap1.instrucaoContexto,
     "MODO: DOCUMENTAÇÃO CLÍNICA SOAP - FASE 1: ANAMNESE E EXAME FÍSICO.",
-    "Você é o Copiloto Clínico Sênior (FMRP-USP). Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
+    "Você é o Copiloto Clínico Sênior. Estruture o relato do médico de forma concisa, técnica, sem enrolação e sem parágrafos prolixos.",
     "",
     "DIRETRIZES SEMIOLÓGICAS E SÍNTESE OBRIGATÓRIA:",
     "1. SUBJETIVO (S) - SÍNTESE ESTRUTURADA:",
@@ -2368,7 +2420,7 @@ function gerarSOAPComIA(casoClinico, opcoes) {
     "   - NUNCA assuma como normais os sistemas que são o FOCO ou suspeita central da queixa a menos que o médico tenha dito expressamente 'normal'. Para sistemas não informados e não examinados, declare explicitamente como pendentes à beira-leito.",
     "   - Integre exame especial se contido no caso.",
     "   - DIRETRIZ MANDATÓRIA DE EXAME FÍSICO NORMAL: Se o caso contiver exame físico normal completo ou indicação de 'totalmente normal', TRANSCREVA NA ÍNTEGRA no 'objetivo' todos os sistemas examinados estruturados (Sinais Vitais, Geral, ACV, AR, Abdome e Extremidades), cada um em sua própria linha separada. NUNCA junte na mesma linha e NUNCA sintetize em apenas 'EF normal'.",
-    "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA (FMRP-USP):",
+    "3. INVESTIGAÇÃO ATIVA DA ANAMNESE COM JUSTIFICATIVA DIDÁTICA:",
     "   - Formule apenas perguntas que mudem a conduta, sem limite numérico, para lacunas críticas de QP/tempo, sinais de alarme pertinentes, alergias/comorbidades/medicações, G_P_A_/DUM/IG em queixa gineco-obstétrica e dado objetivo indispensável. Negativas explícitas já cobrem o eixo. Evite perguntas repetidas ou acadêmicas sem impacto na decisão.",
     "   - Se os pilares decisórios estiverem cobertos, retorne perguntas_anamnese=[] e a mensagem: ✅ Anamnese suficiente. Pode gerar o plano. Após respostas complementares, pergunte novamente somente sobre lacunas clínicas relevantes ainda não investigadas; registre dados indisponíveis como pendências de segurança.",
     "   - RIGOR DIDÁTICO OBRIGATÓRIO: Cada pergunta DEVE OBRIGATORIAMENTE conter sua justificativa clínica ou hipótese a descartar entre parênteses ao final. Exemplo: 'Investigar se a dor epigástrica irradia para o dorso (descartar pancreatite aguda ou dissecção de aorta abdominal)'.",
@@ -2772,13 +2824,14 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     ].join("\n");
   }
 
+  var ctxRx = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
+    IA_PERSONA, "", ctxRx.instrucaoContexto, "", IA_VISUAL, "",
     "MODO: PRESCRIÇÃO AMBULATORIAL (RASCUNHO PARA REVISÃO). Gere prescrições precisas a partir da doença informada ou do medicamento solicitado.",
     "",
-    "REGRA DE OURO (REMUME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
-    "1. MEDICAMENTOS DA REMUME SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas na rede municipal (REMUME Ribeirão Preto).",
-    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME: Apenas se a condição clínica não puder ser tratada com itens da rede municipal, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME municipal (componente especializado/compra)'.",
+    "REGRA DE OURO (REMUME/RENAME SUS + GUIA FARMACÊUTICO HSL + PEDBOOK PEDIÁTRICO):",
+    "1. MEDICAMENTOS DA REDE PÚBLICA ATIVA SÃO SEMPRE PRIMEIRA OPÇÃO: Prescreva preferencialmente fármacos e apresentações padronizadas no catálogo ativo (" + ctxRx.nomeRede + ").",
+    "2. SE NÃO HOUVER ALTERNATIVA NA REMUME/RENAME: Apenas se a condição clínica não puder ser tratada com itens padronizados na rede ativa, utilize a alternativa do Guia HSL/PedBook declarando: '⚠️ Medicamento fora da REMUME/RENAME ativa (componente especializado/aquisição comercial)'.",
     "3. POSOLOGIA OFICIAL DO HOSPITAL SÍRIO-LIBANÊS (HSL): Siga as doses adultas, pediátricas por kg/dia, intervalos e ajustes para insuficiência renal (ClCr/TFG) oficiais da base HSL.",
     "4. POSOLOGIA E APRESENTAÇÕES PEDIÁTRICAS (PEDBOOK pedb.com.br): Para pacientes pediátricos (lactentes, crianças, adolescentes), utilize as doses por kg/dia, volumes em mL/gotas de suspensão e faixas mínimas do guia pediátrico oficial PedBook.",
     travaDeterministica,
@@ -2787,7 +2840,7 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     baseClinica.texto,
     "=======================================================================",
     "",
-    "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA (FMRP-USP):",
+    "DIRETRIZES DE SEGURANÇA FARMACOLÓGICA E DIDÁTICA:",
     "1. PEDIATRIA E MEMÓRIA DE CÁLCULO DIDÁTICA TRANSPARENTE (SÓ PEÇA PESO SE REALMENTE PRECISAR):",
     "   - Sem peso informado: NUNCA presuma peso de criança para fármacos dependentes de peso (antimicrobianos, analgésicos gotas, corticoides). Declare imediatamente em Status: 'Dados pendentes (Peso em kg obrigatório para cálculo pediátrico seguro de [medicamento])' e cobre o peso sem calcular dosagem arbitrária em mL.",
     "   - Com peso informado: Exiba no receituário a posologia clara e no campo de conferência a MEMÓRIA DE CÁLCULO COMPLETA E DIDÁTICA baseada na dose de referência do Guia HSL (mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos).",
@@ -2844,7 +2897,7 @@ function gerarPrescricaoComIA(dadosPrescricao) {
     "- *Memória de cálculo (se pediátrico):* [se por peso: dose HSL ➔ mg/kg/dia ➔ mg/dose ➔ mL/dose na lista ➔ frascos; se por idade: dose fixa oficial]",
     "- *Ajustes de segurança (renal, hepático, idade/Beers, gestação):* [conferido ou pendência em 1 linha]",
     "- *Alergias e interações:* [conferido com relato do caso]",
-    "- *Disponibilidade na Rede:* [Item da REMUME Ribeirão Preto / Opção HSL]",
+    "- *Disponibilidade na Rede:* [Item da " + ctxRx.nomeRede + " / Opção HSL]",
     "- Não acrescente seção de fontes ou bibliografia à resposta assistencial."
   ].join("\n");
 
@@ -2865,9 +2918,10 @@ function gerarPrescricaoHospitalarComIA(dadosCaso) {
   try { baseClinica = obterContextoMedicamentosParaIA(dadosCaso); }
   catch (erro) { baseClinica = { remume: "", hsl: "", texto: "Base hospitalar HSL de segurança." }; }
 
+  var ctxHosp = _obterBlocoContextoIaDinamico();
   var promptSistemaHospitalar = [
-    IA_PERSONA, "", IA_VISUAL, "",
-    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI - FMRP-USP).",
+    IA_PERSONA, "", ctxHosp.instrucaoContexto, "", IA_VISUAL, "",
+    "MODO: PRESCRIÇÃO HOSPITALAR COMPLETA (ORDEM CANÔNICA DE ENFERMARIA / UTI).",
     "Você é o Médico Assistente e Preceptor Hospitalar. Estruture a prescrição hospitalar completa, direta e pronta para checagem de enfermagem. Seja telegráfico.",
     "",
     "ORDEM CANÔNICA OBRIGATÓRIA DA PRESCRIÇÃO HOSPITALAR (SINTÉTICA):",
@@ -2955,16 +3009,17 @@ function gerarPassagemPlantaoSBAR(dadosCaso) {
 }
 
 function gerarPitchERoundComIA(dadosCaso) {
+  var ctxPitch = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
-    "MODO: PITCH DO ROUND E PRECEPTORIA SOCRÁTICA (MODELO SNAPPS / FMRP-USP).",
+    IA_PERSONA, "", ctxPitch.instrucaoContexto, "", IA_VISUAL, "",
+    "MODO: PITCH DO ROUND E PRECEPTORIA SOCRÁTICA (MODELO SNAPPS).",
     "Objetivo duplo: 1. Apresentar o paciente em um Pitch Executivo oral de 60 a 90 segundos; 2. Estimular raciocínio diagnóstico e decisão clínica ativa na beira do leito.",
     "REGRAS DE APRESENTAÇÃO:",
     "- O pitch oral deve ser extremamente fluido, profissional e focado no essencial: identificação, motivo de admissão, últimas 24h (estabilidade, balanço hídrico, curva térmica), antimicrobianos em curso e plano do dia.",
     "- Baseado ESTRITAMENTE em fatos informados; lacunas aparecem como 'Não informado'.",
     "- Checklist de leito obrigatório: antimicrobianos (D+?), dispositivos invasivos e profilaxias.",
     "- Sabatina socrática: 3 perguntas discriminantes com objetivo de decisão e fisiopatologia, NUNCA pegadinha.",
-    "- NÃO forneça gabarito de imediato. Peça para Wagner responder no fone ou chat; o feedback vem a seguir.",
+    "- NÃO forneça gabarito de imediato. Peça para " + ctxPitch.saudacao + " responder no fone ou chat; o feedback vem a seguir.",
     "",
     "ESTRUTURA:",
     "\uD83C\uDFA4 *PITCH DO ROUND & SABATINA (60-90s)*",
@@ -3457,12 +3512,13 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
     }
   }
 
+  var ctxConv = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    IA_PERSONA, "", IA_VISUAL, "",
+    IA_PERSONA, "", ctxConv.instrucaoContexto, "", IA_VISUAL, "",
     "MODO ADAPTATIVO - escolha o modo conforme a mensagem:",
     "1. EMERGÊNCIA: se descrever paciente instável ou risco de vida, aplique o modo emergência (ação prioritária na primeira linha, medicação com dose, via, preparo e velocidade, reavaliação, sem perguntas didáticas) e siga a checagem de segurança abaixo.",
     "2. DISCUSSÃO CLÍNICA: hipótese principal, achados que a sustentam, o que não pode ser perdido, próxima decisão e o dado pendente que mudaria a conduta. Tom de preceptor: firme, técnico, acolhedor.",
-    "3. PRECEPTORIA: se Wagner pedir para discutir um caso ou sabatina, avalie o caso real apresentado por ele: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se Wagner apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso ele quer discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se Wagner pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
+    "3. PRECEPTORIA: se " + ctxConv.saudacao + " pedir para discutir um caso ou sabatina, avalie o caso real apresentado: o que está correto, o que precisa de ajuste e por que, aplicando ao caso. NUNCA INVENTE DADOS DE PACIENTES aleatoriamente do nada. Se " + ctxConv.saudacao + " apenas chamou o preceptor ou não forneceu os dados do paciente, pergunte qual paciente ou caso deseja discutir. Se faltarem dados (sinais vitais, exames), pergunte ativamente o dado faltante. Somente crie um caso simulado fictício se " + ctxConv.saudacao + " pedir expressamente por uma simulação de treino (ex: 'simule um caso', 'crie um caso de treino').",
     "4. ROTINA / VIDA PESSOAL / ESTUDO: assertivo, executivo e proativo; resultado e próximo passo primeiro. Conversa simples dispensa estrutura.",
     "",
     "EMBASAMENTO:",
@@ -3476,7 +3532,7 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
 
   var promptUsuario = contextoProtocolo + contextoMedicamentos + textoMensagem;
   if (contextoAnterior) {
-    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE WAGNER:\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
+    promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE " + ctxConv.saudacao.toUpperCase() + ":\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
   var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
   return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
@@ -3516,15 +3572,17 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
     }
   }
 
+  var ctxAudioPrec = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
+    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de " + ctxAudioPrec.saudacao + " durante o plantão.",
+    ctxAudioPrec.instrucaoContexto,
     "Gere uma fala concisa, firme e instigante, de 30 a 50 palavras, para ser lida em voz alta.",
     "REGRAS:",
     "1. Texto corrido, SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs.",
     "2. Emergência (ex: pneumotórax, choque, PCR): diga PRIMEIRO a ação prioritária imediata; só depois, uma pergunta curta de checagem.",
     "3. Caso clínico: aponte o achado semiológico discriminante ou o critério de gravidade mais crítico e termine com UMA pergunta de raciocínio.",
     "4. Valide e cobre doses, diluições e metas hemodinâmicas exatas das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL) quando aplicável.",
-    "5. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que Wagner informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante para Wagner antes de propor condutas definitivas. Somente formule caso fictício se Wagner pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
+    "5. NUNCA INVENTE DADOS DO PACIENTE, idades, valores laboratoriais ou sinais vitais fictícios. Baseie-se estritamente no que " + ctxAudioPrec.saudacao + " informou. Se faltarem informações críticas (sinais vitais, exames ou histórico), PERGUNTE ATIVAMENTE o dado faltante antes de propor condutas definitivas. Somente formule caso fictício se o médico pedir expressamente uma simulação (ex: 'simule um caso'). Não use LaTeX. Termine sempre com frase completa.",
     "6. Você não é o médico responsável: em risco de vida, reforce acionar a equipe/preceptor."
   ].join("\n");
 
@@ -3539,11 +3597,11 @@ function gerarProvocacaoPreceptorAudio(casoOuDuvida) {
 }
 
 /**
- * Diálogo socrático contínuo com o Preceptor: avalia a resposta de Wagner à pergunta anterior
+ * Diálogo socrático contínuo com o Preceptor: avalia a resposta do médico à pergunta anterior
  * e propõe o próximo desafio ou conduta clínica. Retorna texto limpo para áudio/TTS.
  */
-function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagner, historicoAnterior) {
-  var textoConsulta = [casoBase, perguntaAnterior, respostaWagner].filter(Boolean).join(" ");
+function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaMedico, historicoAnterior) {
+  var textoConsulta = [casoBase, perguntaAnterior, respostaMedico].filter(Boolean).join(" ");
   var protocoloLocal = (typeof obterProtocoloClinico === "function") ? obterProtocoloClinico(textoConsulta) : null;
   var contextoGrounding = "";
   if (protocoloLocal) {
@@ -3573,12 +3631,14 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     }
   }
 
+  var ctxSocr = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de Wagner durante o plantão.",
-    "Wagner acabou de responder a uma pergunta ou provocação que você fez a ele durante a discussão do caso.",
+    "Você é um preceptor experiente de clínica médica e emergência falando no fone de ouvido de " + ctxSocr.saudacao + " durante o plantão.",
+    ctxSocr.instrucaoContexto,
+    ctxSocr.saudacao + " acabou de responder a uma pergunta ou provocação que você fez durante a discussão do caso.",
     "",
     "ESTRUTURA OBRIGATÓRIA DA FALA EM 3 MOVIMENTOS CURTOS E INCISIVOS (40 A 70 PALAVRAS):",
-    "1. Veredito direto sobre a resposta de Wagner (validação clara do acerto ou correção firme de segurança);",
+    "1. Veredito direto sobre a resposta de " + ctxSocr.saudacao + " (validação clara do acerto ou correção firme de segurança);",
     "2. Pérola clínica decisional com parâmetro numérico, dose ou meta hemodinâmica exata das diretrizes brasileiras (SBC, ILAS, AMIB, SBD, Guia HSL);",
     "3. Próxima pergunta socrática clinicamente discriminante para tomada de decisão imediata.",
     "",
@@ -3587,7 +3647,7 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
     "- SEM tópicos, SEM markdown, SEM asteriscos, SEM emojis, SEM URLs, SEM introduções vazias.",
     "- Termine com frase completa e UMA pergunta direta.",
     "- Diretrizes brasileiras vigentes como base (SBC, ILAS, AMIB, SBD, Guia HSL).",
-    "- NUNCA invente dados do paciente. Se a resposta de Wagner estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
+    "- NUNCA invente dados do paciente. Se a resposta estiver incompleta ou faltarem dados fundamentais para o desfecho clínico, pergunte diretamente o dado que falta em vez de presumir valores laboratoriais ou sinais vitais."
   ].join("\n");
 
   if (contextoGrounding) {
@@ -3601,8 +3661,8 @@ function gerarDialogoPreceptorSocratico(casoBase, perguntaAnterior, respostaWagn
   if (historicoAnterior && historicoAnterior.length) {
     partesUsuario.push("HISTÓRICO RECENTE DA DISCUSSÃO:\n" + historicoAnterior);
   }
-  if (perguntaAnterior) partesUsuario.push("SUA ÚLTIMA PERGUNTA A WAGNER:\n" + perguntaAnterior);
-  partesUsuario.push("RESPOSTA DE WAGNER:\n" + respostaWagner);
+  if (perguntaAnterior) partesUsuario.push("SUA ÚLTIMA PERGUNTA:\n" + perguntaAnterior);
+  partesUsuario.push("RESPOSTA DE " + ctxSocr.saudacao.toUpperCase() + ":\n" + respostaMedico);
 
   var r = executarRaciocinioClinico(promptSistema, partesUsuario.join("\n\n"), 350, { thinkingBudget: 0, semThinking: true });
   return r ? _iaTextoFalado(r) : r;
@@ -3656,6 +3716,7 @@ function extrairDadosEventoCalendario(textoMensagem, agoraDataRef) {
 }
 
 function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
+  var ctxCrit = _obterBlocoContextoIaDinamico();
   var promptSistema = [
     "Você é um preceptor experiente de clínica médica fazendo uma sabatina à beira do leito com um interno.",
     "Com base no caso informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico ou decisão de conduta em situação de risco. A pergunta deve exigir que o interno justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
@@ -3671,7 +3732,7 @@ function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
     if (/\?\s*$/.test(limpo)) return limpo;
     Logger.log("Crítica socrática incompleta; usando pergunta padrão");
   }
-  return "Wagner, qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";
+  return ctxCrit.saudacao + ", qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";
 }
 
 /**

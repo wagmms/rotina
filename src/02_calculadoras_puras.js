@@ -942,7 +942,11 @@ var CalculadorasClinicas = (function () {
         });
       }
 
-      var avisosDal = ['Estimativa: não inclui perdas contínuas nem a água de manutenção.', 'Limite de correção: no máximo 10 mEq/L em 24 h (menor em hipernatremia crônica).'];
+      var vazao48hMlH = Math.round((def * 1000) / 48);
+      var avisosDal = [
+        'Estimativa: não inclui perdas insensíveis (~30–50 mL/h) nem perdas urinárias/gastrointestinais contínuas.',
+        'Limite de segurança (TdC): corrigir no máximo 0,5 mEq/L/h (teto estrito de 8 a 10 mEq/L em 24 h) na hipernatremia crônica (> 48 h) para prevenir edema cerebral.'
+      ];
       if (lt(peso, 2.0)) {
         avisosDal.unshift('⚠️ Neonato / prematuro (< 2 kg): Água corporal proporcionalmente elevada (~75-80%), mas risco crítico de edema cerebral e hemorragia periventricular na correção rápida. Limitar redução de sódio a 0,5 mEq/L/h.');
       }
@@ -958,10 +962,13 @@ var CalculadorasClinicas = (function () {
         secoes: [
           ['ENTRADAS', ['Na atual: ' + fmt(na, 0) + ' mEq/L', 'Na de referência: ' + fmt(alvo, 0) + ' mEq/L', 'Peso: ' + fmt(peso, 1) + ' kg',
                         'Perfil: ' + semAcento(perfil), 'Água corporal estimada: ' + fmt(act, 1) + ' L (fator ' + fmt(fator, 2) + ')']],
-          ['AÇÃO', ['Usar como estimativa inicial de planejamento.', 'Reposição preferencialmente enteral/VO ou SG 5%; checar Na a cada 4–6 h.']]
+          ['AÇÃO', [
+            'Usar como estimativa inicial de déficit de água livre (~' + fmt(vazao48hMlH, 0) + ' mL/h se distribuído em 48 h, somado às perdas insensíveis).',
+            'Reposição preferencialmente enteral/VO (água livre) ou SG 5% IV; dosar Na⁺ sérico a cada 4–6 h.'
+          ]]
         ],
         avisos: avisosDal,
-        dados: { deficitL: defL, actL: actL, fator: fator },
+        dados: { deficitL: defL, actL: actL, fator: fator, vazaoSugerida48hMlH: vazao48hMlH },
         legado: { deficitLitros: defL, aguaCorporalTotal: actL },
         botoes: botoesPadrao(ID, [btn('💧 Abrir planejamento', ID, 'plano'), btn('✏️ Revisar dados', ID, 'editar')])
       });
@@ -992,7 +999,11 @@ var CalculadorasClinicas = (function () {
       } else if (caCorr > 10.5) {
         estado = 'PRIORITARIO'; rotulo = 'HIPERCALCEMIA VERDADEIRA';
         statusTexto = 'Hipercalcemia (> 10.5 mg/dL)';
-        conduta = ['Hipercalcemia grave (> 14 mg/dL): Hidratação venosa vigorosa com SF 0.9% e Furosemida.', 'Avaliar Bisfosfonatos (Ácido Zoledrônico) e investigar hiperparatireoidismo / neoplasia.'];
+        conduta = [
+          'Hipercalcemia grave (> 14 mg/dL ou sintomática): 1) Hidratação venosa vigorosa com SF 0,9% (200–300 mL/h) buscando diurese de 100–150 mL/h.',
+          '2) Associar Calcitonina (4 UI/kg SC/IM 12/12h por até 48h — ação rápida em 4–6h) + Bisfosfonato IV (Ácido Zoledrônico 4 mg IV em 15 min — efeito sustentado em 2–4 dias).',
+          '3) NÃO usar Furosemida de rotina antes de restaurar a volemia (agrava espoliação volêmica e reabsorção tubular de Ca²⁺); reservar apenas se sobrecarga hídrica após hidratação.'
+        ];
       } else {
         estado = 'BAIXO'; rotulo = 'CÁLCIO CORRIGIDO NORMAL';
         statusTexto = 'Normocalcemia (8.5 a 10.5 mg/dL)';
@@ -1001,9 +1012,9 @@ var CalculadorasClinicas = (function () {
 
       var avisosCalcio = ['A fórmula de Payne é uma estimativa. Em UTI ou distúrbios críticos, o padrão-ouro é dosar o Cálcio Iônico diretamente.'];
       if (caCorr >= 14.0) {
-        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação e coma. Hidratação imediata com SF 0,9% (200–300 mL/h), Furosemida e Bisfosfonato IV.');
+        avisosCalcio.unshift('🚨 CRISE HIPERCALCÊMICA GRAVE (Cálcio corrigido ≥ 14,0 mg/dL): Risco iminente de arritmias cardíacas fatais, desidratação severa e coma. Iniciar imediatamente SF 0,9% (200–300 mL/h) + Calcitonina + Ácido Zoledrônico IV (Furosemida apenas após euvolemia se congestão).');
       } else if (caCorr < 7.0) {
-        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% IV sob monitorização cardíaca contínua.');
+        avisosCalcio.unshift('🚨 HIPOCALCEMIA GRAVE (< 7,0 mg/dL): Risco iminente de tetania, laringoespasmo, convulsões e prolongamento de QTc. Gluconato de Cálcio 10% (10–20 mL diluídos em 100 mL SG 5% IV em 10–20 min) sob monitorização cardíaca contínua + corrigir Hipomagnesemia.');
       }
 
       return sucesso({
@@ -1148,7 +1159,11 @@ var CalculadorasClinicas = (function () {
       var estado, rotulo, conduta;
       if (estagioFinal === 3) {
         estado = 'PRIORITARIO'; rotulo = 'KDIGO ESTÁGIO 3 (GRAVE)';
-        conduta = ['Ajustar rigorosamente doses de antimicrobianos e medicações nefrotóxicas.', 'Monitorar K⁺ e equilíbrio ácido-base a cada 4-6h.', 'Avaliar indicações de Terapia de Substituição Renal (TRS/Hemodiálise).'];
+        conduta = [
+          'Suspender imediatamente nefrotóxicos e ajustar doses de antimicrobianos pela função renal.',
+          'Monitorar K⁺, gasometria venosa/arterial e balanço hídrico rigoroso a cada 4–6h.',
+          'Avaliar Terapia de Substituição Renal (TRS/Hemodiálise) imediata se urgência dialítica (AEIOU: Acidemia refratária pH < 7,15; Eletrólitos/K⁺ > 6,5 mEq/L refratário; Intoxicações dialisáveis; Overload/EAP refratário a diurético; Uremia franca com pericardite ou encefalopatia).'
+        ];
       } else if (estagioFinal === 2) {
         estado = 'ATENCAO'; rotulo = 'KDIGO ESTÁGIO 2 (MODERADO)';
         conduta = ['Suspender todos os nefrotóxicos (AINEs, contraste iodado, etc.).', 'Otimizar perfusão volêmica e PAM alvo ≥ 65 mmHg.', 'Revisar exames e débito urinário de horário.'];
@@ -1270,6 +1285,7 @@ var CalculadorasClinicas = (function () {
         if (gt(agRef, 12)) {
           interpAG = 'Ânion Gap ELEVADO (> 12 mEq/L)';
           secAG.push(interpAG);
+          secAG.push('Etiologias (GOLDMARK): Glicóis, Oxoprolina (paracetamol), L-lactato, D-lactato, Metanol, Aspirina, Renal (uremia), Ketoacidosis (cetoacidose)');
           if (lt(hco3, 24)) {
             delta = (agRef - 12) / (24 - hco3);
             exigirFinito(delta);
@@ -1345,12 +1361,16 @@ var CalculadorasClinicas = (function () {
     noradrenalina: {
       nome: 'Noradrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
       preparos: {
-        padrao: { mg: 16, vol: 250, conc: 64, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); padrão: 4 ampolas (16 mg) em 234 mL SG5% (64 mcg/mL).' },
-        concentrada: { mg: 32, vol: 250, conc: 128, ref: 'Ampola: 4 mg/4 mL (1 mg/mL); concentrada: 8 ampolas (32 mg) em 218 mL SG5% (128 mcg/mL).' }
+        padrao: { mg: 16, vol: 250, conc: 64, ref: 'Ampola: 4 mg/4 mL de norepinefrina base (1 mg/mL); padrão: 4 ampolas (16 mg) em 234 mL SG5% (64 mcg/mL).' },
+        concentrada: { mg: 32, vol: 250, conc: 128, ref: 'Ampola: 4 mg/4 mL de norepinefrina base (1 mg/mL); concentrada: 8 ampolas (32 mg) em 218 mL SG5% (128 mcg/mL).' }
       },
       doses: [0.01, 0.05, 0.1, 0.2, 0.5, 1.0, 1.5, 2.0],
-      acoes: ['Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.', 'Preferir acesso venoso central. Monitorar perfusão periférica e lactato.', 'Dose máxima teórica: geralmente até 3 mcg/kg/min, porém em doses > 0,25-0,5 mcg/kg/min considere associar Vasopressina.'],
-      aviso: '⚠️ ALERTA: Doses acima de 1,0 mcg/kg/min representam vasoplegia severa. Considere associação precoce de Vasopressina (0,03 UI/min) e avaliação de CIRCI (corticoide).'
+      acoes: [
+        'Início habitual: 0,05–0,1 mcg/kg/min; titular para PAM ≥ 65 mmHg.',
+        'Pode ser iniciada em acesso venoso periférico calibroso proximal (ex: fossa antecubital) para não atrasar a restauração da PAM, migrando para acesso central assim que disponível (SSC 2021).',
+        'Em doses ≥ 0,25–0,5 mcg/kg/min, associar Vasopressina (0,03 UI/min) e Hidrocortisona IV (200 mg/dia).'
+      ],
+      aviso: '⚠️ ALERTA: Doses acima de 0,5–1,0 mcg/kg/min representam vasoplegia severa/refratária. Associe precocemente Vasopressina (0,03 UI/min) e Hidrocortisona (50 mg IV 6/6h ou 200 mg/24h contínuo).'
     },
     dobutamina: {
       nome: 'Dobutamina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -1385,8 +1405,12 @@ var CalculadorasClinicas = (function () {
         padrao: { mg: 20, vol: 100, conc: 0.2, ref: 'Ampola: 20 UI/1 mL; padrão: 1 ampola (20 UI) em 99 mL SG5% ou SF (0,2 UI/mL).' }
       },
       doses: [0.01, 0.02, 0.03, 0.04],
-      acoes: ['Dose fixa: 0,03 a 0,04 UI/min (SSC 2021) = 9 a 12 mL/h. NÃO titular como catecolaminas.', 'Iniciar como 2ª linha quando noradrenalina estiver em 0,25–0,5 mcg/kg/min para poupar catecolamina e melhorar perfusão esplâncnica.'],
-      aviso: 'Não titular como catecolamina. Infusão contínua fixa de 0,03 ou 0,04 UI/min.'
+      acoes: [
+        'Dose fixa: 0,03 a 0,04 UI/min (SSC 2021) = 9 a 12 mL/h na BIC. NÃO titular rapidamente como catecolaminas.',
+        'Iniciar como 2ª linha quando Noradrenalina atingir 0,25–0,5 mcg/kg/min (poupador de catecolamina) e associar Hidrocortisona 200 mg/dia IV.',
+        'Desmame: reduzir/suspender a Noradrenalina primeiro ou desmamar gradualmente (0,01 UI/min/h) para evitar hipotensão rebote.'
+      ],
+      aviso: 'Não titular acima de 0,04 UI/min (risco elevado de isquemia mesentérica, coronariana e necrose digital).'
     },
     adrenalina: {
       nome: 'Adrenalina', unidade: 'mcg/kg/min', peso: true, conc: 'mcg/mL',
@@ -1885,6 +1909,150 @@ var CalculadorasClinicas = (function () {
     return null;
   }
 
+  // ═════════════════════════════ TROMBÓLISE NO AVC ISQUÊMICO (ALTEPLASE & TENECTEPLASE) ═════════════════════════════
+
+  /**
+   * Trombólise Endovenosa no AVC Isquêmico Agudo (AHA/ASA / ESO / SBN / Acervo TdC):
+   * - Alteplase (rt-PA, Actilyse® 1 mg/mL): 0,9 mg/kg (teto máximo: 90 mg) -> 10% em bolus IV em 1 min + 90% em BIC por 60 min.
+   * - Tenecteplase (TNK, Metalyse® 5 mg/mL): 0,25 mg/kg (teto máximo ESTRITO no AVC: 25 mg) -> Bolus único IV em 5 a 10 segundos.
+   *   (Estudos AcT, EXTEND-IA TNK, TRACE-2: Classe I, alternativa de escolha especialmente em oclusão de grande vaso / candidato a trombectomia).
+   */
+  function tromboliseAVC(pesoKg, agentePreferencial, pasAtual, padAtual, tempoIctusHoras) {
+    var ID = 'trombolise_avc', NOME = 'Trombólise no AVC Isquêmico Agudo (rt-PA / TNK)';
+    return seguro(ID, NOME, function () {
+      var c = novoCtx();
+      var rawPeso = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.peso : pesoKg;
+      var rawAgente = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.agente || pesoKg.droga) : agentePreferencial;
+      var rawPas = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.pas : pasAtual;
+      var rawPad = (typeof pesoKg === 'object' && pesoKg !== null) ? pesoKg.pad : padAtual;
+      var rawTempo = (typeof pesoKg === 'object' && pesoKg !== null) ? (pesoKg.tempoHoras || pesoKg.ictus) : tempoIctusHoras;
+
+      var peso = num(c, rawPeso, 'Peso corporal (kg)', 30, 300);
+      var pas = num(c, rawPas, 'PAS (mmHg)', 50, 320, { opcional: true });
+      var pad = num(c, rawPad, 'PAD (mmHg)', 30, 220, { opcional: true });
+      var tempo = num(c, rawTempo, 'Tempo de ictus (horas)', 0, 24, { opcional: true });
+      if (!pendente(c) && pas !== null && pad !== null && pad >= pas) {
+        c.erros.push('PAD deve ser menor que a PAS');
+      }
+      if (pendente(c)) return falhaCtx(ID, NOME, c);
+
+      var agNorm = ausente(rawAgente) ? 'ambos' : semAcento(rawAgente);
+      var focoTnk = /tnk|tenecteplase|metalyse/.test(agNorm);
+      var focoRtpa = /rtpa|alteplase|actilyse/.test(agNorm);
+
+      // 1. Cálculo Alteplase (0,9 mg/kg, máx 90 mg | concentração 1 mg/mL)
+      var doseRtpaBruta = peso * 0.9;
+      var tetoRtpaAtingido = gt(doseRtpaBruta, 90);
+      var doseRtpaTotalMg = Math.min(90, arred(doseRtpaBruta, 1));
+      var doseRtpaBolusMg = arred(doseRtpaTotalMg * 0.10, 1);
+      var doseRtpaInfusaoMg = arred(doseRtpaTotalMg - doseRtpaBolusMg, 1);
+
+      // 2. Cálculo Tenecteplase no AVCi (0,25 mg/kg, máx ESTRITO 25 mg | diluição 5 mg/mL)
+      var doseTnkBruta = peso * 0.25;
+      var tetoTnkAtingido = gt(doseTnkBruta, 25);
+      var doseTnkTotalMg = Math.min(25, arred(doseTnkBruta, 1));
+      var volTnkMl = arred(doseTnkTotalMg / 5.0, 1);
+
+      var paBloqueada = (pas !== null && gte(pas, 185)) || (pad !== null && gte(pad, 110));
+      var foraJanelaPadrao = (tempo !== null && gt(tempo, 4.5));
+
+      var estado = (paBloqueada || foraJanelaPadrao) ? 'PRIORITARIO' : 'CALCULO';
+      var rotulo = paBloqueada
+        ? 'BLOQUEIO TEMPORÁRIO · REDUZIR PA (< 185/110 mmHg) ANTES DO BOLUS'
+        : (foraJanelaPadrao ? 'JANELA > 4,5h · EXIGE NEUROIMAGEM AVANÇADA (MISMATCH)' : 'SALA VERMELHA · TROMBÓLISE ENDOVENOSA NO AVCi');
+
+      var principal = focoTnk
+        ? ('Tenecteplase ' + fmt(doseTnkTotalMg, 1) + ' mg (' + fmt(volTnkMl, 1) + ' mL) IV em bolus')
+        : (focoRtpa
+          ? ('Alteplase ' + fmt(doseRtpaTotalMg, 1) + ' mg (Bolus ' + fmt(doseRtpaBolusMg, 1) + ' mg + BIC ' + fmt(doseRtpaInfusaoMg, 1) + ' mg/1h)')
+          : ('rt-PA ' + fmt(doseRtpaTotalMg, 1) + ' mg OU TNK ' + fmt(doseTnkTotalMg, 1) + ' mg'));
+
+      var avisos = [
+        '🚨 TETO CRÍTICO DA TENECTEPLASE NO AVCi: A dose no AVC isquêmico é 0,25 mg/kg com MÁXIMO DE 25 mg (5 mL). NUNCA utilize a tabela de IAMCSST (que vai até 50 mg), pelo risco catastrófico de hemorragia intracraniana.',
+        '💧 INCOMPATIBILIDADE FÍSICO-QUÍMICA (TNK): A Tenecteplase precipita em Soro Glicosado (SG 5%). Lavar o acesso venoso com SF 0,9% antes e após o bolus único de 5–10 segundos.',
+        '🩸 CONTROLE PRESSÓRICO E ANTIAGREGAÇÃO: Manter PA < 185/110 mmHg para iniciar e < 180/105 mmHg nas primeiras 24h pós-trombólise. Proscrito uso de AAS, Heparina ou Anticoagulantes nas primeiras 24h (liberar apenas após TC de crânio de controle em 24h sem sangramento).'
+      ];
+
+      if (paBloqueada) {
+        avisos.unshift('🛑 PA ATUAL ACIMA DO LIMITE DE SEGURANÇA (' + (pas || '?') + '/' + (pad || '?') + ' mmHg ≥ 185/110 mmHg): NÃO infundir o trombolítico antes de estabilizar a PA abaixo de 185/110 mmHg (opções IV: Metoprolol/Esmolol, Labetalol, Nicardipina ou Nitroprussiato de Sódio titulável).');
+      }
+      if (foraJanelaPadrao) {
+        avisos.unshift('⏱️ TEMPO DE ICTUS > 4,5 HORAS (' + fmt(tempo, 1) + ' h): Fora da janela convencional. A trombólise entre 4,5h e 9h (ou Wake-up Stroke) só é indicada se houver mismatch comprovado em RM (DWI-FLAIR) ou TC Perfusão (estudos WAKE-UP / EXTEND). Avaliar Trombectomia Mecânica até 24h se oclusão de grande vaso.');
+      }
+
+      var secoes = [
+        ['🔴 OPÇÃO 1: TENECTEPLASE (TNK · 0,25 mg/kg · TETO 25 mg)', [
+          'Apresentação: Frasco 40 mg ou 50 mg reconstituído para 5 mg/mL',
+          'Dose Total (Bolus Único IV em 5–10 seg): ' + fmt(doseTnkTotalMg, 1) + ' mg → ' + fmt(volTnkMl, 1) + ' mL IV' + (tetoTnkAtingido ? ' (limitado ao teto máximo de 25 mg para AVCi)' : ''),
+          'Vantagem clínica (TdC / AHA / ESO): Bolus único sem necessidade de bomba de infusão de 1h; facilita transferência rápida ("drip-and-ship") e apresenta maior taxa de recanalização precoce em oclusão de grande vaso (LVO).'
+        ]],
+        ['🔴 OPÇÃO 2: ALTEPLASE (rt-PA · 0,9 mg/kg · TETO 90 mg)', [
+          'Apresentação: Actilyse® 50 mg/50 mL (concentração 1 mg/mL)',
+          'Dose Total Calculada: ' + fmt(doseRtpaTotalMg, 1) + ' mg (' + fmt(doseRtpaTotalMg, 1) + ' mL)' + (tetoRtpaAtingido ? ' (limitado ao teto máximo de 90 mg)' : ''),
+          '1️⃣ Ataque (10% em Bolus IV em 1 min): ' + fmt(doseRtpaBolusMg, 1) + ' mg → ' + fmt(doseRtpaBolusMg, 1) + ' mL IV',
+          '2️⃣ Manutenção (90% em BIC em 60 min): ' + fmt(doseRtpaInfusaoMg, 1) + ' mg → ' + fmt(doseRtpaInfusaoMg, 1) + ' mL/h por 1 hora'
+        ]],
+        ['🟡 VIGILÂNCIA E PROTOCOLO PÓS-TROMBÓLISE (PRIMEIRAS 24H)', [
+          'Aferir PA e NIHSS a cada 15 min nas primeiras 2h, a cada 30 min nas 6h seguintes e a cada 1h até completar 24h.',
+          'Alvo pressórico: Antes do bolus < 185/110 mmHg | Primeiras 24h pós-bolus < 180/105 mmHg.',
+          'Não passar SNE, SVD ou punção arterial/central nas primeiras 24h (salvo estrita emergência).',
+          'Se piora neurológica aguda (queda ≥ 4 pts no NIHSS) ou cefaleia súbita/vômitos/pico hipertensivo: suspender infusão imediatamente, colher fibrinogênio/TP/TTPa e realizar TC de crânio de urgência.'
+        ]]
+      ];
+
+      return sucesso({
+        id: ID,
+        nome: NOME,
+        estado: estado,
+        rotulo: rotulo,
+        principal: principal,
+        secoes: secoes,
+        avisos: avisos,
+        dados: {
+          pesoKg: peso,
+          paBloqueada: paBloqueada,
+          foraJanelaPadrao: foraJanelaPadrao,
+          alteplase: {
+            doseTotalMg: doseRtpaTotalMg,
+            bolus10PctMg: doseRtpaBolusMg,
+            bolus10PctMl: doseRtpaBolusMg,
+            infusao90PctMg: doseRtpaInfusaoMg,
+            vazaoInfusao1hMlH: doseRtpaInfusaoMg,
+            tetoMaximoAtingido: tetoRtpaAtingido
+          },
+          tenecteplase: {
+            doseTotalMg: doseTnkTotalMg,
+            volumeBolusMl: volTnkMl,
+            concentracaoMgMl: 5,
+            tetoMaximoAtingido: tetoTnkAtingido
+          }
+        },
+        legado: {
+          pesoKg: peso,
+          alteplaseTotalMg: doseRtpaTotalMg,
+          alteplaseBolusMg: doseRtpaBolusMg,
+          alteplaseInfusaoMg: doseRtpaInfusaoMg,
+          tenecteplaseBolusMg: doseTnkTotalMg,
+          tenecteplaseBolusMl: volTnkMl
+        },
+        botoes: botoesEmergencia(ID, [btn('✏️ Revisar dados', ID, 'editar')])
+      });
+    });
+  }
+
+  function calcularTrombolisePorTextoLivre(texto) {
+    if (!texto || typeof texto !== 'string') return null;
+    var t = semAcento(texto);
+    if (!/\b(?:trombolis\w*|alteplase|rtpa|actilyse|tenecteplase|tnk|metalyse)\b/.test(t)) return null;
+    var mPeso = t.match(/\b(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)\b/);
+    if (!mPeso) return null;
+    var peso = parseFloat(mPeso[1].replace(',', '.'));
+    var agente = 'ambos';
+    if (/\b(?:tenecteplase|tnk|metalyse)\b/.test(t) && !/\b(?:alteplase|rtpa|actilyse)\b/.test(t)) agente = 'tenecteplase';
+    else if (/\b(?:alteplase|rtpa|actilyse)\b/.test(t) && !/\b(?:tenecteplase|tnk|metalyse)\b/.test(t)) agente = 'alteplase';
+    return tromboliseAVC(peso, agente);
+  }
+
   /**
    * MELD (Model for End-Stage Liver Disease - UNOS / Kamath et al. 2007) e MELD-Na (OPTN 2016)
    */
@@ -1941,7 +2109,10 @@ var CalculadorasClinicas = (function () {
           ]],
           ['PROGNÓSTICO ESTIMADO', [mortalidade3m, 'Critério regulador de fila de transplante hepático no Brasil e UNOS.']]
         ],
-        avisos: ['MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL.'],
+        avisos: [
+          'MELD pontua entre 6 e 40. Diálise pelo menos 2x nos últimos 7 dias fixa Cr em 4,0 mg/dL (regra UNOS / SNT Brasil).',
+          'Nota TdC / AASLD: O escore MELD 3.0 contemporâneo incorpora Albumina sérica e Sexo feminino (com teto de Cr em 3,0 mg/dL), reduzindo a disparidade de alocação em mulheres na fila de transplante.'
+        ],
         dados: { meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, dialise: dialise },
         legado: { pontuacao: meldArred, meld: meldArred, meldNa: temMeldNa ? meldNaArred : null, mortalidade: mortalidade3m }
       });
@@ -2919,6 +3090,9 @@ var CalculadorasClinicas = (function () {
     r = API.ajusteRenalAntimicrobiano('vancomicina', 40); ok(r.ok && /24h/.test(r.dados.doseAjustada), 'Vancomicina CrCl 40 24h');
     r = API.ajusteRenalAntimicrobiano('polimixina b', 10); ok(r.ok && /NÃO REDUZIR DOSE/.test(r.dados.doseAjustada), 'Polimixina B sem redução');
     r = API.calcularAjusteRenalPorTextoLivre('ajuste meropenem clcr 25'); ok(r && r.ok && r.dados.doseAjustada.indexOf('12h') !== -1, 'Ajuste livre Meropenem CrCl 25');
+    r = API.tromboliseAVC(80); ok(r.ok && r.dados.alteplase.doseTotalMg === 72 && r.dados.alteplase.bolus10PctMg === 7.2 && r.dados.tenecteplase.doseTotalMg === 20 && r.dados.tenecteplase.volumeBolusMl === 4, 'Trombólise AVC 80 kg (rtPA 72mg / TNK 20mg)');
+    r = API.tromboliseAVC(120); ok(r.ok && r.dados.alteplase.doseTotalMg === 90 && r.dados.tenecteplase.doseTotalMg === 25, 'Trombólise AVC 120 kg respeita tetos máximos (rtPA 90mg / TNK 25mg)');
+    r = API.tromboliseAVC(70, 'tnk', 190, 115); ok(r.ok && r.dados.paBloqueada === true, 'Trombólise AVC detecta bloqueio pressórico >= 185/110');
     r = API.processarAcao(null, 'curb65', 'criterios'); ok(r.ok && /CURB-65/.test(r.textoFormatado), 'processarAcao curb65 criterios');
     return f;
   }
@@ -3286,6 +3460,8 @@ var CalculadorasClinicas = (function () {
     fib4: fib4,
     parkland: parkland,
     calcularParklandPorTextoLivre: calcularParklandPorTextoLivre,
+    tromboliseAVC: tromboliseAVC,
+    calcularTrombolisePorTextoLivre: calcularTrombolisePorTextoLivre,
     drogasVasoativas: drogasVasoativas,
     auditarInfusaoUti: function (p) {
       if (typeof CompatibilidadeYDvaService !== 'undefined') return CompatibilidadeYDvaService.auditarPrescricaoCombinada(p);

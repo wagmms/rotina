@@ -520,7 +520,7 @@ var RotinaService = {
       for (var i = 0; i < blocos.length; i++) {
         if (blocos[i].categoria === "treino" || blocos[i].id === "treino") {
           blocos[i].status = "descanso";
-          blocos[i].nota = "Descanso total programado pelo Dr. Wagner";
+          blocos[i].nota = "Descanso total programado pelo médico(a)";
           alterado = true;
         }
       }
@@ -533,7 +533,7 @@ var RotinaService = {
       for (var it = 0; it < blocos.length; it++) {
         if (blocos[it].categoria === "treino" || blocos[it].id === "treino") {
           blocos[it].status = "pulado";
-          blocos[it].nota = "Cancelado pelo Dr. Wagner";
+          blocos[it].nota = "Cancelado pelo médico(a)";
           achouTreino = true;
           break;
         }
@@ -549,7 +549,7 @@ var RotinaService = {
       for (var ie = 0; ie < blocos.length; ie++) {
         if (blocos[ie].categoria === "estudo" || blocos[ie].id === "estudo") {
           blocos[ie].status = "pulado";
-          blocos[ie].nota = "Cancelado pelo Dr. Wagner";
+          blocos[ie].nota = "Cancelado pelo médico(a)";
           alterado = true;
           resumoAcao = "🚫 *Bloco de MedQuest / Estudo pausado hoje.*";
           break;
@@ -624,7 +624,7 @@ var RotinaService = {
         if (blocos[iTp].categoria === "treino" || blocos[iTp].id === "treino") {
           blocos[iTp].titulo = "🏃 " + novoTipo.charAt(0).toUpperCase() + novoTipo.slice(1);
           blocos[iTp].status = "pendente";
-          blocos[iTp].nota = "Substituído a pedido do Dr. Wagner";
+          blocos[iTp].nota = "Substituído a pedido do médico(a)";
           alterado = true;
           resumoAcao = "🔄 *Treino modificado:* " + blocos[iTp].titulo;
           break;
@@ -635,7 +635,7 @@ var RotinaService = {
     // Fallback com Gemini caso seja texto complexo ou áudio longo
     if (!alterado && typeof chamarModeloComFallback === "function") {
       try {
-        var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico do Dr. Wagner. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
+        var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
           "\"" + instrucao + "\"\n\n" +
           "Lista atual de blocos em JSON:\n" + JSON.stringify(blocos, null, 2) + "\n\n" +
           "Retorne EXCLUSIVAMENTE um array JSON válido contendo os blocos atualizados. Não inclua markdown.";
@@ -1141,7 +1141,7 @@ function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
       "  • 💧 Hidratação imediata e refeição leve antes de deitar.\n" +
       "  • 📵 Notificações não críticas silenciadas até seu despertar.\n\n" +
       "🩺 Se tiver pendência urgente de leito (`/leito`, `/enfermaria`) ou receita pendente (`/rx`), estou na retaguarda.\n" +
-      "👉 Caso contrário: Bom descanso, Dr. Wagner! Sua mente descansada salva vidas amanhã.";
+      "👉 Caso contrário: Bom descanso, " + ((typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(destino) : "Doutor(a)") + "! Sua mente descansada salva vidas amanhã.";
     var kbPosPlantao = {
       inline_keyboard: [
         [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
@@ -1174,8 +1174,9 @@ function enviarBriefingMatinal(chatIdDestino, forcar, messageId) {
   var blocos = RotinaService.obterBlocosDoDia(hoje);
   var timelineFormatada = RotinaService.formatarTimelineMarkdown(blocos, hoje);
   var treinoMsg = obterTreinoDoDia(hoje.getDay(), hoje);
+  var nomeBomDia = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(destino) : "Doutor(a)";
 
-  var msg = "☀️ *Bom dia, Dr. Wagner! Raio-X & Rotina Adaptativa*\n\n" +
+  var msg = "☀️ *Bom dia, " + nomeBomDia + "! Raio-X & Rotina Adaptativa*\n\n" +
             timelineFormatada + "\n\n" +
             "🏋️ *Foco Físico Hoje:* " + treinoMsg + "\n\n" +
             "🩺 *Ferramentas Clínicas:* `/soap`, `/rx`, `/plantao`, `/calc`, `/interacao`\n" +

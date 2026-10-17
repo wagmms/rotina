@@ -275,14 +275,15 @@ function processarMensagemVoz(message) {
     }
 
     // 2. Fallback multimodal direto caso a transcrição simples retorne vazia
+    var nomeMedVoz = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Médico(a)";
     var promptSistema =
-      "Você é o Copiloto Clínico Sênior e Assistente Pessoal Inteligente do Dr. Wagner (FMRP-USP).\n" +
+      "Você é o Copiloto Clínico Sênior e Assistente Inteligente de " + nomeMedVoz + ".\n" +
       "Você recebeu este áudio gravado diretamente no celular pelo médico nos corredores do hospital ou em trânsito.\n\n" +
       "DIRETRIZES DE PROCESSAMENTO:\n" +
       "1. Se for RELATO CLÍNICO (caso de paciente, anamnese, exame físico, receita, conduta ou passagem de plantão):\n" +
       "   • EXTRAIA minuciosamente os dados clínicos e GERE UM DOCUMENTO ESTRUTURADO em formato SOAP, Receita Ambulatorial ou Passagem SBAR com rigor semiológico.\n" +
       "   • Organize os dados com terminologia clínica clara e padronizada.\n\n" +
-      "2. Se for AGENDAMENTO DE COMPROMISSO (ex: 'marcar plantão amanhã às 7h no HC'):\n" +
+      "2. Se for AGENDAMENTO DE COMPROMISSO (ex: 'marcar plantão amanhã às 7h'):\n" +
       "   • Destaque no topo: [CALENDAR] com Título, Data, Horário de Início e Término.\n\n" +
       "3. Se for RELATO DE HÁBITO CUMPRIDO (ex: 'treinei na academia', 'estudei medquest'):\n" +
       "   • Destaque o cumprimento do hábito.\n\n" +
@@ -382,7 +383,7 @@ function processarMensagemFoto(message) {
       : chamarGeminiPoolMultimodal(
           midia.data,
           midia.mime,
-          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia da FMRP-USP. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
+          "Você é um Preceptor Sênior de Clínica Médica, Emergência e Radiologia. Analise a imagem detalhadamente com laudo estruturado e conduta prática imediata.",
           caption
         );
 

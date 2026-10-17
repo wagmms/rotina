@@ -22,7 +22,9 @@ var TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_ = {
   "/habitos": true,
   "/checkin": true,
   "/briefing": true,
-  "/rotina": true
+  "/rotina": true,
+  "/sniper": true,
+  "/vagas": true
 };
 
 /**
@@ -53,6 +55,9 @@ function construirTecladoHubRotina() {
       [
         {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
         {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
+      ],
+      [
+        {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
       ]
     ]
   };
@@ -79,6 +84,9 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   if (comando === "/agenda") {
     var paramAgenda = (texto || "").replace(/^\/agenda\s*/i, "").trim();
     res = (typeof consultarEventosAgenda === "function") ? consultarEventosAgenda(paramAgenda, chatId) : false;
+  } else if (comando === "/sniper" || comando === "/vagas") {
+    var argSniper = (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
+    res = (typeof tratarComandoSniperPlantoes === "function") ? tratarComandoSniperPlantoes(chatId, argSniper) : false;
   } else if (comando === "/task" || comando === "/tarefa") {
     var tarefaTexto = (texto || "").replace(/^\/(task|tarefa)\s*/i, "").trim();
     if (!tarefaTexto) {

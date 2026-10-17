@@ -36,23 +36,23 @@ function runTests() {
   assert(cockpitHtml.includes('#ffe4e6'), 'alerta-clinico-critico deve utilizar cor #ffe4e6 de alto contraste');
   console.log('  ✓ Classes utilitárias de contraste clínico WCAG AA validadas no style.');
 
-  // [3] Botão de chamada para Sala Vermelha (USP-RP / HC-UE)
-  console.log('[3] Validando botão de chamada para Sala Vermelha (USP-RP / HC-UE)...');
+  // [3] Botão de chamada para Sala Vermelha
+  console.log('[3] Validando botão de chamada para Sala Vermelha...');
   assert(cockpitHtml.includes('bg-rose-500/25') && cockpitHtml.includes('text-rose-100') && cockpitHtml.includes('border-2 border-rose-400/70'),
     'Botão de Sala Vermelha deve possuir contraste WCAG AA com bg-rose-500/25, text-rose-100 e border-2 border-rose-400/70');
-  assert(cockpitHtml.includes('bg-rose-500/40 text-white') && cockpitHtml.includes('HC-UE'),
-    'Badge HC-UE deve possuir texto branco e fundo calibrado de alto contraste');
+  assert(cockpitHtml.includes('bg-rose-500/40 text-white') && cockpitHtml.includes('SALA VERMELHA'),
+    'Badge Sala Vermelha deve possuir texto branco e fundo calibrado de alto contraste');
   console.log('  ✓ Botão e badge de Sala Vermelha validados com alto contraste WCAG AA.');
 
-  // [4] Card de Erros Críticos & Contraindicações da USP-RP
+  // [4] Card de Erros Críticos & Contraindicações da Sala Vermelha
   console.log('[4] Validando Card de Erros Críticos & Contraindicações da Sala Vermelha...');
   assert(cockpitHtml.includes('bg-rose-950/70 border-2 border-rose-500/70') && cockpitHtml.includes('text-rose-100'),
     'Container de erros críticos deve possuir bg-rose-950/70 border-2 border-rose-500/70 e text-rose-100');
-  assert(cockpitHtml.includes('Armadilhas &amp; Erros Críticos (HC-UE FMRP-USP)') || cockpitHtml.includes('Armadilhas & Erros Críticos (HC-UE FMRP-USP)'),
+  assert(cockpitHtml.includes('Armadilhas &amp; Erros Críticos') || cockpitHtml.includes('Armadilhas & Erros Críticos'),
     'Título oficial de armadilhas e erros críticos deve estar presente');
   assert(cockpitHtml.includes('<span class="text-rose-300 font-bold shrink-0">❌</span> <span class="text-rose-100 leading-snug">${erro}</span>'),
     'Renderização dos erros em JS deve utilizar text-rose-100 de alta legibilidade');
-  console.log('  ✓ Card de Erros Críticos e Armadilhas HC-UE validado com conformidade WCAG AA.');
+  console.log('  ✓ Card de Erros Críticos e Armadilhas validado com conformidade WCAG AA.');
 
   // [5] Card de Metas da Sala Vermelha e Itens Interativos
   console.log('[5] Validando Card de Metas e Itens Interativos de Conduta da Sala Vermelha...');

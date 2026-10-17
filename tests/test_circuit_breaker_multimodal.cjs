@@ -97,7 +97,7 @@ test('⚡ Bateria de Testes: Circuit Breaker Multimodal e Resiliência Local', a
     const laudoEcg = IaLocalFallbackService.analisarImagemOffline('ECG de paciente com dor no peito e supra de ST', 'image/jpeg');
     assert(laudoEcg.includes('MODO OFFLINE DE CONTINGÊNCIA'), 'Deve conter cabeçalho de contingência.');
     assert(laudoEcg.includes('EMERGÊNCIA - ACHADO CRÍTICO (SALA VERMELHA / SCA)'), 'Alerta de SCA obrigatório na 1ª linha.');
-    assert(laudoEcg.includes('6 PASSOS FMRP-USP'), 'Deve conter o roteiro em 6 passos da FMRP-USP.');
+    assert(laudoEcg.includes('6 PASSOS SBC'), 'Deve conter o roteiro sistemático em 6 passos SBC.');
     assert(laudoEcg.includes('Ritmo'), 'Deve analisar ritmo.');
     assert(laudoEcg.includes('Frequência Cardíaca'), 'Deve calcular FC.');
     assert(laudoEcg.includes('Eixo Elétrico'), 'Deve analisar eixo frontal.');
@@ -107,7 +107,7 @@ test('⚡ Bateria de Testes: Circuit Breaker Multimodal e Resiliência Local', a
 
     // 2.2 Radiografia de Tórax (RX 5 Passos)
     const laudoRx = IaLocalFallbackService.analisarImagemOffline('Raio-X de tórax paciente com tosse e febre', 'image/jpeg');
-    assert(laudoRx.includes('5 PASSOS FMRP-USP'), 'Deve conter os 5 passos do RX de tórax.');
+    assert(laudoRx.includes('5 PASSOS CBR'), 'Deve conter os 5 passos do RX de tórax.');
     assert(laudoRx.includes('Identificação e Técnica'), 'Passo 1: Técnica.');
     assert(laudoRx.includes('Arcabouço Ósseo e Partes Moles'), 'Passo 2: Arcabouço.');
     assert(laudoRx.includes('Mediastino e Silhueta Cardíaca'), 'Passo 3: Mediastino.');
@@ -174,7 +174,7 @@ test('⚡ Bateria de Testes: Circuit Breaker Multimodal e Resiliência Local', a
       const resImgFallback = ctx.analisarImagemMedicaComIA('fake_b64', 'image/jpeg', 'ECG com dor precordial e supra');
       assert(resImgFallback, 'Deve retornar fallback de laudo.');
       assert(resImgFallback.includes('MODO OFFLINE DE CONTINGÊNCIA'), 'Laudo offline gerado.');
-      assert(resImgFallback.includes('6 PASSOS FMRP-USP'), 'Roteiro de ECG incorporado.');
+      assert(resImgFallback.includes('6 PASSOS SBC'), 'Roteiro de ECG incorporado.');
 
       // Chamada de áudio quando IA externa falha -> deve retornar contrato estruturado offline!
       const resAudioFallback = ctx.processarAudioClinicoMultimodal('fake_b64', 'audio/wav', {

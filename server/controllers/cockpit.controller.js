@@ -96,6 +96,17 @@ async function handlerCockpit(request, reply, runtime, { obterRemumeCacheada, re
       return { ok: false, erro: 'Parâmetro "metodo" deve ser uma string válida.' };
     }
 
+    // Bloqueia expressamente strings reservadas de sistema recebidas na camada de transporte HTTP externa
+    if (['bot', 'internal', 'interno'].includes(session.trim().toLowerCase())) {
+      reply.status(401);
+      return {
+        ok: false,
+        erro: 'Sessão inválida. O uso de identificadores reservados de sistema é proibido via HTTP.',
+        detalhes: 'Abra o Cockpit pelo botão do menu /menu no Telegram para gerar uma sessão criptografada válida.',
+        requestId: request.id
+      };
+    }
+
     // Otimização de Caching HTTP para Catálogo REMUME (ETag e 304 Condicional)
     if (metodo === 'cockpitRemume' && typeof obterRemumeCacheada === 'function') {
       const { etag: remumeEtag } = obterRemumeCacheada();

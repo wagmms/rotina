@@ -36,6 +36,25 @@ function test(nome, fn) {
 
 console.log('--- INICIANDO TESTES: REMUME-RP, SOAP E RECEITA PDF ---');
 
+// Na arquitetura White-Label Multi-Localidade, o padrão sem configuração é RENAME Nacional (SUS).
+// Para testar especificamente o preset de Ribeirão Preto (🟢 [REMUME-RP]), ativamos o preset no contexto padrão e no chatId 999888:
+if (c.ConfigService && typeof c.ConfigService.salvarContextoClinico === 'function') {
+  const ctxRp = {
+    municipio: 'Ribeirão Preto',
+    uf: 'SP',
+    remume_slug: 'sp_ribeirao_preto',
+    farmacopeia: {
+      remume_id: 'sp_ribeirao_preto',
+      remume_nome_exibicao: 'REMUME Ribeirão Preto (SP)',
+      selo_curto: '🟢 [REMUME-RP]',
+      fallback_rename_nacional: false
+    }
+  };
+  c.ConfigService.salvarContextoClinico('default', ctxRp);
+  c.ConfigService.salvarContextoClinico('1771571035', ctxRp);
+  c.ConfigService.salvarContextoClinico('999888', ctxRp);
+}
+
 // 1. Resolução determinística e normalização de sais
 test('1. consultarRemumeRP("losartana") e "Losartana potássica" retornam presente: true e 🟢 [REMUME-RP]', () => {
   assert.strictEqual(typeof c.consultarRemumeRP, 'function', 'consultarRemumeRP deve existir');

@@ -89,9 +89,10 @@ function processarRespostaPreceptorSocratico(chatId, textoResposta, ehAudio) {
   var casoBase = dialogo ? (dialogo.caso_base || "") : "";
   var perguntaAnterior = dialogo ? (dialogo.ultima_pergunta || "") : "";
   var historicoStr = "";
+  var nomeMedicoHist = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Médico(a)";
   if (dialogo && dialogo.historico && dialogo.historico.length > 0) {
     historicoStr = dialogo.historico.slice(-6).map(function(h) {
-      return (h.papel === "preceptor" ? "Preceptor: " : "Wagner: ") + h.texto;
+      return (h.papel === "preceptor" ? "Preceptor: " : (nomeMedicoHist + ": ")) + h.texto;
     }).join("\n");
   }
 
@@ -352,8 +353,8 @@ function iniciarOuConvidarDiscussaoPreceptor(chatId, opcoes) {
     }
   }
 
-  var nomeDoutor = (typeof ehUsuarioTitular === "function" && ehUsuarioTitular(chatId)) ? "Wagner" : ((typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor");
-  var textoConvite = "Opa " + nomeDoutor + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
+  var nomeDoutor = (typeof obterNomeTratamentoUsuario === "function") ? obterNomeTratamentoUsuario(chatId) : "Doutor(a)";
+  var textoConvite = "Olá, " + nomeDoutor + "! Qual paciente ou caso você quer discutir agora? Pode ditar a história, sinais vitais ou a dúvida que estou ouvindo.";
 
   // 2. Prepara estado do preceptor aguardando relato do caso
   salvarDialogoPreceptor(chatId, {

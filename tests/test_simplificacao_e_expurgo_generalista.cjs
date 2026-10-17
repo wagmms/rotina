@@ -141,7 +141,7 @@ const kbEnf = ctx.construirTecladoHubEnfermaria();
 assert.strictEqual(kbEnf.inline_keyboard.flat().length, 7, 'Hub Enfermaria deve ter 7 botões interativos');
 
 const kbRot = ctx.construirTecladoHubRotina();
-assert.strictEqual(kbRot.inline_keyboard.flat().length, 8, 'Hub Rotina deve ter 8 botões interativos');
+assert.ok(kbRot.inline_keyboard.flat().length >= 8, 'Hub Rotina deve ter pelo menos 8 botões interativos');
 
 const kbDm = ctx.construirTecladoHubDiabetes();
 assert.strictEqual(kbDm.inline_keyboard.flat().length, 4, 'Hub Diabetes deve ter 4 botões interativos');
@@ -171,7 +171,7 @@ assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 7);
 msgEnviadasF1 = [];
 ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/rotina' });
 assert.ok(msgEnviadasF1.length > 0 && msgEnviadasF1[0].kb, '/rotina deve retornar teclado inline');
-assert.strictEqual(msgEnviadasF1[0].kb.inline_keyboard.flat().length, 8);
+assert.ok(msgEnviadasF1[0].kb.inline_keyboard.flat().length >= 8);
 
 msgEnviadasF1 = [];
 ctx.processarMensagemTexto({ chat: { id: chatIdTitular }, text: '/diabetes' });

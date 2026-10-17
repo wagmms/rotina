@@ -1,0 +1,35 @@
+[
+  {
+    "caso": "alergia positiva perdida por negação em outra oração",
+    "is_safe": true
+  },
+  {
+    "caso": "alerta pediátrico crítico com is_safe verdadeiro e receita exportável",
+    "is_safe": true,
+    "alertas": [
+      "ALERTA_PEDIATRIA_PESO_AUSENTE",
+      "ALERTA_PEDIATRIA_REVISAO_DOSE"
+    ]
+  },
+  {
+    "caso": "escores sem completude/população",
+    "qsofa_so_pas": 0,
+    "imc_crianca": 16,
+    "classificacao_adulta": "Baixo peso"
+  },
+  {
+    "caso": "dados ausentes viram negativas",
+    "texto": "=== SUBJETIVO ===\nAlergias: Nega alergias conhecidas / Não informado\n\n=== OBJETIVO ===\n\n=== AVALIAÇÃO ===\nRed Flags: Ausentes no momento da avaliação.\n\n=== PLANO ==="
+  },
+  {
+    "caso": "schema remove campos enviados pelo formulário",
+    "recebido": {
+      "brain_dump": "Caso sintético de auditoria"
+    }
+  },
+  {
+    "caso": "catálogos de localidades distintas idênticos ao CSV de Ribeirão Preto",
+    "presets": 8,
+    "itens": 255
+  }
+]

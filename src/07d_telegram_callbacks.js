@@ -1090,6 +1090,14 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "habit_", handler: tratarCallbackHabitoEEnergia_ },
   { prefix: "energy_", handler: tratarCallbackHabitoEEnergia_ },
   { prefix: "duvida:", handler: tratarCallbackDuvidasMedQuest_ },
+  { prefix: "sniper:", handler: function(cb, data, ctx) {
+      if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
+        responderCallbackTelegram(cb.id, "🔒 O Sniper de Plantões é exclusivo do titular.", true);
+        return true;
+      }
+      return (typeof tratarCallbackSniperPlantoes === "function") ? tratarCallbackSniperPlantoes(cb, data, ctx) : false;
+    }
+  },
   { prefix: "rotina:", handler: function(cb, data, ctx) {
       if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(ctx.chatId)) {
         responderCallbackTelegram(cb.id, "🔒 A rotina e timeline adaptativa são exclusivas do titular.", true);
