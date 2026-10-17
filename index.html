@@ -14290,29 +14290,158 @@
       copiarToast(`Revisão: ${pc.termo} (${pc.area})`);
     }
 
-    async function solicitarSabatinaPreceptorPlantao() {
+    let ultimaProvocacaoPreceptor = '';
+
+    function ouvirProvocacaoPreceptor() {
+      hapticFeedback('light');
+      if (!ultimaProvocacaoPreceptor) {
+        copiarToast('Nenhuma provocação do preceptor disponível para ouvir.');
+        return;
+      }
+      falarTextoPreceptorFallback(ultimaProvocacaoPreceptor);
+      copiarToast('Ouvindo provocação do Preceptor IA no fone...');
+    }
+
+    function prepararRespostaPreceptor() {
+      hapticFeedback('medium');
+      const inputEl = document.getElementById('input-conversa-texto') || document.getElementById('conversa-input');
+      if (inputEl) {
+        if (!inputEl.value.trim()) {
+          inputEl.value = 'Minha conduta imediata: ';
+        }
+        inputEl.focus();
+        inputEl.setSelectionRange(inputEl.value.length, inputEl.value.length);
+        inputEl.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        copiarToast('Digite sua resposta ou use o microfone para responder à sabatina.');
+      }
+    }
+
+    async function solicitarSabatinaPreceptorPlantao(forcarNovo = false) {
+      if (preceptorPendente) return;
       hapticFeedback('medium');
       const pc = pontosCegosFiltradosHoje[indicePontoCegoPlantao] || CATALOGO_PONTOS_CEGOS_PLANTAO[0];
       const box = document.getElementById('resposta-preceptor-box');
       const txt = document.getElementById('resposta-preceptor-texto');
+      const inputEl = document.getElementById('input-conversa-texto') || document.getElementById('conversa-input');
+      const inputTxt = inputEl?.value?.trim() || '';
+      const revision = cockpitDados?.revision;
+      const temCasoAtivo = !!(cockpitDados && cockpitDados.casoAtivo && cockpitDados.soap);
+
       if (box && txt) {
         box.classList.remove('hidden');
         txt.innerHTML = `
-          <div class="space-y-1.5">
-            <div class="text-[10px] font-extrabold uppercase text-purple-400 flex items-center gap-1">
-              <i data-lucide="brain" class="w-3.5 h-3.5"></i> Provocação Socrática do Preceptor (${pc.termo}):
+          <div class="space-y-2 py-1.5 animate-pulse">
+            <div class="flex items-center gap-2 text-purple-300 font-bold text-xs">
+              <div class="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin"></div>
+              <span>Preceptor IA formulando provocação socrática (${escapeHtml(pc.termo)})...</span>
             </div>
-            <p class="text-xs text-purple-100 font-medium italic">
-              "${pc.perguntaSocratica}"
-            </p>
-            <div class="text-[9.5px] text-slate-400 pt-1 border-t border-purple-500/20 flex items-center justify-between">
-              <span>Foco: ${pc.area} · Conduta Crítica</span>
-              <button onclick="copiarToast('Responda mentalmente ou dite no chat do plantão.')" class="text-purple-300 hover:text-white font-bold">Como responder?</button>
-            </div>
+            <p class="text-[10.5px] text-purple-200/70 italic">Consultando diretrizes e cruzando achados críticos em tempo real com IA...</p>
           </div>
         `;
         if (window.lucide) lucide.createIcons();
         box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      preceptorPendente = true;
+      try {
+        let perguntaIa = '';
+        let contextoTema = inputTxt;
+        if (!contextoTema && !temCasoAtivo) {
+          contextoTema = `Tema do Plantão: ${pc.nomeCompleto || pc.termo} (${pc.area}). Ponto de Atenção Crítico: ${pc.pontoAtencao}. Pérola Fisiopatológica: ${pc.perolaClinica}. Diretriz de Emergência: ${pc.diretriz}`;
+        }
+
+        const res = await cockpitRpc('cockpitConversar', {
+          acao: 'preceptor',
+          texto: contextoTema,
+          tema: pc.termo,
+          area: pc.area,
+          pontoAtencao: pc.pontoAtencao,
+          perolaClinica: pc.perolaClinica,
+          diretriz: pc.diretriz,
+          forcarNovo: !!forcarNovo
+        });
+
+        perguntaIa = res?.resposta || '';
+        if (!perguntaIa || perguntaIa.trim().length < 10) {
+          perguntaIa = pc.perguntaSocratica;
+        }
+
+        ultimaProvocacaoPreceptor = perguntaIa;
+
+        if (box && txt) {
+          txt.innerHTML = `
+            <div class="space-y-2 animate-in fade-in duration-200">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] font-extrabold uppercase text-purple-300 flex items-center gap-1.5">
+                  <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Provocação Socrática do Preceptor (${escapeHtml(pc.termo)}):</span>
+                </div>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40 flex items-center gap-1">
+                  <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                  Conectado à IA
+                </span>
+              </div>
+              <p class="text-xs text-purple-100 font-medium italic leading-relaxed bg-purple-950/40 p-2.5 rounded-lg border border-purple-800/40 shadow-inner">
+                "${escapeHtml(perguntaIa)}"
+              </p>
+              <div class="text-[9.5px] text-slate-400 pt-1.5 border-t border-purple-500/20 flex flex-wrap items-center justify-between gap-1.5">
+                <span>Foco: ${escapeHtml(pc.area)} · Conduta Crítica</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="ouvirProvocacaoPreceptor()" class="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700/60 font-bold text-[10px] flex items-center gap-1 transition active:scale-95">
+                    <i data-lucide="volume-2" class="w-3 h-3 text-purple-300"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="prepararRespostaPreceptor()" class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-sm active:scale-95">
+                    <i data-lucide="message-square" class="w-3 h-3"></i> Responder
+                  </button>
+                  <button type="button" onclick="solicitarSabatinaPreceptorPlantao(true)" title="Gerar nova provocação inédita com IA" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition active:scale-95">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+          box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+        }
+      } catch (err) {
+        console.warn('[Preceptor IA Fallback]:', err);
+        const perguntaFallback = pc.perguntaSocratica || 'Qual conduta imediata você preconiza?';
+        ultimaProvocacaoPreceptor = perguntaFallback;
+        if (box && txt) {
+          txt.innerHTML = `
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <div class="text-[10px] font-extrabold uppercase text-purple-300 flex items-center gap-1.5">
+                  <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i>
+                  <span>Provocação Socrática (${escapeHtml(pc.termo)}):</span>
+                </div>
+                <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-amber-500/20 text-amber-200 border border-amber-500/40">
+                  Modo Offline
+                </span>
+              </div>
+              <p class="text-xs text-purple-100 font-medium italic leading-relaxed bg-purple-950/40 p-2.5 rounded-lg border border-purple-800/40">
+                "${escapeHtml(perguntaFallback)}"
+              </p>
+              <div class="text-[9.5px] text-slate-400 pt-1.5 border-t border-purple-500/20 flex flex-wrap items-center justify-between gap-1.5">
+                <span>Foco: ${escapeHtml(pc.area)} · Conduta Crítica</span>
+                <div class="flex items-center gap-1.5">
+                  <button type="button" onclick="ouvirProvocacaoPreceptor()" class="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700/60 font-bold text-[10px] flex items-center gap-1 transition">
+                    <i data-lucide="volume-2" class="w-3 h-3 text-purple-300"></i> Ouvir
+                  </button>
+                  <button type="button" onclick="prepararRespostaPreceptor()" class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-sm">
+                    <i data-lucide="message-square" class="w-3 h-3"></i> Responder
+                  </button>
+                  <button type="button" onclick="solicitarSabatinaPreceptorPlantao(true)" title="Tentar novamente conectar à IA" class="p-1 rounded bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-slate-700 transition">
+                    <i data-lucide="refresh-cw" class="w-3 h-3"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+          if (window.lucide) lucide.createIcons();
+        }
+      } finally {
+        preceptorPendente = false;
       }
     }
 
@@ -14365,6 +14494,21 @@
           } catch (eRpc) {
             parecerTexto = '';
           }
+        }
+        if (!parecerTexto) {
+          try {
+            const contextoCaso = `Tema do Plantão: ${pc.nomeCompleto || pc.termo} (${pc.area}). Ponto de Atenção: ${pc.pontoAtencao}. Pérola Fisiopatológica: ${pc.perolaClinica}. Diretriz de Emergência: ${pc.diretriz}`;
+            const resIa = await cockpitRpc('cockpitConversar', {
+              acao: 'preceptor',
+              texto: contextoCaso,
+              tema: pc.termo,
+              area: pc.area,
+              pontoAtencao: pc.pontoAtencao,
+              perolaClinica: pc.perolaClinica,
+              diretriz: pc.diretriz
+            });
+            parecerTexto = resIa?.resposta || '';
+          } catch (_) {}
         }
 
         let htmlParecer = `
@@ -14428,29 +14572,67 @@
     let preceptorPendente = false;
     async function provocarPreceptorSocratico() {
       if (preceptorPendente) return;
-      const inputEl = document.getElementById('conversa-input');
+      const inputEl = document.getElementById('input-conversa-texto') || document.getElementById('conversa-input');
       const inputTxt = inputEl?.value?.trim();
 
       if (!cockpitDados?.revision && !inputTxt) {
-        copiarToast('Digite um caso clínico ou selecione um atendimento.');
-        return;
+        // Quando não há atendimento nem texto, aciona a sabatina IA do ponto cego selecionado
+        return solicitarSabatinaPreceptorPlantao(true);
       }
       preceptorPendente = true;
       const revision = cockpitDados?.revision;
       const box = document.getElementById('resposta-preceptor-box');
       const txt = document.getElementById('resposta-preceptor-texto');
       box.classList.remove('hidden');
-      txt.textContent = 'Preparando provocação socrática do preceptor…';
+      txt.innerHTML = `
+        <div class="space-y-1.5 py-1">
+          <div class="flex items-center gap-2 text-purple-300 font-bold text-xs">
+            <div class="w-3.5 h-3.5 rounded-full border-2 border-purple-400 border-t-transparent animate-spin"></div>
+            <span>Preparando provocação socrática do preceptor com IA…</span>
+          </div>
+        </div>
+      `;
+      if (window.lucide) lucide.createIcons();
+      box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+
       try {
         let resposta = '';
         if (revision) {
           resposta = await cockpitRpc('cockpitPreceptor', revision);
-          txt.textContent = cockpitDados?.revision === revision ? resposta : 'O atendimento mudou. Atualize o painel.';
+          resposta = cockpitDados?.revision === revision ? resposta : 'O atendimento mudou. Atualize o painel.';
         } else {
           const res = await cockpitRpc('cockpitConversar', { acao: 'preceptor', texto: inputTxt });
           resposta = res?.resposta || 'Qual conduta imediata você preconiza?';
-          txt.textContent = resposta;
         }
+        ultimaProvocacaoPreceptor = resposta;
+        txt.innerHTML = `
+          <div class="space-y-2 animate-in fade-in duration-200">
+            <div class="flex items-center justify-between">
+              <span class="text-[10px] font-extrabold uppercase text-purple-300 flex items-center gap-1">
+                <i data-lucide="brain" class="w-3.5 h-3.5 text-purple-400"></i> Provocação do Preceptor IA:
+              </span>
+              <span class="text-[9px] px-1.5 py-0.5 rounded-full font-bold bg-purple-500/20 text-purple-200 border border-purple-500/40 flex items-center gap-1">
+                <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                Conectado à IA
+              </span>
+            </div>
+            <p class="text-xs text-purple-100 font-medium italic leading-relaxed bg-purple-950/40 p-2.5 rounded-lg border border-purple-800/40">
+              "${escapeHtml(resposta)}"
+            </p>
+            <div class="text-[9.5px] text-slate-400 pt-1.5 border-t border-purple-500/20 flex items-center justify-between">
+              <span>Sabatina Clínica Beira-Leito</span>
+              <div class="flex items-center gap-1.5">
+                <button type="button" onclick="ouvirProvocacaoPreceptor()" class="px-2 py-0.5 rounded bg-purple-900/60 hover:bg-purple-800 text-purple-200 border border-purple-700/60 font-bold text-[10px] flex items-center gap-1 transition">
+                  <i data-lucide="volume-2" class="w-3 h-3 text-purple-300"></i> Ouvir
+                </button>
+                <button type="button" onclick="prepararRespostaPreceptor()" class="px-2 py-0.5 rounded bg-purple-600 hover:bg-purple-500 text-white font-bold text-[10px] flex items-center gap-1 transition shadow-sm">
+                  <i data-lucide="message-square" class="w-3 h-3"></i> Responder
+                </button>
+              </div>
+            </div>
+          </div>
+        `;
+        if (window.lucide) lucide.createIcons();
       } catch (e) {
         txt.textContent = e.message;
       } finally {

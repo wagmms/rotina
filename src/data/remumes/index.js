@@ -9,10 +9,11 @@
  * 1. listarPresets() -> Lista todos os presets municipais e nacional disponíveis.
  * 2. obterCatalogoAtivo(chatIdOuSlug) -> Resolve o catálogo ativo do médico/chat ou por slug.
  * 3. extrairMedicamentosDeTextoBruto(textoBruto) -> Parser determinístico e higienizador farmacológico.
- * 4. importarEPromoverRemume(opcoes) -> Importa, valida (>= 5 itens) e promove automaticamente
+ * 4. importarEPromoverRemume(opcoes) -> Importa, valida e promove automaticamente
  *    para preset global (presets/<slug>.json + manifest.json) e ativa no perfil do usuário.
- * 5. buscarRemumeNaWeb(municipio, uf, chatId) -> Verifica preset existente ou busca fonte oficial
- *    verificável com trava Anti-Alucinação (Zero Invenção), mantendo RENAME Nacional por segurança
+ * 5. buscarRemumeNaWeb(municipio, uf, chatId) -> Verifica preset existente ou executa busca
+ *    determinística em domínios oficiais (.gov.br) com suporte a HTML/PDF e Gatekeeper Clínico
+ *    de Sanidade Farmacológica (Zero Invenção), mantendo RENAME Nacional por segurança
  *    caso não exista documento oficial verificável.
  * ============================================================================
  */
@@ -23,10 +24,29 @@ const fs = require('fs');
 const path = require('path');
 const https = require('https');
 const http = require('http');
+const zlib = require('zlib');
 
 const PRESETS_DIR = path.join(__dirname, 'presets');
 const MANIFEST_PATH = path.join(PRESETS_DIR, 'manifest.json');
 const DEFAULT_SLUG = 'rename_nacional';
+
+/**
+ * Constantes do Gatekeeper Clínico de Sanidade Farmacológica (Atenção Primária SUS)
+ */
+const MEDICAMENTOS_ANCORA_SUS = [
+  'dipirona',
+  'amoxicilina',
+  'losartana',
+  'metformina',
+  'hidroclorotiazida',
+  'omeprazol',
+  'enalapril',
+  'glibenclamida',
+  'salbutamol',
+  'paracetamol'
+];
+const MINIMO_ANCORAS_SUS = 5;
+const MINIMO_ITENS_VALIDOS_WEB = 15;
 
 /**
  * Resolve referência tardia ao ConfigService para evitar dependência circular
@@ -291,7 +311,10 @@ function normalizarObjetoCatalogo(raw, slugFallback = DEFAULT_SLUG) {
     selo_curto: seloCurto,
     fonte,
     url_oficial: raw.url_oficial || raw.urlOficial || null,
-    verificado: raw.verificado !== undefined ? Boolean(raw.verificado) : (slug === DEFAULT_SLUG || slug === 'sp_ribeirao_preto'),
+    verificado:
+      raw.verificado !== undefined
+        ? Boolean(raw.verificado)
+        : slug === DEFAULT_SLUG || slug === 'sp_ribeirao_preto' || Boolean(raw.url_oficial || raw.urlOficial),
     atualizado_em: raw.atualizado_em || new Date().toISOString(),
     total_itens: itens.length,
     itens
@@ -334,7 +357,9 @@ const CatalogoRemumeService = {
     const presetsEncontrados = [];
     try {
       if (fs.existsSync(PRESETS_DIR)) {
-        const arquivos = fs.readdirSync(PRESETS_DIR).filter((f) => f.endsWith('.json') && f !== 'manifest.json');
+        const arquivos = fs
+          .readdirSync(PRESETS_DIR)
+          .filter((f) => f.endsWith('.json') && f !== 'manifest.json');
         for (const arq of arquivos) {
           const dados = lerJsonSeguro(path.join(PRESETS_DIR, arq), null);
           if (dados && (Array.isArray(dados.itens) || Array.isArray(dados.medicamentos))) {
@@ -460,7 +485,12 @@ const CatalogoRemumeService = {
       contextoUsuario = chatIdOuSlugOuContexto;
       const farmacopeia = contextoUsuario.farmacopeia || {};
       const localidade = contextoUsuario.localidade || {};
-      const slugCtx = farmacopeia.remume_id || farmacopeia.preset_id || contextoUsuario.remume_slug || localidade.municipio_slug || DEFAULT_SLUG;
+      const slugCtx =
+        farmacopeia.remume_id ||
+        farmacopeia.preset_id ||
+        contextoUsuario.remume_slug ||
+        localidade.municipio_slug ||
+        DEFAULT_SLUG;
       slugAlvo = String(slugCtx).trim().toLowerCase();
     } else {
       const parametro = String(chatIdOuSlugOuContexto || '').trim();
@@ -488,7 +518,6 @@ const CatalogoRemumeService = {
           const farmacopeia = contextoUsuario.farmacopeia || {};
           const localidade = contextoUsuario.localidade || {};
 
-          // Se o usuário possui itens customizados salvos diretamente no contexto e sem preset global
           const slugContexto =
             farmacopeia.remume_id ||
             farmacopeia.preset_id ||
@@ -500,6 +529,7 @@ const CatalogoRemumeService = {
         }
       }
     }
+
     if (contextoUsuario && typeof contextoUsuario === 'object') {
       const farmacopeia = contextoUsuario.farmacopeia || {};
       const localidade = contextoUsuario.localidade || {};
@@ -517,7 +547,8 @@ const CatalogoRemumeService = {
             slug: slugAlvo !== DEFAULT_SLUG ? slugAlvo : gerarSlugMunicipio(munNome, ufSigla),
             municipio: munNome,
             uf: ufSigla,
-            nome_exibicao: farmacopeia.nome_exibicao || `REMUME ${munNome}${ufSigla ? ' - ' + ufSigla : ''}`,
+            nome_exibicao:
+              farmacopeia.nome_exibicao || `REMUME ${munNome}${ufSigla ? ' - ' + ufSigla : ''}`,
             selo_curto: `REMUME ${munNome}${ufSigla ? '/' + ufSigla : ''}`,
             fonte: farmacopeia.fonte || `REMUME Municipal (${munNome})`,
             itens: farmacopeia.itens_customizados
@@ -535,11 +566,7 @@ const CatalogoRemumeService = {
     if (cs && typeof cs.obterCatalogoRemume === 'function') {
       try {
         const catalogoCs = cs.obterCatalogoRemume(slugAlvo);
-        if (
-          catalogoCs &&
-          Array.isArray(catalogoCs.itens) &&
-          catalogoCs.itens.length > 0
-        ) {
+        if (catalogoCs && Array.isArray(catalogoCs.itens) && catalogoCs.itens.length > 0) {
           return normalizarObjetoCatalogo(catalogoCs, slugAlvo);
         }
       } catch (_err) {
@@ -568,12 +595,8 @@ const CatalogoRemumeService = {
 
   /**
    * 3. extrairMedicamentosDeTextoBruto(textoBruto)
-   * Parser determinístico + higienização de listas de medicamentos vindas de CSV, JSON
-   * ou texto bruto copiado de PDFs de prefeituras.
-   *
-   * Filtra linhas vazias, cabeçalhos genéricos ("Medicamento", "Página 1",
-   * "Secretaria Municipal", números isolados, datas) e mantém apenas linhas que
-   * contenham nome farmacológico + concentração/apresentação válida.
+   * Parser determinístico + higienização de listas de medicamentos vindas de CSV, JSON,
+   * HTML ou texto bruto extraído de PDFs de prefeituras.
    *
    * @param {string|Array} textoBruto
    * @returns {Array<string>}
@@ -605,7 +628,10 @@ const CatalogoRemumeService = {
       if (!trimmed) return [];
 
       // Caso 2: String em formato JSON (Array ou Objeto contendo { itens: [...] })
-      if ((trimmed.startsWith('[') && trimmed.endsWith(']')) || (trimmed.startsWith('{') && trimmed.endsWith('}'))) {
+      if (
+        (trimmed.startsWith('[') && trimmed.endsWith(']')) ||
+        (trimmed.startsWith('{') && trimmed.endsWith('}'))
+      ) {
         try {
           const parsed = JSON.parse(trimmed);
           if (Array.isArray(parsed)) {
@@ -623,7 +649,7 @@ const CatalogoRemumeService = {
         }
       }
 
-      // Caso 3: Texto bruto (PDF copiado, CSV, TSV ou lista textual)
+      // Caso 3: Texto bruto (PDF extraído, CSV, TSV ou lista textual)
       linhasCandidatas = trimmed.split(/\r?\n/);
     } else {
       return [];
@@ -631,7 +657,7 @@ const CatalogoRemumeService = {
 
     // Expressões regulares para validação farmacológica determinística
     const regexUnidadeDosagem =
-      /\b\d+(?:[.,]\d+)?(?:\s*\/\s*\d+(?:[.,]\d+)?)?\s*(?:mg|mcg|ug|µg|g|kg|ml|l|ui|u\.i\.|%|meq|mmol|mg\/ml|mcg\/ml|mg\/g|ui\/ml|mg\/dose|mcg\/dose)\b/i;
+      /\b\d+(?:[.,]\d+)*(?:\s*\/\s*\d+(?:[.,]\d+)*)?\s*(?:mg|mcg|ug|µg|g|kg|ml|l|ui|u\.i\.|%|meq|mmol|mg\/ml|mcg\/ml|mg\/g|ui\/ml|mg\/dose|mcg\/dose)(?:\s*\/\s*\d*(?:[.,]\d+)?\s*(?:ml|g|mg|l|dose|gotas))?\b/i;
 
     const regexFormaFarmaceutica =
       /\b(?:comprimido|comprimidos|comp\b|cápsula|capsula|cápsulas|capsulas|caps\b|drágea|dragea|ampola|ampolas|amp\b|frasco|frasco-ampola|xarope|suspensão|suspensao|solução|solucao|gotas|pomada|creme|gel\b|loção|locao|adesivo|pó\s+para|po\s+para|injetável|injetavel|spray|aerossol|inalante|inalatório|inalatorio|colírio|colirio|supositório|supositorio|óvulo|ovulo|bisnaga|sachê|sache|envelope|seringa|caneta|implante|sistema\s+terapêutico|pastilha|elix|elixir|enema|granulado)\b/i;
@@ -653,7 +679,7 @@ const CatalogoRemumeService = {
       linha = linha.replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
       if (!linha || linha.length < 5 || linha.length > 260) continue;
 
-      // Se for linha de CSV/TSV separada por ";" ou "|" ou "\t", converte colunas relevantes
+      // Se for linha de CSV/TSV/Tabela HTML separada por ";" ou "|" ou "\t", converte colunas relevantes
       if (linha.includes(';') || linha.includes('|') || linha.includes('\t')) {
         const delimitador = linha.includes(';') ? ';' : linha.includes('|') ? '|' : '\t';
         const colunas = linha
@@ -677,7 +703,11 @@ const CatalogoRemumeService = {
       // Filtra cabeçalhos genéricos, rodapés e datas
       if (regexRuidoInstitucional.test(linha)) continue;
       if (regexApenasDataOuNumero.test(linha)) continue;
-      if (/^(?:medicamento|apresenta[çc][ãa]o|concentra[çc][ãa]o|forma\s+farmac[êe]utica|unidade|observa[çc][ãa]o)$/i.test(linha)) {
+      if (
+        /^(?:medicamento|apresenta[çc][ãa]o|concentra[çc][ãa]o|forma\s+farmac[êe]utica|unidade|observa[çc][ãa]o)$/i.test(
+          linha
+        )
+      ) {
         continue;
       }
 
@@ -711,20 +741,94 @@ const CatalogoRemumeService = {
   },
 
   /**
+   * Valida a Sanidade Clínica e Farmacológica de um documento candidato à REMUME municipal.
+   * Gatekeeper Anti-Alucinação (Zero Invenção):
+   * 1. O documento deve mencionar o município buscado.
+   * 2. Deve conter pelo menos 5 dos 10 medicamentos âncora da Atenção Primária do SUS.
+   * 3. Deve possuir pelo menos 15 itens farmacológicos válidos com dosagem/apresentação.
+   *
+   * @param {string} textoBruto
+   * @param {Array<string>} itensExtraidos
+   * @param {string} municipio
+   * @param {string} [uf]
+   * @returns {{ aprovado: boolean, motivo: string, ancorasEncontradas: Array<string>, totalItens: number }}
+   */
+  validarSanidadeClinicaRemume(textoBruto, itensExtraidos, municipio, uf = '') {
+    const itens = Array.isArray(itensExtraidos) ? itensExtraidos : [];
+    const munNorm = normalizarAscii(String(municipio || '')).toLowerCase();
+
+    if (!munNorm) {
+      return {
+        aprovado: false,
+        motivo: 'Município não informado para validação territorial.',
+        ancorasEncontradas: [],
+        totalItens: itens.length
+      };
+    }
+
+    const textoNorm = normalizarAscii(String(textoBruto || '')).toLowerCase();
+    const itensNormConcat = normalizarAscii(itens.join('\n')).toLowerCase();
+
+    // 1. Verifica vínculo territorial com o município
+    const mencionaMunicipio = textoNorm.includes(munNorm) || itensNormConcat.includes(munNorm);
+    if (!mencionaMunicipio) {
+      return {
+        aprovado: false,
+        motivo: `O documento não menciona o município de ${municipio}${uf ? ' - ' + uf : ''}.`,
+        ancorasEncontradas: [],
+        totalItens: itens.length
+      };
+    }
+
+    // 2. Verifica presença dos medicamentos âncora da Atenção Primária do SUS nos itens extraídos
+    const ancorasEncontradas = MEDICAMENTOS_ANCORA_SUS.filter((ancora) =>
+      itensNormConcat.includes(ancora)
+    );
+
+    if (ancorasEncontradas.length < MINIMO_ANCORAS_SUS) {
+      return {
+        aprovado: false,
+        motivo: `Sanidade farmacológica insuficiente: encontrados apenas ${ancorasEncontradas.length}/${MINIMO_ANCORAS_SUS} medicamentos âncora do SUS nos itens extraídos.`,
+        ancorasEncontradas,
+        totalItens: itens.length
+      };
+    }
+
+    // 3. Verifica densidade mínima de medicamentos válidos
+    if (itens.length < MINIMO_ITENS_VALIDOS_WEB) {
+      return {
+        aprovado: false,
+        motivo: `Quantidade insuficiente de medicamentos extraídos (${itens.length}/${MINIMO_ITENS_VALIDOS_WEB}).`,
+        ancorasEncontradas,
+        totalItens: itens.length
+      };
+    }
+
+    return {
+      aprovado: true,
+      motivo: 'Documento oficial validado pelo Gatekeeper Clínico de Sanidade Farmacológica.',
+      ancorasEncontradas,
+      totalItens: itens.length
+    };
+  },
+
+  /**
    * 4. importarEPromoverRemume(opcoes)
    * - Recebe { chatId, municipio, uf, conteudoBruto, itens, fonte, urlOficial }.
    * - Extrai/valida os itens.
-   * - REGRA DE OURO DO USUÁRIO: Se tiver pelo menos 5 itens válidos, chama
-   *   ConfigService.promoverRemumeParaPresetGlobal(...) para que essa cidade entre
-   *   AUTOMATICAMENTE nos presets globais (src/data/remumes/presets/<slug>.json e manifest.json)
-   *   para todos os próximos usuários!
-   * - Se chatId foi passado, atualiza automaticamente o perfil daquele chatId
-   *   (ConfigService.salvarContextoClinico) para usar o novo preset recém-criado!
+   * - Promove automaticamente para os presets globais (src/data/remumes/presets/<slug>.json e manifest.json).
+   * - Se chatId foi passado, atualiza automaticamente o perfil daquele chatId.
    *
-   * @param {object} opcoes
+   * @param {object|string} opcoesOuMun
    * @returns {object}
    */
-  importarEPromoverRemume(opcoesOuMun = {}, ufArg = '', conteudoArg = '', fonteArg = '', chatIdArg = '') {
+  importarEPromoverRemume(
+    opcoesOuMun = {},
+    ufArg = '',
+    conteudoArg = '',
+    fonteArg = '',
+    chatIdArg = ''
+  ) {
     let opcoes = opcoesOuMun;
     if (typeof opcoesOuMun === 'string') {
       opcoes = {
@@ -800,6 +904,7 @@ const CatalogoRemumeService = {
         selo_curto: seloCurto,
         fonte: fonteFinal,
         url_oficial: urlOficial || null,
+        verificado: true,
         atualizado_em: new Date().toISOString(),
         itens: itensValidos
       },
@@ -829,7 +934,6 @@ const CatalogoRemumeService = {
     }
 
     // Garante gravação física em src/data/remumes/presets/<slug>.json e manifest.json
-    // mesmo se ConfigService não tiver gravado ou ainda não estiver inicializado
     try {
       garantirDiretorioPresets();
       const presetFilePath = path.join(PRESETS_DIR, `${slug}.json`);
@@ -862,7 +966,9 @@ const CatalogoRemumeService = {
         atualizado_em: objetoPreset.atualizado_em
       };
 
-      const idxExistente = listaPresets.findIndex((p) => p && (p.slug === slug || p.remume_id === slug));
+      const idxExistente = listaPresets.findIndex(
+        (p) => p && (p.slug === slug || p.remume_id === slug)
+      );
       if (idxExistente >= 0) {
         listaPresets[idxExistente] = { ...listaPresets[idxExistente], ...entradaManifest };
       } else {
@@ -919,12 +1025,11 @@ const CatalogoRemumeService = {
    * - Primeiro verifica se já existe preset local para gerarSlugMunicipio(municipio, uf)
    *   em src/data/remumes/presets/<slug>.json. Se já existir, ativa imediatamente no perfil
    *   do chatId e retorna { encontrado: true, origem: "PRESET_EXISTENTE", catalogo: ... }.
-   * - Se não existir localmente, realiza busca web verificada (Zero Invenção / Gatekeeper Anti-Alucinação):
-   *   - Se encontrar documento oficial verificável da Prefeitura/Secretaria Municipal de Saúde
-   *     contendo medicamentos reais com dosagens, extrai, promove para preset global e ativa no perfil.
+   * - Se não existir localmente, realiza busca web determinística em domínios oficiais (.gov.br)
+   *   com parser de HTML/PDF e Gatekeeper Clínico de Sanidade Farmacológica:
+   *   - Se aprovado, promove automaticamente para preset global e ativa no perfil.
    *   - Se NÃO encontrar documento oficial confiável e verificável, JAMAIS inventa dados:
-   *     mantém RENAME Nacional (SUS) como segurança no perfil do usuário (atualizando apenas
-   *     localidade.municipio_nome e localidade.uf) e retorna o objeto de fallback seguro.
+   *     mantém RENAME Nacional (SUS) como segurança no perfil do usuário.
    *
    * @param {string} municipio
    * @param {string} uf
@@ -984,7 +1089,7 @@ const CatalogoRemumeService = {
     if (
       documentoVerificado &&
       Array.isArray(documentoVerificado.itens) &&
-      documentoVerificado.itens.length >= 15
+      documentoVerificado.itens.length >= MINIMO_ITENS_VALIDOS_WEB
     ) {
       const resultadoPromocao = this.importarEPromoverRemume({
         chatId,
@@ -1002,8 +1107,10 @@ const CatalogoRemumeService = {
           slug: resultadoPromocao.slug,
           municipio: municipioLimpo,
           uf: ufLimpa,
+          url_oficial: documentoVerificado.urlOficial || null,
+          ancoras_sus: documentoVerificado.ancorasEncontradas || [],
           catalogo: resultadoPromocao.catalogo,
-          mensagem: `REMUME oficial de ${municipioLimpo} - ${ufLimpa} localizada, validada (${resultadoPromocao.total_itens} medicamentos) e promovida para preset global.`
+          mensagem: `REMUME oficial de ${municipioLimpo} - ${ufLimpa} localizada em fonte governamental verificada (${resultadoPromocao.total_itens} medicamentos) e promovida para preset global.`
         };
       }
     }
@@ -1050,102 +1157,512 @@ const CatalogoRemumeService = {
   },
 
   /**
-   * Utilitário interno para busca de documento oficial verificável (.gov.br)
-   * com validação estrita anti-alucinação.
+   * Executa o pipeline determinístico de busca em domínios oficiais (.gov.br),
+   * extração de texto (HTML/PDF) e validação pelo Gatekeeper Clínico.
    * @private
    */
   async _tentarBuscaOficialVerificada(municipio, uf) {
     if (!municipio || !uf) return null;
 
-    // Permite injeção de provider customizado de busca oficial se configurado no runtime
+    // 1. Permite injeção de provider customizado de busca oficial se configurado no runtime
     if (
       typeof global !== 'undefined' &&
       typeof global.RemumeOfficialWebVerifier === 'function'
     ) {
       const resCustom = await global.RemumeOfficialWebVerifier(municipio, uf);
-      if (resCustom && Array.isArray(resCustom.itens) && resCustom.itens.length >= 15) {
+      if (
+        resCustom &&
+        Array.isArray(resCustom.itens) &&
+        resCustom.itens.length >= MINIMO_ITENS_VALIDOS_WEB
+      ) {
         return resCustom;
       }
     }
 
-    // Verifica se há URL oficial mapeada em catálogo de fontes governamentais conhecidas
-    const mapaFontesPath = path.join(__dirname, 'fontes_oficiais.json');
-    const mapaFontes = lerJsonSeguro(mapaFontesPath, null);
-    const slug = gerarSlugMunicipio(municipio, uf);
-
-    if (!mapaFontes || !mapaFontes[slug] || !mapaFontes[slug].url) {
+    // 2. Coleta URLs candidatas oficiais (mapa local + busca dinâmica determinística .gov.br)
+    const urlsCandidatas = await this._buscarUrlsCandidatasGovBr(municipio, uf);
+    if (!Array.isArray(urlsCandidatas) || urlsCandidatas.length === 0) {
       return null;
     }
 
-    const infoFonte = mapaFontes[slug];
-    const urlOficial = String(infoFonte.url).trim();
+    // 3. Inspeciona cada URL oficial candidata com parser de HTML/PDF e Gatekeeper Clínico
+    for (const candidata of urlsCandidatas) {
+      const urlOficial = typeof candidata === 'string' ? candidata : candidata.url;
+      if (!this._ehUrlOficialConfiavel(urlOficial)) continue;
 
-    // Só aceita domínios oficiais governamentais (.gov.br)
-    if (!/^https?:\/\/[^/]+\.gov\.br(\/|$)/i.test(urlOficial)) {
-      return null;
+      const respostaHttp = await this._httpGetBufferSeguro(urlOficial, 6500, 3);
+      if (!respostaHttp || !respostaHttp.buffer || respostaHttp.buffer.length < 200) {
+        continue;
+      }
+
+      // Garante que a URL final (após redirecionamentos) permanece em domínio oficial confiável
+      if (respostaHttp.finalUrl && !this._ehUrlOficialConfiavel(respostaHttp.finalUrl)) {
+        continue;
+      }
+
+      const textoExtraido = await this._extrairTextoDeBuffer(
+        respostaHttp.buffer,
+        respostaHttp.contentType,
+        respostaHttp.finalUrl || urlOficial
+      );
+
+      if (!textoExtraido || textoExtraido.length < 200) {
+        continue;
+      }
+
+      const itensExtraidos = this.extrairMedicamentosDeTextoBruto(textoExtraido);
+      const validacao = this.validarSanidadeClinicaRemume(
+        textoExtraido,
+        itensExtraidos,
+        municipio,
+        uf
+      );
+
+      if (validacao.aprovado) {
+        return {
+          fonte:
+            (typeof candidata === 'object' && candidata.fonte) ||
+            `Secretaria Municipal de Saúde de ${municipio} - ${uf} (Documento Oficial Verificado)`,
+          urlOficial: respostaHttp.finalUrl || urlOficial,
+          ancorasEncontradas: validacao.ancorasEncontradas,
+          itens: itensExtraidos
+        };
+      }
     }
 
-    const conteudo = await this._httpGetTextoSeguro(urlOficial, 4500);
-    if (!conteudo || conteudo.length < 200) return null;
-
-    const conteudoNormalizado = normalizarAscii(conteudo).toLowerCase();
-    const municipioNormalizado = normalizarAscii(municipio).toLowerCase();
-
-    // Verifica se o documento realmente menciona o município e termos de REMUME/Relação de Medicamentos
-    const mencionaMunicipio = conteudoNormalizado.includes(municipioNormalizado);
-    const mencionaRemume =
-      conteudoNormalizado.includes('remume') ||
-      conteudoNormalizado.includes('relacao municipal de medicamentos') ||
-      conteudoNormalizado.includes('assistencia farmaceutica');
-
-    if (!mencionaMunicipio || !mencionaRemume) {
-      return null;
-    }
-
-    const itensExtraidos = this.extrairMedicamentosDeTextoBruto(conteudo);
-    if (itensExtraidos.length < 15) {
-      return null;
-    }
-
-    return {
-      fonte: infoFonte.fonte || `Secretaria Municipal de Saúde de ${municipio} - ${uf} (Portal Oficial)`,
-      urlOficial,
-      itens: itensExtraidos
-    };
+    return null;
   },
 
   /**
-   * Realiza requisição HTTP/HTTPS GET com timeout curto para nunca bloquear a thread clínica.
+   * Verifica estritamente se uma URL pertence a um domínio oficial governamental (.gov.br, .leg.br)
+   * ou portal institucional de prefeitura/câmara/secretaria de saúde.
+   * @param {string} urlStr
+   * @returns {boolean}
+   */
+  _ehUrlOficialConfiavel(urlStr) {
+    if (!urlStr || typeof urlStr !== 'string') return false;
+    try {
+      const parsed = new URL(urlStr.trim());
+      if (parsed.protocol !== 'https:' && parsed.protocol !== 'http:') return false;
+
+      const host = parsed.hostname.toLowerCase();
+
+      // Domínios estritamente governamentais brasileiros (.gov.br / .leg.br / .jus.br)
+      if (/\.(?:gov|leg|jus)\.br$/i.test(host)) {
+        return true;
+      }
+
+      // Portais oficiais municipais de prefeituras, câmaras, COSEMS ou diários oficiais municipais
+      if (
+        /^(?:www\.)?(?:prefeitura|pm|saude|sms|camara|diariooficial|cosems)[a-z0-9.-]*\.(?:org\.br|com\.br|net\.br|br)$/i.test(
+          host
+        )
+      ) {
+        return true;
+      }
+
+      return false;
+    } catch (_e) {
+      return false;
+    }
+  },
+
+  /**
+   * Busca dinamicamente URLs oficiais candidatas para a REMUME do município.
+   * Combina catálogo de fontes conhecidas (se existir) + consulta determinística na web.
    * @private
    */
-  _httpGetTextoSeguro(urlStr, timeoutMs = 4000) {
+  async _buscarUrlsCandidatasGovBr(municipio, uf) {
+    const candidatas = [];
+    const urlsVistas = new Set();
+
+    const adicionarCandidata = (url, fonte = null) => {
+      if (!url || typeof url !== 'string') return;
+      const limpa = url.trim().replace(/[).,;'"<>]+$/, '');
+      if (!this._ehUrlOficialConfiavel(limpa)) return;
+      if (urlsVistas.has(limpa)) return;
+      urlsVistas.add(limpa);
+      candidatas.push({ url: limpa, fonte });
+    };
+
+    // 1. Verifica catálogo opcional fontes_oficiais.json caso exista em disco
+    const mapaFontesPath = path.join(__dirname, 'fontes_oficiais.json');
+    const mapaFontes = lerJsonSeguro(mapaFontesPath, null);
+    const slug = gerarSlugMunicipio(municipio, uf);
+    if (mapaFontes && mapaFontes[slug] && mapaFontes[slug].url) {
+      adicionarCandidata(mapaFontes[slug].url, mapaFontes[slug].fonte);
+    }
+
+    // 2. Consulta determinística em endpoints públicos de busca (DuckDuckGo HTML / Lite)
+    const consultas = [
+      `site:gov.br "REMUME" "${municipio}" "${uf}"`,
+      `site:gov.br "Relação Municipal de Medicamentos" "${municipio}" "${uf}"`
+    ];
+
+    for (const query of consultas) {
+      if (candidatas.length >= 6) break;
+      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
+      const resp = await this._httpGetBufferSeguro(searchUrl, 4500, 2);
+      if (!resp || !resp.buffer) continue;
+
+      const htmlBusca = resp.buffer.toString('utf8');
+      const linksExtraidos = this._extrairUrlsDeHtmlDeBusca(htmlBusca);
+      for (const link of linksExtraidos) {
+        adicionarCandidata(link);
+        if (candidatas.length >= 6) break;
+      }
+    }
+
+    return candidatas;
+  },
+
+  /**
+   * Extrai links reais (incluindo redirecionamentos codificados uddg=) de uma página HTML de busca.
+   * @private
+   */
+  _extrairUrlsDeHtmlDeBusca(html) {
+    if (!html || typeof html !== 'string') return [];
+    const encontrados = [];
+
+    // 1. Extrai parâmetros uddg= (padrão DuckDuckGo HTML)
+    const regexUddg = /[?&]uddg=([^&"'\s>]+)/gi;
+    let match;
+    while ((match = regexUddg.exec(html)) !== null) {
+      try {
+        const decoded = decodeURIComponent(match[1]);
+        if (decoded.startsWith('http')) {
+          encontrados.push(decoded);
+        }
+      } catch (_e) {
+        // Ignora URI malformada
+      }
+    }
+
+    // 2. Extrai atributos href="https://..." diretos
+    const regexHref = /href=["'](https?:\/\/[^"'\s>]+)["']/gi;
+    while ((match = regexHref.exec(html)) !== null) {
+      const url = match[1].replace(/&amp;/g, '&');
+      if (!url.includes('duckduckgo.com')) {
+        encontrados.push(url);
+      }
+    }
+
+    return encontrados;
+  },
+
+  /**
+   * Extrai texto limpo a partir de um Buffer HTTP (suporta HTML, Texto/CSV e PDF binário).
+   * @private
+   */
+  async _extrairTextoDeBuffer(buffer, contentType = '', urlStr = '') {
+    if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) return '';
+
+    const ctLower = String(contentType || '').toLowerCase();
+    const urlLower = String(urlStr || '').toLowerCase();
+    const cabecalhoAscii = buffer.subarray(0, 8).toString('ascii');
+
+    const ehPdf =
+      ctLower.includes('application/pdf') ||
+      urlLower.endsWith('.pdf') ||
+      cabecalhoAscii.startsWith('%PDF-');
+
+    if (ehPdf) {
+      return await this._extrairTextoDePdfBuffer(buffer);
+    }
+
+    // Decodificação resiliente UTF-8 com fallback automático para Latin1 (ISO-8859-1)
+    let texto = buffer.toString('utf8');
+    const totalReplacementChars = (texto.match(/\uFFFD/g) || []).length;
+    if (totalReplacementChars > 5 || ctLower.includes('iso-8859-1') || ctLower.includes('latin1')) {
+      texto = buffer.toString('latin1');
+    }
+
+    if (ctLower.includes('text/html') || /<(?:!doctype|html|head|body|table|div|p)\b/i.test(texto)) {
+      return this._limparHtmlParaTexto(texto);
+    }
+
+    return texto;
+  },
+
+  /**
+   * Converte HTML em texto estruturado linha a linha, preservando colunas de tabelas
+   * como delimitadores ";" para alimentar `extrairMedicamentosDeTextoBruto`.
+   * @private
+   */
+  _limparHtmlParaTexto(html) {
+    if (!html || typeof html !== 'string') return '';
+
+    let limpo = html
+      .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+      .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+      .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, ' ')
+      .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, ' ')
+      // Células de tabela viram separadores ";" para manter Nome ; Concentração ; Forma na mesma linha
+      .replace(/<\/t[dh]>/gi, ' ; ')
+      // Tags de quebra de bloco viram quebras de linha
+      .replace(/<\/(?:tr|p|div|li|h[1-6]|section|article|header|footer)>/gi, '\n')
+      .replace(/<(?:br|hr)\s*\/?>/gi, '\n')
+      // Remove demais tags HTML
+      .replace(/<[^>]+>/g, ' ');
+
+    // Decodifica entidades HTML farmacológicas e acentuação brasileira
+    const mapaEntidades = {
+      '&nbsp;': ' ',
+      '&amp;': '&',
+      '&quot;': '"',
+      '&#39;': "'",
+      '&lt;': '<',
+      '&gt;': '>',
+      '&ndash;': '-',
+      '&mdash;': '-',
+      '&bull;': '•',
+      '&micro;': 'mcg',
+      '&deg;': '°',
+      '&aacute;': 'á',
+      '&eacute;': 'é',
+      '&iacute;': 'í',
+      '&oacute;': 'ó',
+      '&uacute;': 'ú',
+      '&atilde;': 'ã',
+      '&otilde;': 'õ',
+      '&acirc;': 'â',
+      '&ecirc;': 'ê',
+      '&ocirc;': 'ô',
+      '&agrave;': 'à',
+      '&ccedil;': 'ç',
+      '&Aacute;': 'Á',
+      '&Eacute;': 'É',
+      '&Iacute;': 'Í',
+      '&Oacute;': 'Ó',
+      '&Uacute;': 'Ú',
+      '&Atilde;': 'Ã',
+      '&Otilde;': 'Õ',
+      '&Acirc;': 'Â',
+      '&Ecirc;': 'Ê',
+      '&Ocirc;': 'Ô',
+      '&Ccedil;': 'Ç'
+    };
+
+    limpo = limpo.replace(/&[a-zA-Z0-9#]+;/g, (entidade) => {
+      if (mapaEntidades[entidade] !== undefined) return mapaEntidades[entidade];
+      const matchDec = /^&#(\d+);$/.exec(entidade);
+      if (matchDec) {
+        const code = parseInt(matchDec[1], 10);
+        return code > 0 && code < 65535 ? String.fromCharCode(code) : ' ';
+      }
+      const matchHex = /^&#x([0-9a-fA-F]+);$/.exec(entidade);
+      if (matchHex) {
+        const code = parseInt(matchHex[1], 16);
+        return code > 0 && code < 65535 ? String.fromCharCode(code) : ' ';
+      }
+      return ' ';
+    });
+
+    return limpo
+      .split(/\r?\n/)
+      .map((l) => l.replace(/\s+/g, ' ').replace(/^(?:\s*;\s*)+|(?:\s*;\s*)+$/g, '').trim())
+      .filter(Boolean)
+      .join('\n');
+  },
+
+  /**
+   * Extrai texto de um Buffer PDF em Node.js 20+.
+   * Tenta usar `pdf-parse` se instalado; caso contrário, utiliza extrator nativo
+   * baseado em descompressão `zlib` (FlateDecode) e operadores de texto PDF (`Tj`, `TJ`).
+   * @private
+   */
+  async _extrairTextoDePdfBuffer(buffer) {
+    if (!buffer || !Buffer.isBuffer(buffer)) return '';
+
+    // 1. Tenta biblioteca `pdf-parse` caso esteja presente no node_modules
+    try {
+      const pdfParse = require('pdf-parse');
+      if (typeof pdfParse === 'function') {
+        const parsed = await pdfParse(buffer);
+        if (parsed && typeof parsed.text === 'string' && parsed.text.trim().length > 100) {
+          return parsed.text;
+        }
+      }
+    } catch (_e) {
+      // Continua para o extrator nativo puro Node.js (zlib FlateDecode)
+    }
+
+    // 2. Extrator nativo puro Node.js para streams PDF (FlateDecode e texto plano)
+    const rawLatin1 = buffer.toString('latin1');
+    const blocosTexto = [];
+
+    const extrairOperadoresTextoPdf = (conteudoStream) => {
+      const linhas = [];
+      let linhaAtual = [];
+
+      // Processa blocos BT ... ET ou o stream inteiro
+      const regexToken = /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")|\[((?:\\.|[^\]])*)\]\s*TJ|\b(Td|TD|T\*|ET)\b/g;
+      let m;
+      while ((m = regexToken.exec(conteudoStream)) !== null) {
+        const tokenCompleto = m[0];
+        const arrayTj = m[1];
+        const operadorQuebra = m[2];
+
+        if (operadorQuebra) {
+          if (linhaAtual.length > 0) {
+            linhas.push(linhaAtual.join(' ').replace(/\s+/g, ' ').trim());
+            linhaAtual = [];
+          }
+          continue;
+        }
+
+        if (arrayTj !== undefined) {
+          const partes = [];
+          const regexLiteral = /\(((?:\\.|[^\\()])*)\)/g;
+          let ml;
+          while ((ml = regexLiteral.exec(arrayTj)) !== null) {
+            partes.push(this._decodificarLiteralPdf(ml[1]));
+          }
+          if (partes.length > 0) {
+            linhaAtual.push(partes.join(''));
+          }
+        } else {
+          const idxFecha = tokenCompleto.lastIndexOf(')');
+          if (tokenCompleto.startsWith('(') && idxFecha > 0) {
+            const interior = tokenCompleto.slice(1, idxFecha);
+            linhaAtual.push(this._decodificarLiteralPdf(interior));
+          }
+        }
+      }
+
+      if (linhaAtual.length > 0) {
+        linhas.push(linhaAtual.join(' ').replace(/\s+/g, ' ').trim());
+      }
+      return linhas.filter((l) => l.length >= 3).join('\n');
+    };
+
+    // Localiza todos os blocos stream ... endstream no PDF
+    let cursor = 0;
+    while (cursor < rawLatin1.length) {
+      const idxStream = rawLatin1.indexOf('stream', cursor);
+      if (idxStream === -1) break;
+
+      const idxEndStream = rawLatin1.indexOf('endstream', idxStream + 6);
+      if (idxEndStream === -1) break;
+
+      let inicioDados = idxStream + 6;
+      if (rawLatin1[inicioDados] === '\r' && rawLatin1[inicioDados + 1] === '\n') {
+        inicioDados += 2;
+      } else if (rawLatin1[inicioDados] === '\n' || rawLatin1[inicioDados] === '\r') {
+        inicioDados += 1;
+      }
+
+      const fatiaBuffer = buffer.subarray(inicioDados, idxEndStream);
+      let textoStream = '';
+
+      // Tenta descompactar via zlib (FlateDecode padrão de PDFs modernos)
+      try {
+        const descompactado = zlib.unzipSync(fatiaBuffer);
+        textoStream = descompactado.toString('latin1');
+      } catch (_zErr1) {
+        try {
+          const descompactadoRaw = zlib.inflateSync(fatiaBuffer);
+          textoStream = descompactadoRaw.toString('latin1');
+        } catch (_zErr2) {
+          textoStream = fatiaBuffer.toString('latin1');
+        }
+      }
+
+      if (textoStream && (textoStream.includes('Tj') || textoStream.includes('TJ'))) {
+        const extraido = extrairOperadoresTextoPdf(textoStream);
+        if (extraido) blocosTexto.push(extraido);
+      }
+
+      cursor = idxEndStream + 9;
+    }
+
+    return blocosTexto.join('\n');
+  },
+
+  /**
+   * Decodifica sequências de escape e octais de strings literais de PDFs.
+   * @private
+   */
+  _decodificarLiteralPdf(str) {
+    if (!str) return '';
+    return str
+      .replace(/\\(\d{1,3})/g, (_m, octal) => String.fromCharCode(parseInt(octal, 8)))
+      .replace(/\\n/g, '\n')
+      .replace(/\\r/g, ' ')
+      .replace(/\\t/g, ' ')
+      .replace(/\\\(/g, '(')
+      .replace(/\\\)/g, ')')
+      .replace(/\\\\/g, '\\');
+  },
+
+  /**
+   * Realiza requisição HTTP/HTTPS GET retornando Buffer binário, Content-Type e URL final,
+   * com suporte seguro a redirecionamentos e timeout estrito.
+   * @private
+   */
+  _httpGetBufferSeguro(urlStr, timeoutMs = 5000, maxRedirects = 3) {
     return new Promise((resolve) => {
       try {
-        const client = urlStr.startsWith('https') ? https : http;
+        if (!urlStr || typeof urlStr !== 'string') return resolve(null);
+        const parsedUrl = new URL(urlStr);
+        const client = parsedUrl.protocol === 'https:' ? https : http;
+
         const req = client.get(
-          urlStr,
+          parsedUrl,
           {
             timeout: timeoutMs,
             headers: {
-              'User-Agent': 'meusRemedios-ClinicalSafetyVerifier/1.0',
-              Accept: 'text/plain, text/html, application/json, text/csv'
+              'User-Agent':
+                'Mozilla/5.0 (compatible; meusRemedios-ClinicalSafetyVerifier/2.0; +https://gov.br)',
+              Accept:
+                'text/html,application/xhtml+xml,application/pdf,text/plain,application/json,text/csv;q=0.9,*/*;q=0.8',
+              'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.5'
             }
           },
           (res) => {
-            if (res.statusCode < 200 || res.statusCode >= 300) {
+            const status = res.statusCode || 0;
+
+            // Segue redirecionamentos HTTP (301, 302, 303, 307, 308)
+            if ([301, 302, 303, 307, 308].includes(status) && res.headers.location) {
+              res.resume();
+              if (maxRedirects <= 0) return resolve(null);
+              try {
+                const nextUrl = new URL(res.headers.location, parsedUrl).toString();
+                return resolve(
+                  this._httpGetBufferSeguro(nextUrl, timeoutMs, maxRedirects - 1)
+                );
+              } catch (_redirErr) {
+                return resolve(null);
+              }
+            }
+
+            if (status < 200 || status >= 300) {
               res.resume();
               return resolve(null);
             }
-            let rawData = '';
-            res.setEncoding('utf8');
+
+            const chunks = [];
+            let totalBytes = 0;
+            const LIMITE_BYTES = 8 * 1024 * 1024; // 8 MB máx
+
             res.on('data', (chunk) => {
-              if (rawData.length < 2 * 1024 * 1024) {
-                rawData += chunk;
+              if (totalBytes < LIMITE_BYTES) {
+                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+                totalBytes += chunk.length;
               }
             });
-            res.on('end', () => resolve(rawData));
+
+            res.on('end', () => {
+              resolve({
+                buffer: Buffer.concat(chunks),
+                contentType: String(res.headers['content-type'] || ''),
+                statusCode: status,
+                finalUrl: parsedUrl.toString()
+              });
+            });
           }
         );
+
         req.on('timeout', () => {
           req.destroy();
           resolve(null);
@@ -1155,6 +1672,16 @@ const CatalogoRemumeService = {
         resolve(null);
       }
     });
+  },
+
+  /**
+   * Realiza requisição HTTP/HTTPS GET de texto com timeout curto (mantido por retrocompatibilidade).
+   * @private
+   */
+  async _httpGetTextoSeguro(urlStr, timeoutMs = 4500) {
+    const resp = await this._httpGetBufferSeguro(urlStr, timeoutMs, 3);
+    if (!resp || !resp.buffer) return null;
+    return await this._extrairTextoDeBuffer(resp.buffer, resp.contentType, resp.finalUrl || urlStr);
   },
 
   /**

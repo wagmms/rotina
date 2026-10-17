@@ -55,6 +55,10 @@ function construirTecladoHubRotina() {
       ],
       [
         {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
+      ],
+      [
+        {"text": "📆 Sincronizar Google", "callback_data": "rotina:cal_sync"},
+        {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
     ]
   };

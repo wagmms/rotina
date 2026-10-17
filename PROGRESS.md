@@ -15,10 +15,10 @@
 
 ## 🔄 Tarefa Concluída
  
-- [x] **Conexão Nativa com Google Calendar e Expurgo de Plantão Hardcoded na Central de Rotina (`server/google_calendar.js`, `server/runtime.js`, `src/06_rotina_agenda.js`, `src/07i_telegram_rotina_central.js`)**:
-    - **Arquivo/Módulo Alvo**: `server/google_calendar.js`, `server/runtime.js`, `src/06_rotina_agenda.js`, `src/07i_telegram_rotina_central.js` e `src/12_experiencia_bot.js`.
-    - **Função/Componente/Seletor**: `GoogleCalendarService.obterClientCredentials`, `GoogleCalendarService.obterTokenData`, `RotinaService.obterBlocosDoDia`, `RotinaService.aplicarInstrucao`, ação `rotina:cal_sync` e `enviarRotinaBot`.
-    - **Comportamento Esperado / Critério de Aceite**: Resolvida a falha de conexão com a Google Calendar API em ambientes de contêiner/Render via ponte com `PropertiesService` (`GOOGLE_CALENDAR_TOKEN_JSON` e `GOOGLE_CALENDAR_CREDS_JSON`). Eliminada a retenção de plantões falsos do Sniper na mesclagem da agenda viva, adicionado suporte explícito para remover plantão via instrução de texto/áudio e aprimorado o feedback e re-renderização do botão de sincronização no Telegram. Bateria completa com 57/57 suítes aprovadas com zero regressões.
+- [x] **Bloqueio Estrito de Valores Negativos em Sinais Vitais e Antropometria (`estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `index.html`, `cockpit_movel.html`, `src/clinical/soap_service.js`)**:
+    - **Arquivo/Módulo Alvo**: `estacao_soap.js`, `gh_cockpit_deploy/estacao_soap.js`, `index.html`, `cockpit_movel.html` e `src/clinical/soap_service.js`.
+    - **Função/Componente/Seletor**: Inputs `#soap-pas`, `#soap-pad`, `#soap-fc`, `#soap-fr`, `#soap-spo2`, `#soap-tax`, `#soap-peso`, `#soap-altura`, funções `configurarListenersEstacaoSoap`, `restaurarRascunhoSoap`, `calcularMetricasReativas`, `enviarParaEstacaoSoap` e `normalizeSoapInputPayload`.
+    - **Comportamento Esperado / Critério de Aceite**: Bloqueio completo da inserção de valores negativos nos campos de sinais vitais e antropometria. Configurado `min="0"` e `max` fisiológico no HTML; interceptação da tecla menos (`-`) no `keydown`; sanitização em tempo real no evento `input`; expurgo de valores negativos salvos no `localStorage`; validação com alerta prévio no envio; e rejeição estrita no backend. Suíte `tests/test_sinais_vitais_nao_negativos.cjs` aprovada com 4/4 testes.
  
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

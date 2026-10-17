@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 14:18:18
- * Checksum SHA256: 12aafed29d8956fa
+ * Gerado automaticamente via build_master.py em: 2026-10-17 14:20:24
+ * Checksum SHA256: fe15b52492f9e734
  * ==============================================================================
  */
 
@@ -63842,6 +63842,10 @@ function construirTecladoHubRotina() {
       ],
       [
         {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
+      ],
+      [
+        {"text": "📆 Sincronizar Google", "callback_data": "rotina:cal_sync"},
+        {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
     ]
   };

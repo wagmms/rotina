@@ -107,6 +107,19 @@ async function executarTestes() {
   assert(resPreceptorTexto.sucesso, 'Ação preceptor com texto digitado deve suceder.');
   assert(resPreceptorTexto.resposta.includes('Preceptor:'), 'Resposta deve conter a provocação do preceptor.');
 
+  // 3.1.b Ação preceptor via tema de ponto cego (sem texto digitado e sem caso SOAP prévio)
+  const resPreceptorTema = runtime.ctx.cockpitConversar(initDataValido, {
+    acao: 'preceptor',
+    tema: 'IAM',
+    area: 'Clínica Médica',
+    pontoAtencao: 'critérios de contraindicação do Nitrato no IAM de VD e PAS < 90 mmHg.',
+    perolaClinica: 'No IAM de parede inferior com extensão para ventrículo direito...',
+    diretriz: 'Regra de Ouro EMERGÊNCIA: Solicitar V3R, V4R e V7/V8...'
+  });
+  assert(resPreceptorTema.sucesso, 'Ação preceptor por tema deve suceder.');
+  assert(resPreceptorTema.resposta.includes('Preceptor:'), 'Resposta da IA deve ser gerada para o tema.');
+  assert.strictEqual(resPreceptorTema.tema, 'IAM', 'Tema deve ser retornado no resultado.');
+
   // 3.2 Upload de áudio gravado no Cockpit (Base64 string)
   let audioProcessado = false;
   runtime.ctx.processarAudioClinicoMultimodal = (b64, mime) => {
