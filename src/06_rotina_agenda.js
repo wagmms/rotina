@@ -515,6 +515,41 @@ var RotinaService = {
     var alterado = false;
     var resumoAcao = "";
 
+    // 1.1. Remoção ou cancelamento explícito de plantão (incluindo plantões de sniper ou testes)
+    if (/(?:remover|excluir|apagar|tirar|cancelar|dispensar)\s+(?:o\s+)?(?:plant[aã]o|cobertura|sniper)/i.test(instLower) ||
+        /(?:n[aã]o\s+vou|sem)\s+(?:ter\s+)?plant[aã]o/i.test(instLower)) {
+      var blocosSemPlantao = [];
+      var removidos = 0;
+      for (var ip = 0; ip < blocos.length; ip++) {
+        var bp = blocos[ip];
+        var ehPlantao = bp.categoria === "plantao" ||
+          (bp.id && String(bp.id).indexOf("plantao_sniper_") === 0) ||
+          (bp.nota && bp.nota.indexOf("Sniper") !== -1) ||
+          /plant[aã]o/i.test(bp.titulo || "");
+        if (ehPlantao) {
+          removidos++;
+        } else {
+          blocosSemPlantao.push(bp);
+        }
+      }
+      if (removidos > 0) {
+        RotinaService.salvarBlocosDoDia(dataRef, blocosSemPlantao);
+        return {
+          sucesso: true,
+          acao: "remover_plantao",
+          mensagem: "🗑️ *Plantão removido da rotina de hoje com sucesso!*",
+          blocos: blocosSemPlantao
+        };
+      } else {
+        return {
+          sucesso: true,
+          acao: "remover_plantao",
+          mensagem: "ℹ️ *Nenhum plantão ativo encontrado na timeline de hoje.*",
+          blocos: blocos
+        };
+      }
+    }
+
     // 2. Ativar descanso geral de treino
     if (/(?:modo\s+)?descanso(?:\s+total|\s+hoje)?|dia\s+de\s+descanso|hoje\s+([eé]|vai\s+ser)\s+descanso/i.test(instLower)) {
       for (var i = 0; i < blocos.length; i++) {
@@ -731,17 +766,17 @@ var RotinaService = {
         botoesAcao.push({ text: "✅ Treino Feito", callback_data: "rotina:check:treino" });
         botoesAcao.push({ text: "⏭️ Pular Treino", callback_data: "rotina:skip:treino" });
       } else if (b.categoria === "estudo" && b.status === "pendente" && botoesAcao.length < 2) {
-        botoesAcao.push({ text: "✅ MedQuest Feito", callback_data: "rotina:check:estudo" });
+        botoesAcao.push({ text: "✅ Estudo Feito", callback_data: "rotina:check:estudo" });
       }
     }
     if (botoesAcao.length > 0) {
       teclado.push(botoesAcao);
     }
 
-    // Linha 2: Ações de flexibilidade rápida
+    // Linha 2: Ações de flexibilidade e restauração
     teclado.push([
       { text: "✏️ Ajustar / Voz", callback_data: "rotina:ajustar" },
-      { text: "💤 Modo Descanso", callback_data: "rotina:descanso" }
+      { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" }
     ]);
 
     // Linha 3: Adiamento Rápido de Blocos
@@ -750,9 +785,8 @@ var RotinaService = {
       { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
     ]);
 
-    // Linha 4: Sincronização e Reset
+    // Linha 4: Sincronização Google Calendar
     teclado.push([
-      { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" },
       { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
     ]);
 

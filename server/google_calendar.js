@@ -33,6 +33,34 @@ class GoogleCalendarService {
     this._cacheTTL = 60 * 1000; // 1 minuto de cache
     this._tokenMemoria = null;
     this._credsMemoria = null;
+    this._propsGetter = null;
+    this._propsSetter = null;
+  }
+
+  /**
+   * Conecta ponte de persistência com PropertiesService / propsStore
+   */
+  setPropsBridge(getter, setter) {
+    this._propsGetter = getter;
+    this._propsSetter = setter;
+  }
+
+  _buscarPropriedade(chave) {
+    if (typeof this._propsGetter === 'function') {
+      try {
+        const val = this._propsGetter(chave);
+        if (val) return String(val).trim();
+      } catch (_) {}
+    }
+    return null;
+  }
+
+  _salvarPropriedade(chave, valor) {
+    if (typeof this._propsSetter === 'function') {
+      try {
+        this._propsSetter(chave, valor);
+      } catch (_) {}
+    }
   }
 
   /**
@@ -41,31 +69,68 @@ class GoogleCalendarService {
   obterClientCredentials() {
     if (this._credsMemoria) return this._credsMemoria;
 
-    // Prioridade 1: Variáveis de ambiente
+    // Prioridade 1: Variáveis de ambiente diretas
     const clientId = process.env.GOOGLE_CALENDAR_CLIENT_ID || process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CALENDAR_CLIENT_SECRET || process.env.GOOGLE_CLIENT_SECRET;
     if (clientId && clientSecret) {
       this._credsMemoria = {
-        client_id: clientId,
-        client_secret: clientSecret
+        client_id: clientId.trim(),
+        client_secret: clientSecret.trim()
       };
       return this._credsMemoria;
     }
 
-    // Prioridade 2: Arquivo credentials.json
-    if (fs.existsSync(this.credsPath)) {
+    // Prioridade 2: JSON completo nas variáveis de ambiente ou properties
+    const credsJsonRaw = process.env.GOOGLE_CALENDAR_CREDS_JSON || this._buscarPropriedade('GOOGLE_CALENDAR_CREDS_JSON');
+    if (credsJsonRaw) {
       try {
-        const raw = JSON.parse(fs.readFileSync(this.credsPath, 'utf8'));
-        const info = raw.installed || raw.web || raw;
+        const parsed = JSON.parse(credsJsonRaw);
+        const info = parsed.installed || parsed.web || parsed;
         if (info.client_id && info.client_secret) {
           this._credsMemoria = {
-            client_id: info.client_id,
-            client_secret: info.client_secret
+            client_id: info.client_id.trim(),
+            client_secret: info.client_secret.trim()
           };
           return this._credsMemoria;
         }
       } catch (e) {
-        console.warn('[GoogleCalendar] Falha ao ler credentials.json:', e.message);
+        console.warn('[GoogleCalendar] Falha ao ler GOOGLE_CALENDAR_CREDS_JSON:', e.message);
+      }
+    }
+
+    // Prioridade 3: Chaves separadas nas properties persistidas
+    const propClientId = this._buscarPropriedade('GOOGLE_CALENDAR_CLIENT_ID') || this._buscarPropriedade('GOOGLE_CLIENT_ID');
+    const propClientSecret = this._buscarPropriedade('GOOGLE_CALENDAR_CLIENT_SECRET') || this._buscarPropriedade('GOOGLE_CLIENT_SECRET');
+    if (propClientId && propClientSecret) {
+      this._credsMemoria = {
+        client_id: propClientId.trim(),
+        client_secret: propClientSecret.trim()
+      };
+      return this._credsMemoria;
+    }
+
+    // Prioridade 4: Arquivo credentials.json no caminho padrão ou data/
+    const possiveisCaminhos = [
+      this.credsPath,
+      path.join(ROOT_DIR, 'data', 'credentials.json'),
+      path.join(ROOT_DIR, 'credentials.json')
+    ];
+
+    for (const cPath of possiveisCaminhos) {
+      if (cPath && fs.existsSync(cPath)) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(cPath, 'utf8'));
+          const info = raw.installed || raw.web || raw;
+          if (info.client_id && info.client_secret) {
+            this._credsMemoria = {
+              client_id: info.client_id.trim(),
+              client_secret: info.client_secret.trim()
+            };
+            return this._credsMemoria;
+          }
+        } catch (e) {
+          console.warn(`[GoogleCalendar] Falha ao ler ${cPath}:`, e.message);
+        }
       }
     }
 
@@ -78,23 +143,57 @@ class GoogleCalendarService {
   obterTokenData() {
     if (this._tokenMemoria) return this._tokenMemoria;
 
-    // Prioridade 1: Arquivo token.json
-    if (fs.existsSync(this.tokenPath)) {
-      try {
-        const raw = JSON.parse(fs.readFileSync(this.tokenPath, 'utf8'));
-        this._tokenMemoria = raw;
-        return this._tokenMemoria;
-      } catch (e) {
-        console.warn('[GoogleCalendar] Falha ao ler token.json:', e.message);
+    // Prioridade 1: Arquivo token.json no caminho padrão ou data/
+    const possiveisCaminhos = [
+      this.tokenPath,
+      path.join(ROOT_DIR, 'data', 'token.json'),
+      path.join(ROOT_DIR, 'data', 'calendar_token.json'),
+      path.join(ROOT_DIR, 'token.json')
+    ];
+
+    for (const tPath of possiveisCaminhos) {
+      if (tPath && fs.existsSync(tPath)) {
+        try {
+          const raw = JSON.parse(fs.readFileSync(tPath, 'utf8'));
+          if (raw && (raw.refresh_token || raw.token)) {
+            this._tokenMemoria = raw;
+            return this._tokenMemoria;
+          }
+        } catch (e) {
+          console.warn(`[GoogleCalendar] Falha ao ler ${tPath}:`, e.message);
+        }
       }
     }
 
-    // Prioridade 2: Variáveis de ambiente
-    const refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN || process.env.GOOGLE_REFRESH_TOKEN;
+    // Prioridade 2: JSON completo de token via env ou properties
+    const tokenJsonRaw = process.env.GOOGLE_CALENDAR_TOKEN_JSON || this._buscarPropriedade('GOOGLE_CALENDAR_TOKEN_JSON');
+    if (tokenJsonRaw) {
+      try {
+        const raw = JSON.parse(tokenJsonRaw);
+        if (raw && (raw.refresh_token || raw.token)) {
+          this._tokenMemoria = raw;
+          return this._tokenMemoria;
+        }
+      } catch (e) {
+        console.warn('[GoogleCalendar] Falha ao ler GOOGLE_CALENDAR_TOKEN_JSON:', e.message);
+      }
+    }
+
+    // Prioridade 3: Refresh token nas variáveis de ambiente ou properties
+    const refreshToken = process.env.GOOGLE_CALENDAR_REFRESH_TOKEN ||
+      process.env.GOOGLE_REFRESH_TOKEN ||
+      this._buscarPropriedade('GOOGLE_CALENDAR_REFRESH_TOKEN') ||
+      this._buscarPropriedade('GOOGLE_REFRESH_TOKEN');
+
     if (refreshToken) {
+      const accessToken = process.env.GOOGLE_CALENDAR_ACCESS_TOKEN ||
+        process.env.GOOGLE_ACCESS_TOKEN ||
+        this._buscarPropriedade('GOOGLE_CALENDAR_ACCESS_TOKEN') ||
+        '';
+
       this._tokenMemoria = {
-        token: process.env.GOOGLE_CALENDAR_ACCESS_TOKEN || process.env.GOOGLE_ACCESS_TOKEN || '',
-        refresh_token: refreshToken,
+        token: accessToken,
+        refresh_token: refreshToken.trim(),
         account: this.account
       };
       return this._tokenMemoria;
@@ -108,13 +207,29 @@ class GoogleCalendarService {
    */
   salvarTokenData(novoTokenData) {
     this._tokenMemoria = { ...this._tokenMemoria, ...novoTokenData };
+
+    // 1. Tenta salvar no caminho padrão
     try {
       const dir = path.dirname(this.tokenPath);
       if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
       fs.writeFileSync(this.tokenPath, JSON.stringify(this._tokenMemoria, null, 2), 'utf8');
     } catch (e) {
-      console.warn('[GoogleCalendar] Aviso ao salvar token.json:', e.message);
+      // Ignora erro em ambientes com filesystem somente-leitura
     }
+
+    // 2. Tenta salvar na pasta data/ se existir
+    try {
+      const dataTokenPath = path.join(ROOT_DIR, 'data', 'calendar_token.json');
+      fs.writeFileSync(dataTokenPath, JSON.stringify(this._tokenMemoria, null, 2), 'utf8');
+    } catch (_) {}
+
+    // 3. Persiste via bridge de propriedades
+    try {
+      this._salvarPropriedade('GOOGLE_CALENDAR_TOKEN_JSON', JSON.stringify(this._tokenMemoria));
+      if (this._tokenMemoria.refresh_token) {
+        this._salvarPropriedade('GOOGLE_CALENDAR_REFRESH_TOKEN', this._tokenMemoria.refresh_token);
+      }
+    } catch (_) {}
   }
 
   /**

@@ -1974,9 +1974,10 @@ function enviarHubPrincipal(chat, messageId) {
   }
 
   var nomeSaudacao = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
-  var seloLoc = (ctx && ctx.municipio) ? ('📍 ' + ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : '🇧🇷 RENAME Nacional (SUS)';
+  var temMunicipio = ctx && ctx.municipio && !/^(brasil|rename|nacional)/i.test(String(ctx.municipio).trim());
+  var seloLoc = temMunicipio ? (' · 📍 ' + ctx.municipio + (ctx.uf && ctx.uf !== 'BR' ? '/' + ctx.uf : '')) : '';
   var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n' +
-    '👨‍⚕️ *' + nomeSaudacao + '* · ' + seloLoc + '\n' +
+    '👨‍⚕️ *' + nomeSaudacao + '*' + seloLoc + '\n' +
     'Selecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
@@ -2415,11 +2416,9 @@ function enviarRotinaBot(chat, messageId) {
 
   var botoes = botoesBot([
     [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
-    [['💤 Modo Descanso', 'rotina:descanso'], ['🔄 Restaurar Padrão', 'rotina:reset']],
-    [['📆 Sincronizar Google', 'rotina:cal_sync'], ['📆 Agenda de Hoje', 'ux:rotina:agenda']],
-    [['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha'], ['📋 Tarefas Notion', 'ux:rotina:tasks']],
-    [['🌙 Check-in Noturno', 'ux:rotina:checkin'], ['☀️ Briefing Matinal', 'ux:rotina:briefing']],
-    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
+    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
+    [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
+    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
     [['🏠 Início', 'ux:hub:inicio']]
   ]);
 
@@ -4976,8 +4975,8 @@ function enviarMenuCidadeERemume(chat, messageId) {
   var texto = '📍 *ESCOLHER CIDADE & CATÁLOGO REMUME (SUS)*\n\n' +
     '• *Catálogo Ativo:* `' + (ctx.municipio ? (ctx.municipio + '/' + (ctx.uf || '')) : 'RENAME Nacional (SUS)') + '` (`' + slugAtual + '`)\n\n' +
     'Toque em uma das cidades com preset imediato abaixo, ou digite:\n' +
-    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Uberlândia - MG`)\n\n' +
-    '🔎 _Se a cidade ainda não estiver nos presets, eu pesquiso automaticamente na internet por documentos oficiais da Prefeitura e, se você ou outro colega inserir uma REMUME nova, ela entra automaticamente nos presets para todos!_';
+    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Garrafão do Norte - PA`)\n\n' +
+    '🛡️ _Caso sua cidade ainda não esteja na lista de presets oficiais, o sistema ativa imediatamente seu perfil utilizando a RENAME Nacional (SUS) como linha de base segura e permite solicitar a inclusão da REMUME municipal com 1 toque!_';
 
   var linhas = [
     [[(slugAtual === 'rename_nacional' ? '✅ ' : '') + '🇧🇷 RENAME Nacional (Padrão SUS)', 'ux:cidade:set:rename_nacional']]
@@ -4995,7 +4994,6 @@ function enviarMenuCidadeERemume(chat, messageId) {
     linhas.push(row);
   }
 
-  linhas.push([['📥 Inserir REMUME de Outra Cidade', 'ux:remume:instrucoes']]);
   linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
 
   return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
@@ -5108,15 +5106,7 @@ function tratarCallbackCidadeRemume(chat, v, messageId) {
 
 function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
   if (v === 'instrucoes') {
-    var txtInst = '📥 *INSERIR REMUME MUNICIPAL (AUTO-PROMOÇÃO PARA PRESET)*\n\n' +
-      'Você pode cadastrar a REMUME da sua cidade a qualquer momento! Assim que os medicamentos forem validados, *sua cidade entra automaticamente nos presets oficiais* para ajudar outros colegas.\n\n' +
-      '💡 *Como enviar:*\n' +
-      'Digite `/importar_remume Cidade - UF` na primeira linha e cole a lista de medicamentos nas linhas abaixo:\n\n' +
-      '```text\n/importar_remume Bauru - SP\nAmoxicilina 500mg cápsula\nDipirona 500mg comprimido\nLosartana 50mg comprimido\nEnalapril 10mg comprimido\nOmeprazol 20mg cápsula\n```';
-    var kbInst = botoesBot([
-      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
-    ]);
-    return enviarTelaBot(chat, txtInst, kbInst, messageId);
+    return enviarMenuCidadeERemume(chat, messageId);
   }
   if (v && v.indexOf('solicitar:') === 0) {
     var resto = v.replace('solicitar:', '');
@@ -5148,9 +5138,9 @@ function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
       '• *Município solicitado:* `' + registro.municipio + (registro.uf ? ' - ' + registro.uf : '') + '`\n' +
       '• *Status:* Em fila de curadoria prioritária.\n\n' +
       '🔔 Assim que a REMUME oficial de *' + registro.municipio + '* for homologada, você receberá um aviso automático aqui no chat e seu perfil será atualizado!\n\n' +
-      '💡 _Enquanto isso, suas consultas estão protegidas pela RENAME Nacional (SUS). Se você tiver o PDF/lista da REMUME em mãos, pode cadastrá-la na hora clicando em Inserir REMUME abaixo:_';
+      '🛡️ _Enquanto isso, suas prescrições e condutas estão protegidas pela RENAME Nacional (SUS)._';
     var kbOk = botoesBot([
-      [['📥 Inserir REMUME Agora', 'ux:remume:instrucoes'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
     return enviarTelaBot(chat, msgOk, kbOk, messageId);
   }

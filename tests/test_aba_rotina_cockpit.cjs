@@ -62,13 +62,14 @@ assert.ok(htmlContent.includes('id="rotina-contador-total"'), 'Contador rotina-c
 assert.ok(htmlContent.includes('id="rotina-barra-progresso"'), 'Barra de progresso rotina-barra-progresso deve existir');
 assert.ok(htmlContent.includes('id="rotina-filtros-container"'), 'Container de filtros de categoria deve existir');
 assert.ok(htmlContent.includes('id="rotina-blocos-container"'), 'Container rotina-blocos-container deve existir');
-assert.ok(htmlContent.includes('RotinaTimeline.ativarModoDescanso()'), 'Ação rápida de modo descanso deve existir');
+// Elementos específicos individuais devem ser excluídos da UI genérica
+assert.ok(!htmlContent.includes('RotinaTimeline.ativarModoDescanso()'), 'Ação de modo descanso deve ter sido excluída da UI');
+assert.ok(!htmlContent.includes('id="rotina-duvidas-card"'), 'Gaveta rotina-duvidas-card deve ter sido excluída da UI');
+assert.ok(!htmlContent.includes('id="rotina-duvidas-lista"'), 'Lista rotina-duvidas-lista deve ter sido excluída da UI');
+assert.ok(!htmlContent.includes('id="input-nova-duvida-cockpit"'), 'Input de nova dúvida deve ter sido excluído da UI');
+assert.ok(!htmlContent.includes('RotinaTimeline.alternarGavetaDuvidas()'), 'Ação de alternar gaveta de dúvidas deve ter sido excluída da UI');
 assert.ok(htmlContent.includes('RotinaTimeline.carregarGradePadrao()'), 'Ação rápida de carregar grade padrão deve existir');
-assert.ok(htmlContent.includes('id="rotina-duvidas-card"'), 'Gaveta rotina-duvidas-card deve existir');
-assert.ok(htmlContent.includes('id="rotina-duvidas-lista"'), 'Lista rotina-duvidas-lista deve existir');
-assert.ok(htmlContent.includes('id="input-nova-duvida-cockpit"'), 'Input de nova dúvida deve existir');
 assert.ok(htmlContent.includes('data-filtro="lifestyle"'), 'Filtro de lifestyle deve existir');
-assert.ok(htmlContent.includes('RotinaTimeline.alternarGavetaDuvidas()'), 'Ação de alternar gaveta de dúvidas deve existir');
 assert.ok(htmlContent.includes('id="painel-aderencia-rotina"'), 'Painel de aderência semanal deve existir');
 assert.ok(htmlContent.includes('id="aderencia-pct-semanal"'), 'Badge de aderência percentual deve existir');
 assert.ok(htmlContent.includes('id="aderencia-eixos-grid"'), 'Grid de mini-barras por eixo deve existir');

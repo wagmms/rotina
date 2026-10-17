@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 14:00:09
- * Checksum SHA256: 07bdc46dfeccc9a7
+ * Gerado automaticamente via build_master.py em: 2026-10-17 14:18:18
+ * Checksum SHA256: 12aafed29d8956fa
  * ==============================================================================
  */
 
@@ -49088,18 +49088,22 @@ function extrairDadosEventoCalendario(textoMensagem, agoraDataRef) {
 function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
   var ctxCrit = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica fazendo uma sabatina à beira do leito com um interno.",
-    "Com base no caso informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico ou decisão de conduta em situação de risco. A pergunta deve exigir que o interno justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
+    "Você é um preceptor experiente de clínica médica e emergência fazendo uma sabatina à beira do leito com um médico interno/residente.",
+    "Com base no caso ou tema informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico, fisiopatologia aplicada ou decisão de conduta em situação de risco. A pergunta deve exigir que o médico justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
     "REGRAS:",
-    "1. Uma ou duas frases completas, terminando em interrogação (?).",
+    "1. Uma ou duas frases completas, terminando obrigatoriamente com ponto de interrogação (?).",
     "2. Sem introdução, saudação, gabarito ou rodeios. Comece direto na pergunta.",
-    "3. Não invente dados do paciente. Não assuma valores numéricos ou achados não mencionados. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
-    "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança."
+    "3. Se o texto for um caso específico de paciente, não invente dados fictícios. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
+    "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança hemodinâmica ou ventilatória.",
+    "5. Se for um tema clínico ou ponto cego do plantão (ex: IAM de VD, Sepse, CAD, EAP), formule uma provocação clínica afiada sobre contraindicações graves, metas ou conduta de ouro daquele cenário."
   ].join("\n");
-  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400, { thinkingBudget: 0, semThinking: true });
+  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO OU TEMA DO PLANTÃO:\n" + casoOuLeitoTexto, 400, { thinkingBudget: 0, semThinking: true });
   if (res) {
-    var limpo = _iaTextoFalado(res);
-    if (/\?\s*$/.test(limpo)) return limpo;
+    var limpo = _iaTextoFalado(res).replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    if (limpo && /\?/.test(limpo)) {
+      if (!/\?\s*$/.test(limpo) && !/[.!]$/.test(limpo)) limpo = limpo + '?';
+      return limpo;
+    }
     Logger.log("Crítica socrática incompleta; usando pergunta padrão");
   }
   return ctxCrit.saudacao + ", qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";
@@ -50134,6 +50138,41 @@ var RotinaService = {
     var alterado = false;
     var resumoAcao = "";
 
+    // 1.1. Remoção ou cancelamento explícito de plantão (incluindo plantões de sniper ou testes)
+    if (/(?:remover|excluir|apagar|tirar|cancelar|dispensar)\s+(?:o\s+)?(?:plant[aã]o|cobertura|sniper)/i.test(instLower) ||
+        /(?:n[aã]o\s+vou|sem)\s+(?:ter\s+)?plant[aã]o/i.test(instLower)) {
+      var blocosSemPlantao = [];
+      var removidos = 0;
+      for (var ip = 0; ip < blocos.length; ip++) {
+        var bp = blocos[ip];
+        var ehPlantao = bp.categoria === "plantao" ||
+          (bp.id && String(bp.id).indexOf("plantao_sniper_") === 0) ||
+          (bp.nota && bp.nota.indexOf("Sniper") !== -1) ||
+          /plant[aã]o/i.test(bp.titulo || "");
+        if (ehPlantao) {
+          removidos++;
+        } else {
+          blocosSemPlantao.push(bp);
+        }
+      }
+      if (removidos > 0) {
+        RotinaService.salvarBlocosDoDia(dataRef, blocosSemPlantao);
+        return {
+          sucesso: true,
+          acao: "remover_plantao",
+          mensagem: "🗑️ *Plantão removido da rotina de hoje com sucesso!*",
+          blocos: blocosSemPlantao
+        };
+      } else {
+        return {
+          sucesso: true,
+          acao: "remover_plantao",
+          mensagem: "ℹ️ *Nenhum plantão ativo encontrado na timeline de hoje.*",
+          blocos: blocos
+        };
+      }
+    }
+
     // 2. Ativar descanso geral de treino
     if (/(?:modo\s+)?descanso(?:\s+total|\s+hoje)?|dia\s+de\s+descanso|hoje\s+([eé]|vai\s+ser)\s+descanso/i.test(instLower)) {
       for (var i = 0; i < blocos.length; i++) {
@@ -50350,17 +50389,17 @@ var RotinaService = {
         botoesAcao.push({ text: "✅ Treino Feito", callback_data: "rotina:check:treino" });
         botoesAcao.push({ text: "⏭️ Pular Treino", callback_data: "rotina:skip:treino" });
       } else if (b.categoria === "estudo" && b.status === "pendente" && botoesAcao.length < 2) {
-        botoesAcao.push({ text: "✅ MedQuest Feito", callback_data: "rotina:check:estudo" });
+        botoesAcao.push({ text: "✅ Estudo Feito", callback_data: "rotina:check:estudo" });
       }
     }
     if (botoesAcao.length > 0) {
       teclado.push(botoesAcao);
     }
 
-    // Linha 2: Ações de flexibilidade rápida
+    // Linha 2: Ações de flexibilidade e restauração
     teclado.push([
       { text: "✏️ Ajustar / Voz", callback_data: "rotina:ajustar" },
-      { text: "💤 Modo Descanso", callback_data: "rotina:descanso" }
+      { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" }
     ]);
 
     // Linha 3: Adiamento Rápido de Blocos
@@ -50369,9 +50408,8 @@ var RotinaService = {
       { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
     ]);
 
-    // Linha 4: Sincronização e Reset
+    // Linha 4: Sincronização Google Calendar
     teclado.push([
-      { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" },
       { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
     ]);
 
@@ -52244,76 +52282,27 @@ function rotearComandoSistema(comando, texto, chatId) {
       }
       var cbSolicitar = "ux:remume:solicitar:" + munBusca.slice(0, 24).replace(/:/g, "") + ":" + (ufBusca || "BR").slice(0, 2);
       return enviarMensagemComTecladoParaChat(chatId,
-        "🔎 *Busca de REMUME para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
-        "⚠️ Não foi possível localizar automaticamente um documento oficial atualizado e verificável da REMUME de *" + munBusca + "* na internet (por segurança clínica, o sistema nunca inventa padronizações municipais).\n\n" +
-        "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura.\n\n" +
-        "👇 *O que você deseja fazer?*\n" +
-        "• Toque em **[📩 Solicitar REMUME ao Desenvolvedor]** para priorizarmos a inclusão oficial de *" + munBusca + "*.\n" +
-        "• Ou, se você tiver a lista/PDF em mãos, toque em **[📥 Inserir REMUME Agora]** (ao inserir, ela entra automaticamente nos presets da cidade!).",
+        "🔎 *Configuração de Cidade para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
+        "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura para cálculo de doses e receituário.\n\n" +
+        "• Ainda não há um preset municipal específico catalogado para *" + munBusca + "*.\n" +
+        "• Toque no botão abaixo para solicitar a inclusão oficial da REMUME da sua cidade aos desenvolvedores!",
         {
           inline_keyboard: [
             [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSolicitar }],
-            [{ text: "📥 Inserir REMUME Agora", callback_data: "ux:remume:instrucoes" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            [{ text: "🔙 Escolher Outra Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
           ]
         }
       );
     },
     "/importar_remume": function() {
-      var corpoImp = texto.replace(/^\/importar_remume\s*/i, "").trim();
-      var linhasImp = corpoImp.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
-      if (linhasImp.length < 2) {
-        var primeiraLinha = (linhasImp[0] || "").trim();
-        if (primeiraLinha) {
-          var partesCidPre = primeiraLinha.split(/[-/,]/);
-          var munPre = (partesCidPre[0] || primeiraLinha).trim();
-          var ufPre = (partesCidPre[1] || "").trim().toUpperCase();
-          var cbSol = "ux:remume:solicitar:" + munPre.slice(0, 24).replace(/:/g, "") + ":" + (ufPre || "BR").slice(0, 2);
-          var txtAviso = "⚠️ *Faltou colar a lista de medicamentos de " + munPre + (ufPre ? " - " + ufPre : "") + "!*\n\n" +
-            "Você informou o nome da cidade, mas o comando `/importar_remume` exige que a **relação de medicamentos venha colada na mesma mensagem**, a partir da 2ª linha.\n\n" +
-            "💡 *Como enviar corretamente (copie o modelo abaixo e cole seus remédios):*\n" +
-            "```text\n" +
-            "/importar_remume " + munPre + (ufPre ? " - " + ufPre : "") + "\n" +
-            "Amoxicilina 500mg cápsula\n" +
-            "Dipirona 500mg comprimido\n" +
-            "Losartana 50mg comprimido\n" +
-            "Omeprazol 20mg cápsula\n" +
-            "```\n\n" +
-            "👇 *Outras opções imediatas:*\n" +
-            "• Quer apenas ativar sua cidade no perfil agora? Use `/cidade " + munPre + (ufPre ? " - " + ufPre : "") + "` (você fica protegido pela RENAME Nacional do SUS para receitas e condutas).\n" +
-            "• Não tem a lista em mãos? Toque em **Solicitar ao Desenvolvedor** abaixo para priorizarmos a inclusão oficial!";
-          var kbAviso = {
-            inline_keyboard: [
-              [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSol }],
-              [{ text: "🔙 Escolher Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-            ]
-          };
-          return enviarMensagemComTecladoParaChat(chatId, txtAviso, kbAviso);
-        }
-        if (typeof tratarCallbackSolicitarOuImportarRemume === "function") {
-          return tratarCallbackSolicitarOuImportarRemume(chatId, "instrucoes");
-        }
-        return enviarMensagemParaChat(chatId, "📥 Envie `/importar_remume Cidade - UF` na primeira linha e a lista de medicamentos nas linhas seguintes.");
+      // Redirecionamento transparente e defensivo para a seleção de cidade
+      var argCid = texto.replace(/^\/importar_remume\s*/i, "").trim().split(/\r?\n/)[0].trim();
+      if (argCid) {
+        texto = "/cidade " + argCid;
+        return cmdHandlers["/cidade"]();
       }
-      var cabecalhoCid = linhasImp[0].trim();
-      var partesCab = cabecalhoCid.split(/[-/,]/);
-      var munImp = (partesCab[0] || "Município").trim();
-      var ufImp = (partesCab[1] || "BR").trim().toUpperCase();
-      var textoMeds = linhasImp.slice(1).join("\n");
-
-      if (typeof ConfigService !== "undefined" && typeof ConfigService.promoverRemumeParaPresetGlobal === "function") {
-        var resProm = ConfigService.promoverRemumeParaPresetGlobal(munImp, ufImp, textoMeds, "Colaboração Verificada via Telegram (" + munImp + ")", chatId);
-        if (resProm && resProm.sucesso) {
-          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
-          return enviarMensagemComTecladoParaChat(chatId,
-            "🎉 *REMUME de " + munImp + " (" + ufImp + ") Importada e Promovida para Preset Oficial!*\n\n" +
-            "• *Medicamentos Cadastrados:* `" + resProm.total + "`\n" +
-            "• *Preset Global:* `" + resProm.slug + "`\n\n" +
-            "✅ Sua cidade já está ativa no seu perfil e disponível automaticamente nos presets para todos os outros médicos e internos de *" + munImp + "*!",
-            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "📍 Ver Presets", callback_data: "ux:cidade:menu" }]] }
-          );
-        }
-      }
-      return enviarMensagemParaChat(chatId, "⚠️ Não foi possível extrair medicamentos válidos do texto enviado. Certifique-se de incluir nome e dosagem (ex: `Amoxicilina 500mg cápsula`).");
+      if (typeof enviarMenuCidadeERemume === "function") return enviarMenuCidadeERemume(chatId);
+      return enviarMensagemParaChat(chatId, "📍 Para escolher sua cidade de atuação, envie:\n`/cidade Nome da Cidade - UF`");
     },
     "/aprovar_remume": function() {
       if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) {
@@ -52513,10 +52502,6 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
     return { executado: true, resultado: enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.") };
   }
 
-  // 12. Dúvida MedQuest
-  if (texto === "🧠 Dúvida MedQuest") {
-    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`") };
-  }
 
   // 12.1. Minha Rotina
   if (texto === "📅 Minha Rotina" || texto === "📅 Minha rotina" || texto === "📅 Rotina") {
@@ -63826,7 +63811,8 @@ var TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_ = {
   "/briefing": true,
   "/rotina": true,
   "/sniper": true,
-  "/vagas": true
+  "/vagas": true,
+  "/piso": true
 };
 
 /**
@@ -63844,7 +63830,7 @@ function construirTecladoHubRotina() {
     "inline_keyboard": [
       [
         {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
-        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
       ],
       [
         {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
@@ -63852,10 +63838,6 @@ function construirTecladoHubRotina() {
       ],
       [
         {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
-        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
-      ],
-      [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
         {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
       ],
       [
@@ -63886,8 +63868,10 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   if (comando === "/agenda") {
     var paramAgenda = (texto || "").replace(/^\/agenda\s*/i, "").trim();
     res = (typeof consultarEventosAgenda === "function") ? consultarEventosAgenda(paramAgenda, chatId) : false;
-  } else if (comando === "/sniper" || comando === "/vagas") {
-    var argSniper = (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
+  } else if (comando === "/sniper" || comando === "/vagas" || comando === "/piso") {
+    var argSniper = (comando === "/piso")
+      ? ("piso " + (texto || "").replace(/^\/piso\s*/i, "").trim())
+      : (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
     res = (typeof tratarComandoSniperPlantoes === "function") ? tratarComandoSniperPlantoes(chatId, argSniper) : false;
   } else if (comando === "/task" || comando === "/tarefa") {
     var tarefaTexto = (texto || "").replace(/^\/(task|tarefa)\s*/i, "").trim();
@@ -64124,6 +64108,10 @@ function tratarCallbackRotina(cb) {
     if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
       GoogleCalendarService.limparCache();
     }
+    var stGcal = (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.obterStatus)
+      ? GoogleCalendarService.obterStatus()
+      : null;
+
     var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
     if (blocosFrescos && blocosFrescos.length > 0) {
       var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
@@ -64142,9 +64130,12 @@ function tratarCallbackRotina(cb) {
         }
       }
       RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
-      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
+      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados da Agenda Google!");
+    } else if (stGcal && (!stGcal.conectado || !stGcal.tokenValido)) {
+      responderCallbackTelegram(cb.id, "⚠️ Google Calendar desconectado. Renove as credenciais.");
     } else {
-      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
+      RotinaService.salvarBlocosDoDia(hoje, []);
+      responderCallbackTelegram(cb.id, "📆 Agenda verificada: nenhum evento registrado hoje.");
     }
   } else if (subAcao === "ajustar") {
     responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
@@ -64155,7 +64146,6 @@ function tratarCallbackRotina(cb) {
       "• _'Hoje vou estudar das 15h às 17h'_\n" +
       "• _'Sem cochilo hoje'_\n" +
       "• _'Troquei musculação por corrida de 40 min'_\n" +
-      "• _'Modo descanso'_\n" +
       "• _'Reset' (volta para a grade padrão)_";
     var kbDica = {
       inline_keyboard: [
@@ -68037,9 +68027,10 @@ function enviarHubPrincipal(chat, messageId) {
   }
 
   var nomeSaudacao = (typeof obterNomeTratamentoUsuario === 'function') ? obterNomeTratamentoUsuario(chat) : 'Doutor(a)';
-  var seloLoc = (ctx && ctx.municipio) ? ('📍 ' + ctx.municipio + (ctx.uf ? '/' + ctx.uf : '')) : '🇧🇷 RENAME Nacional (SUS)';
+  var temMunicipio = ctx && ctx.municipio && !/^(brasil|rename|nacional)/i.test(String(ctx.municipio).trim());
+  var seloLoc = temMunicipio ? (' · 📍 ' + ctx.municipio + (ctx.uf && ctx.uf !== 'BR' ? '/' + ctx.uf : '')) : '';
   var texto = '⚡ *Ultra Rotina · Central de Comandos Beira-Leito*\n' +
-    '👨‍⚕️ *' + nomeSaudacao + '* · ' + seloLoc + '\n' +
+    '👨‍⚕️ *' + nomeSaudacao + '*' + seloLoc + '\n' +
     'Selecione o cenário clínico ou envie o caso diretamente:';
 
   var urlApp = obterUrlCockpit(chat);
@@ -68478,11 +68469,9 @@ function enviarRotinaBot(chat, messageId) {
 
   var botoes = botoesBot([
     [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
-    [['💤 Modo Descanso', 'rotina:descanso'], ['🔄 Restaurar Padrão', 'rotina:reset']],
-    [['📆 Sincronizar Google', 'rotina:cal_sync'], ['📆 Agenda de Hoje', 'ux:rotina:agenda']],
-    [['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha'], ['📋 Tarefas Notion', 'ux:rotina:tasks']],
-    [['🌙 Check-in Noturno', 'ux:rotina:checkin'], ['☀️ Briefing Matinal', 'ux:rotina:briefing']],
-    [['🏁 Fim de Plantão', 'ux:rotina:plantao_fim'], ['🧠 Dúvida MedQuest', 'ux:rotina:duvida']],
+    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
+    [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
+    [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
     [['🏠 Início', 'ux:hub:inicio']]
   ]);
 
@@ -71039,8 +71028,8 @@ function enviarMenuCidadeERemume(chat, messageId) {
   var texto = '📍 *ESCOLHER CIDADE & CATÁLOGO REMUME (SUS)*\n\n' +
     '• *Catálogo Ativo:* `' + (ctx.municipio ? (ctx.municipio + '/' + (ctx.uf || '')) : 'RENAME Nacional (SUS)') + '` (`' + slugAtual + '`)\n\n' +
     'Toque em uma das cidades com preset imediato abaixo, ou digite:\n' +
-    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Uberlândia - MG`)\n\n' +
-    '🔎 _Se a cidade ainda não estiver nos presets, eu pesquiso automaticamente na internet por documentos oficiais da Prefeitura e, se você ou outro colega inserir uma REMUME nova, ela entra automaticamente nos presets para todos!_';
+    '👉 `/cidade Nome da Cidade - UF` (ex: `/cidade Campinas - SP` ou `/cidade Garrafão do Norte - PA`)\n\n' +
+    '🛡️ _Caso sua cidade ainda não esteja na lista de presets oficiais, o sistema ativa imediatamente seu perfil utilizando a RENAME Nacional (SUS) como linha de base segura e permite solicitar a inclusão da REMUME municipal com 1 toque!_';
 
   var linhas = [
     [[(slugAtual === 'rename_nacional' ? '✅ ' : '') + '🇧🇷 RENAME Nacional (Padrão SUS)', 'ux:cidade:set:rename_nacional']]
@@ -71058,7 +71047,6 @@ function enviarMenuCidadeERemume(chat, messageId) {
     linhas.push(row);
   }
 
-  linhas.push([['📥 Inserir REMUME de Outra Cidade', 'ux:remume:instrucoes']]);
   linhas.push([['🔙 Voltar ao Perfil', 'ux:perfil:menu'], ['🏠 Início', 'ux:hub:inicio']]);
 
   return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
@@ -71171,15 +71159,7 @@ function tratarCallbackCidadeRemume(chat, v, messageId) {
 
 function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
   if (v === 'instrucoes') {
-    var txtInst = '📥 *INSERIR REMUME MUNICIPAL (AUTO-PROMOÇÃO PARA PRESET)*\n\n' +
-      'Você pode cadastrar a REMUME da sua cidade a qualquer momento! Assim que os medicamentos forem validados, *sua cidade entra automaticamente nos presets oficiais* para ajudar outros colegas.\n\n' +
-      '💡 *Como enviar:*\n' +
-      'Digite `/importar_remume Cidade - UF` na primeira linha e cole a lista de medicamentos nas linhas abaixo:\n\n' +
-      '```text\n/importar_remume Bauru - SP\nAmoxicilina 500mg cápsula\nDipirona 500mg comprimido\nLosartana 50mg comprimido\nEnalapril 10mg comprimido\nOmeprazol 20mg cápsula\n```';
-    var kbInst = botoesBot([
-      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
-    ]);
-    return enviarTelaBot(chat, txtInst, kbInst, messageId);
+    return enviarMenuCidadeERemume(chat, messageId);
   }
   if (v && v.indexOf('solicitar:') === 0) {
     var resto = v.replace('solicitar:', '');
@@ -71211,9 +71191,9 @@ function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
       '• *Município solicitado:* `' + registro.municipio + (registro.uf ? ' - ' + registro.uf : '') + '`\n' +
       '• *Status:* Em fila de curadoria prioritária.\n\n' +
       '🔔 Assim que a REMUME oficial de *' + registro.municipio + '* for homologada, você receberá um aviso automático aqui no chat e seu perfil será atualizado!\n\n' +
-      '💡 _Enquanto isso, suas consultas estão protegidas pela RENAME Nacional (SUS). Se você tiver o PDF/lista da REMUME em mãos, pode cadastrá-la na hora clicando em Inserir REMUME abaixo:_';
+      '🛡️ _Enquanto isso, suas prescrições e condutas estão protegidas pela RENAME Nacional (SUS)._';
     var kbOk = botoesBot([
-      [['📥 Inserir REMUME Agora', 'ux:remume:instrucoes'], ['🏠 Início', 'ux:hub:inicio']]
+      [['🔙 Escolher Cidade', 'ux:cidade:menu'], ['🏠 Início', 'ux:hub:inicio']]
     ]);
     return enviarTelaBot(chat, msgOk, kbOk, messageId);
   }
@@ -72173,15 +72153,36 @@ function _cockpitAcaoPlano(chat, dadosAtuais) {
   return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
 }
 
-function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado) {
-  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
-  if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado, params) {
+  params = params || {};
+  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : '';
+  if (!casoPreceptor && params.tema) {
+    casoPreceptor = 'Tema Clínico: ' + params.tema +
+      (params.area ? ' (' + params.area + ')' : '') +
+      (params.pontoAtencao ? '\nPonto de Atenção: ' + params.pontoAtencao : '') +
+      (params.perolaClinica ? '\nPérola Clínica: ' + params.perolaClinica : '') +
+      (params.diretriz ? '\nDiretriz Salva-Vidas: ' + params.diretriz : '');
+  }
+  if (!casoPreceptor && dadosAtuais && dadosAtuais.trim()) {
+    casoPreceptor = dadosAtuais.trim();
+  }
+  if (!casoPreceptor) {
+    casoPreceptor = 'Plantão Geral de Emergência: Paciente agudo admitido na sala vermelha. Faça uma pergunta socrática discriminante sobre conduta crítica em emergência clínica.';
+  }
   var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
     ? gerarCriticaSocraticaPreceptor(casoPreceptor)
     : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
   var sview = PersistenciaBot.ler('soapview_' + chat);
   if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
-  return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
+  return {
+    sucesso: true,
+    acao: 'preceptor',
+    resposta: String(critica),
+    tema: params.tema || null,
+    area: params.area || null,
+    soap: sview ? sview.texto : '',
+    revision: estado ? estado.revision : null
+  };
 }
 
 function _cockpitAcaoPrescricao(chat, dadosAtuais, texto, estado) {
@@ -72266,7 +72267,7 @@ var DISPATCH_COCKPIT_ACOES = {
   novo: function(chat) { return _cockpitAcaoNovo(chat); },
   ef_normal: function(chat, dadosAtuais, p) { return _cockpitAcaoEfNormal(chat, dadosAtuais, p); },
   plano: function(chat, dadosAtuais) { return _cockpitAcaoPlano(chat, dadosAtuais); },
-  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est); },
+  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est, p); },
   prescricao: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPrescricao(chat, dadosAtuais, txt, est); }
 };
 
@@ -75964,6 +75965,7 @@ function _construirPainelGruposAllowlistTelegram(notaTopo) {
     "━━━━━━━━━━━━━━━━━━━━",
     "🔒 *Camada 1 (Hard-Coded):* 100% das conversas privadas (`@s.whatsapp.net`), Status e mensagens próprias são descartadas na memória.",
     "🛡️ *Camada 2 (Allowlist):* Somente grupos autorizados abaixo são lidos (*" + liberados + "/" + grupos.length + " liberados*).",
+    "📍 *Abrangência:* As cidades são definidas pelos grupos de WhatsApp em que você entrar (todas as vagas dos grupos liberados são aceitas sem filtro de cidade).",
     "",
     "*Toque em um grupo abaixo para alternar o nível de acesso:*",
     "• 🔴 *BLOQUEADO:* Ignora 100% do grupo.",
@@ -76007,7 +76009,6 @@ function _construirPainelSniperTelegram() {
     "🛡️ *Modo Fantasma (PV):* " + labelStealth,
     "🔒 *Blindagem WhatsApp:* Zero-Trust Ativo (*" + qtdLiberados + "/" + gruposAllowlist.length + " grupos liberados* | 100% chats privados bloqueados)",
     "💰 *Piso Mínimo (12h):* *R$ " + cfg.valorMinimo12h + "* (`R$ " + cfg.valorMinimoHora + "/h`)",
-    "📍 *Cidades:* " + (cfg.cidadesPermitidas || []).join(", "),
     "🩺 *Setores:* " + (cfg.setoresPermitidos || []).join(", "),
     "📅 *Sync Aba Rotina:* Ativo (Anti-Conflito + Auto-Bloco)",
     "",
@@ -76037,14 +76038,11 @@ function _construirPainelSniperTelegram() {
         }
       ],
       [
-        { text: "💰 Piso +R$100", callback_data: "sniper:val_up" },
-        { text: "💰 Piso -R$100", callback_data: "sniper:val_down" }
-      ],
-      [
-        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
+        { text: "💰 Definir Piso Mínimo", callback_data: "sniper:menu_piso" },
         { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" }
       ],
       [
+        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
         { text: "🛠️ Diagnóstico & Ferramentas", callback_data: "sniper:diag" }
       ],
       [
@@ -76100,6 +76098,25 @@ function tratarComandoSniperPlantoes(chatId, argTexto, msgId) {
     }
     enviarMensagemParaChat(chatId, resumo.join("\n"));
     return true;
+  } else if (arg.toLowerCase().indexOf("piso") === 0 || /^\d+$/.test(arg)) {
+    var valorStr = arg.replace(/^[^\d]*/, "").trim();
+    var valorNum = parseInt(valorStr, 10);
+    if (valorNum && valorNum >= 500 && valorNum <= 10000) {
+      var atualizado = PlantaoSniperService.salvarConfigSniper({ valorMinimo12h: valorNum });
+      enviarMensagemParaChat(
+        chatId,
+        "💰 *Piso Mínimo Atualizado com Sucesso!*\n\n" +
+        "Novo piso configurado: *R$ " + atualizado.valorMinimo12h + "/12h* (`R$ " + atualizado.valorMinimoHora + "/h`).\n" +
+        "Plantões com remuneração inferior a este piso serão recusados automaticamente."
+      );
+      return true;
+    } else {
+      enviarMensagemParaChat(
+        chatId,
+        "⚠️ *Valor inválido.* Envie um valor entre R$ 500 e R$ 10.000.\nExemplo: `/piso 1500` ou `/sniper piso 1600`"
+      );
+      return true;
+    }
   }
 
   var painel = _construirPainelSniperTelegram();
@@ -76203,6 +76220,55 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
     }
     var p3 = _construirPainelSniperTelegram();
     return _enviarOuEditarPainelSniper(chatId, msgId, token, p3.texto, p3.teclado);
+  }
+
+  if (acao === "menu_piso") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "💰 Selecione ou defina o piso", false);
+    }
+    var cfgPiso = PlantaoSniperService.obterConfigSniper();
+    var msgPiso = [
+      "💰 *DEFINIR PISO MÍNIMO DE PLANTÃO (12h)*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Piso atual configurado: *R$ " + cfgPiso.valorMinimo12h + "/12h* (`R$ " + cfgPiso.valorMinimoHora + "/h`)",
+      "",
+      "Selecione um piso comum abaixo com 1 toque, ou defina qualquer valor digitando `/piso <valor>` no chat (ex: `/piso 1600`):"
+    ].join("\n");
+
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, msgPiso, {
+      inline_keyboard: [
+        [
+          { text: "R$ 1.200", callback_data: "sniper:set_piso:1200" },
+          { text: "R$ 1.300", callback_data: "sniper:set_piso:1300" },
+          { text: "R$ 1.400", callback_data: "sniper:set_piso:1400" }
+        ],
+        [
+          { text: "R$ 1.500", callback_data: "sniper:set_piso:1500" },
+          { text: "R$ 1.600", callback_data: "sniper:set_piso:1600" },
+          { text: "R$ 1.800", callback_data: "sniper:set_piso:1800" }
+        ],
+        [
+          { text: "R$ 2.000", callback_data: "sniper:set_piso:2000" },
+          { text: "R$ 2.200", callback_data: "sniper:set_piso:2200" },
+          { text: "R$ 2.500", callback_data: "sniper:set_piso:2500" }
+        ],
+        [
+          { text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }
+        ]
+      ]
+    });
+  }
+
+  if (acao.indexOf("set_piso:") === 0) {
+    var vPiso = parseInt(acao.slice(9), 10);
+    if (vPiso && vPiso >= 500) {
+      PlantaoSniperService.salvarConfigSniper({ valorMinimo12h: vPiso });
+      if (cbId && typeof responderCallbackTelegram === "function") {
+        responderCallbackTelegram(cbId, "💰 Piso definido para R$ " + vPiso + "/12h!", false);
+      }
+    }
+    var pAtualizado = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, pAtualizado.texto, pAtualizado.teclado);
   }
 
   if (acao === "unlock_all") {

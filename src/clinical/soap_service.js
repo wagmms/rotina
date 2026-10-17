@@ -33,9 +33,13 @@ function normalizeSoapInputPayload(rawPayload = {}) {
         : {});
 
   // Migra campos demográficos enviados na raiz para patient_context
-  if (rawContext.idade === undefined && rawPayload.idade !== undefined && rawPayload.idade !== '' && rawPayload.idade !== null) {
+  if (rawContext.idade !== undefined && rawContext.idade !== '' && rawContext.idade !== null) {
+    const numIdade = Number(rawContext.idade);
+    if (!Number.isNaN(numIdade) && numIdade >= 0) rawContext.idade = numIdade;
+    else delete rawContext.idade;
+  } else if (rawPayload.idade !== undefined && rawPayload.idade !== '' && rawPayload.idade !== null) {
     const numIdade = Number(rawPayload.idade);
-    if (!Number.isNaN(numIdade)) rawContext.idade = numIdade;
+    if (!Number.isNaN(numIdade) && numIdade >= 0) rawContext.idade = numIdade;
   }
   if (rawContext.sexo === undefined && rawPayload.sexo) {
     const s = String(rawPayload.sexo).trim().toUpperCase();
@@ -54,16 +58,20 @@ function normalizeSoapInputPayload(rawPayload = {}) {
     }
   }
 
-  // Migra sinais vitais enviados na raiz para vitals
+  // Migra e valida estritamente sinais vitais (descarta valores não-numéricos ou negativos)
   const vitalKeys = ['pas', 'pad', 'fc', 'fr', 'tax', 'spo2', 'hgt', 'peso', 'altura', 'glasgow'];
   for (const k of vitalKeys) {
-    if ((rawVitals[k] === undefined || rawVitals[k] === null || rawVitals[k] === '') && rawPayload[k] !== undefined && rawPayload[k] !== null && rawPayload[k] !== '') {
-      const n = Number(rawPayload[k]);
-      if (!Number.isNaN(n)) rawVitals[k] = n;
-    } else if (rawVitals[k] !== undefined && rawVitals[k] !== null && rawVitals[k] !== '') {
-      const n = Number(rawVitals[k]);
-      if (!Number.isNaN(n)) rawVitals[k] = n;
-      else delete rawVitals[k];
+    let rawVal = rawVitals[k];
+    if (rawVal === undefined || rawVal === null || rawVal === '') {
+      rawVal = rawPayload[k];
+    }
+    if (rawVal !== undefined && rawVal !== null && rawVal !== '') {
+      const n = Number(rawVal);
+      if (!Number.isNaN(n) && n >= 0) {
+        rawVitals[k] = n;
+      } else {
+        delete rawVitals[k];
+      }
     } else {
       delete rawVitals[k];
     }

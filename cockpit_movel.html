@@ -1896,7 +1896,7 @@
           </div>
           <span class="text-[10px] font-mono text-slate-400">Zero-Click Emergency HUD</span>
         </div>
-        <div class="grid grid-cols-4 gap-1.5">
+        <div class="grid grid-cols-3 gap-1.5">
           <button type="button" onclick="if(typeof switchTab===\x27function\x27) switchTab(\x27tab-plantao\x27); else if(typeof navegarAba===\x27function\x27) navegarAba(\x27tab-plantao\x27, \x27Plantão & Sala Vermelha\x27);" class="min-h-[42px] p-2 rounded-xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-200 flex flex-col items-center justify-center gap-0.5 transition active:scale-95 shadow-sm">
             <i data-lucide="flame" class="w-4 h-4 text-rose-400"></i>
             <span class="text-[10px] font-extrabold">SRI / IOT</span>
@@ -1908,10 +1908,6 @@
           <button type="button" onclick="if(typeof abrirModalSbarPassagem===\x27function\x27) abrirModalSbarPassagem();" class="min-h-[42px] p-2 rounded-xl bg-emerald-500/20 hover:bg-emerald-500/30 border border-emerald-500/40 text-emerald-200 flex flex-col items-center justify-center gap-0.5 transition active:scale-95 shadow-sm">
             <i data-lucide="clipboard-list" class="w-4 h-4 text-emerald-400"></i>
             <span class="text-[10px] font-extrabold">Passar SBAR</span>
-          </button>
-          <button type="button" onclick="var inp = document.getElementById(\x27input-nova-duvida-cockpit\x27); if(inp) { inp.focus(); inp.scrollIntoView({ behavior: \x27smooth\x27 }); }" class="min-h-[42px] p-2 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 border border-purple-500/40 text-purple-200 flex flex-col items-center justify-center gap-0.5 transition active:scale-95 shadow-sm">
-            <i data-lucide="help-circle" class="w-4 h-4 text-purple-400"></i>
-            <span class="text-[10px] font-extrabold">+ Dúvida</span>
           </button>
         </div>
       </div>
@@ -2023,14 +2019,7 @@
         </div>
 
         <!-- Barra Rápida de Ajuste Biológico & Grade Padrão -->
-        <div class="flex items-center justify-between gap-2 text-[11px] flex-wrap">
-          <button
-            type="button"
-            onclick="if(window.RotinaTimeline) RotinaTimeline.ativarModoDescanso();"
-            class="px-2.5 py-1.5 rounded-xl bg-teal-500/15 hover:bg-teal-500/25 text-teal-300 border border-teal-500/30 font-semibold transition active:scale-95 flex items-center gap-1.5 shadow-sm"
-          >
-            <i data-lucide="coffee" class="w-3.5 h-3.5"></i> Pós-Plantão: Modo Descanso
-          </button>
+        <div class="flex items-center justify-end gap-2 text-[11px] flex-wrap">
           <button
             type="button"
             onclick="if(window.RotinaTimeline) (RotinaTimeline.carregarGradePadraoComConfirmacao ? RotinaTimeline.carregarGradePadraoComConfirmacao() : RotinaTimeline.carregarGradePadrao());"
@@ -2048,56 +2037,6 @@
           <div class="text-[10px] text-slate-500">Sincronizando blocos, plantões e metas MedQuest.</div>
         </div>
       </div>
-
-      <!-- 6. GAVETA INTELIGENTE DE DÚVIDAS MEDQUEST & PLANTÃO (COM 5 GRANDES ÁREAS R1) -->
-      <div id="rotina-duvidas-card" class="glass-card-accent p-3.5 rounded-2xl border border-purple-500/30 bg-slate-900/80 space-y-3">
-        <div class="flex items-center justify-between cursor-pointer" onclick="if(window.RotinaTimeline) RotinaTimeline.alternarGavetaDuvidas();">
-          <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-lg bg-purple-500/20 text-purple-300 flex items-center justify-center ring-1 ring-purple-500/30">
-              <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
-            </div>
-            <h4 class="text-xs sm:text-sm font-bold text-white flex items-center gap-1.5">
-              Caderno de Erros & Dúvidas MedQuest
-            </h4>
-            <span id="duvidas-contador-badge" class="text-[9.5px] px-1.5 py-0.2 rounded-full font-bold bg-purple-500/30 text-purple-200 border border-purple-500/40">0</span>
-          </div>
-          <button type="button" id="btn-toggle-gaveta-duvidas" class="text-slate-400 hover:text-slate-200 text-xs">
-            <i id="icone-toggle-duvidas" data-lucide="chevron-down" class="w-4 h-4 transition-transform duration-200"></i>
-          </button>
-        </div>
-
-        <div id="rotina-duvidas-conteudo" class="space-y-2.5 pt-1 border-t border-purple-500/10">
-          <!-- Seletor de Grande Área R1 para nova dúvida -->
-          <div class="flex items-center gap-1 overflow-x-auto pb-1 no-scrollbar" id="duvidas-areas-seletor">
-            <button type="button" data-area="Clínica" onclick="if(window.RotinaTimeline) RotinaTimeline.selecionarAreaDuvida(\x27Clínica\x27);" class="btn-area-duvida px-2 py-0.5 rounded-md text-[10px] font-bold bg-purple-500/30 text-purple-200 border border-purple-500/50">Clínica</button>
-            <button type="button" data-area="Cirurgia" onclick="if(window.RotinaTimeline) RotinaTimeline.selecionarAreaDuvida(\x27Cirurgia\x27);" class="btn-area-duvida px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">Cirurgia</button>
-            <button type="button" data-area="Pediatria" onclick="if(window.RotinaTimeline) RotinaTimeline.selecionarAreaDuvida(\x27Pediatria\x27);" class="btn-area-duvida px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">Pediatria</button>
-            <button type="button" data-area="GO" onclick="if(window.RotinaTimeline) RotinaTimeline.selecionarAreaDuvida(\x27GO\x27);" class="btn-area-duvida px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">G.O.</button>
-            <button type="button" data-area="Preventiva" onclick="if(window.RotinaTimeline) RotinaTimeline.selecionarAreaDuvida(\x27Preventiva\x27);" class="btn-area-duvida px-2 py-0.5 rounded-md text-[10px] font-medium bg-slate-800 text-slate-400 border border-slate-700">Preventiva</button>
-          </div>
-
-          <!-- Input Rápido de Nova Dúvida -->
-          <div class="flex items-center gap-2">
-            <input
-              id="input-nova-duvida-cockpit"
-              type="text"
-              placeholder="Ex: Critérios de Light, Manejo de Cetoacidose, DHEG..."
-              onkeydown="if(event.key===\x27Enter\x27 && window.RotinaTimeline) RotinaTimeline.adicionarDuvidaCockpit();"
-              class="flex-1 bg-slate-950/90 border border-slate-700/80 focus:border-purple-400 rounded-xl px-3 py-2 text-xs text-white placeholder-slate-500 outline-none"
-            />
-            <button
-              type="button"
-              onclick="if(window.RotinaTimeline) RotinaTimeline.adicionarDuvidaCockpit();"
-              class="min-h-[36px] px-3.5 py-2 rounded-xl bg-purple-600 hover:bg-purple-500 text-white text-xs font-bold transition active:scale-95 flex items-center gap-1 shrink-0 shadow-sm"
-            >
-              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Anotar
-            </button>
-          </div>
-
-          <!-- Lista de Dúvidas -->
-          <div id="rotina-duvidas-lista" class="space-y-1.5 max-h-56 overflow-y-auto pr-1 no-scrollbar text-xs">
-            <div class="text-[11px] text-slate-400 text-center py-2">Carregando dúvidas salvas...</div>
-          </div>
         </div>
       </div>
 
@@ -2826,35 +2765,35 @@
             <div class="grid grid-cols-4 gap-1.5">
               <div>
                 <label class="text-[9.5px] text-slate-400 block">PAS</label>
-                <input type="number" id="soap-pas" placeholder="120" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-pas" min="0" max="350" inputmode="numeric" autocomplete="off" placeholder="120" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">PAD</label>
-                <input type="number" id="soap-pad" placeholder="80" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-pad" min="0" max="250" inputmode="numeric" autocomplete="off" placeholder="80" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">FC (bpm)</label>
-                <input type="number" id="soap-fc" placeholder="78" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-fc" min="0" max="350" inputmode="numeric" autocomplete="off" placeholder="78" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">FR (irpm)</label>
-                <input type="number" id="soap-fr" placeholder="16" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-fr" min="0" max="120" inputmode="numeric" autocomplete="off" placeholder="16" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">SpO2 (%)</label>
-                <input type="number" id="soap-spo2" placeholder="98" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-spo2" min="0" max="100" inputmode="numeric" autocomplete="off" placeholder="98" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">Tax (°C)</label>
-                <input type="number" step="0.1" id="soap-tax" placeholder="36.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" step="0.1" id="soap-tax" min="0" max="45" inputmode="decimal" autocomplete="off" placeholder="36.5" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">Peso (kg)</label>
-                <input type="number" step="0.1" id="soap-peso" placeholder="70" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" step="0.1" id="soap-peso" min="0" max="500" inputmode="decimal" autocomplete="off" placeholder="70" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
               <div>
                 <label class="text-[9.5px] text-slate-400 block">Alt (cm)</label>
-                <input type="number" id="soap-altura" placeholder="175" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
+                <input type="number" id="soap-altura" min="0" max="300" inputmode="numeric" autocomplete="off" placeholder="175" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-1.5 py-1 text-xs text-center text-white focus:outline-none focus:border-cyan-500">
               </div>
             </div>
           </div>

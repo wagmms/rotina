@@ -180,6 +180,17 @@ function persistirPropriedades(imediato = false) {
   }, 150);
 }
 
+// Conecta a ponte de credenciais e persistência de token do Google Calendar
+if (typeof googleCalendarInstance.setPropsBridge === 'function') {
+  googleCalendarInstance.setPropsBridge(
+    (k) => propsStore[k] || null,
+    (k, v) => {
+      propsStore[k] = String(v);
+      persistirPropriedades(true);
+    }
+  );
+}
+
 process.on('beforeExit', () => {
   try {
     escreverPropriedades();

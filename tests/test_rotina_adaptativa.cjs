@@ -204,7 +204,7 @@ function runTests() {
   assert(teclado.inline_keyboard.length >= 3, "Teclado deve ter no mínimo 3 linhas");
   const todosBotoes = teclado.inline_keyboard.flat();
   assert(todosBotoes.some(b => b.callback_data === 'rotina:ajustar'), "Deve ter botão de ajustar");
-  assert(todosBotoes.some(b => b.callback_data === 'rotina:descanso'), "Deve ter botão de modo descanso");
+  assert(!todosBotoes.some(b => b.callback_data === 'rotina:descanso'), "Botão de modo descanso deve ser excluído da UI genérica");
   assert(todosBotoes.some(b => b.callback_data === 'rotina:reset'), "Deve ter botão de reset");
   console.log("✓ Teste 11: Teclado dinâmico da timeline validado");
 

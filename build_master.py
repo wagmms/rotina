@@ -80,6 +80,7 @@ def sincronizar_espelhos_cockpit():
     base_dir = os.path.dirname(__file__)
     pares_sincronia = [
         (os.path.join(base_dir, "cockpit_movel.html"), os.path.join(base_dir, "gh_cockpit_deploy", "index.html")),
+        (os.path.join(base_dir, "cockpit_movel.html"), os.path.join(base_dir, "gh_cockpit_deploy", "cockpit_movel.html")),
         (os.path.join(base_dir, "cockpit_movel.html"), os.path.join(base_dir, "index.html")),
         (os.path.join(base_dir, "rotina_timeline.js"), os.path.join(base_dir, "gh_cockpit_deploy", "rotina_timeline.js")),
         (os.path.join(base_dir, "sw.js"), os.path.join(base_dir, "gh_cockpit_deploy", "sw.js")),

@@ -1103,76 +1103,27 @@ function rotearComandoSistema(comando, texto, chatId) {
       }
       var cbSolicitar = "ux:remume:solicitar:" + munBusca.slice(0, 24).replace(/:/g, "") + ":" + (ufBusca || "BR").slice(0, 2);
       return enviarMensagemComTecladoParaChat(chatId,
-        "🔎 *Busca de REMUME para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
-        "⚠️ Não foi possível localizar automaticamente um documento oficial atualizado e verificável da REMUME de *" + munBusca + "* na internet (por segurança clínica, o sistema nunca inventa padronizações municipais).\n\n" +
-        "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura.\n\n" +
-        "👇 *O que você deseja fazer?*\n" +
-        "• Toque em **[📩 Solicitar REMUME ao Desenvolvedor]** para priorizarmos a inclusão oficial de *" + munBusca + "*.\n" +
-        "• Ou, se você tiver a lista/PDF em mãos, toque em **[📥 Inserir REMUME Agora]** (ao inserir, ela entra automaticamente nos presets da cidade!).",
+        "🔎 *Configuração de Cidade para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
+        "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura para cálculo de doses e receituário.\n\n" +
+        "• Ainda não há um preset municipal específico catalogado para *" + munBusca + "*.\n" +
+        "• Toque no botão abaixo para solicitar a inclusão oficial da REMUME da sua cidade aos desenvolvedores!",
         {
           inline_keyboard: [
             [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSolicitar }],
-            [{ text: "📥 Inserir REMUME Agora", callback_data: "ux:remume:instrucoes" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            [{ text: "🔙 Escolher Outra Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
           ]
         }
       );
     },
     "/importar_remume": function() {
-      var corpoImp = texto.replace(/^\/importar_remume\s*/i, "").trim();
-      var linhasImp = corpoImp.split(/\r?\n/).filter(function(l) { return l.trim().length > 0; });
-      if (linhasImp.length < 2) {
-        var primeiraLinha = (linhasImp[0] || "").trim();
-        if (primeiraLinha) {
-          var partesCidPre = primeiraLinha.split(/[-/,]/);
-          var munPre = (partesCidPre[0] || primeiraLinha).trim();
-          var ufPre = (partesCidPre[1] || "").trim().toUpperCase();
-          var cbSol = "ux:remume:solicitar:" + munPre.slice(0, 24).replace(/:/g, "") + ":" + (ufPre || "BR").slice(0, 2);
-          var txtAviso = "⚠️ *Faltou colar a lista de medicamentos de " + munPre + (ufPre ? " - " + ufPre : "") + "!*\n\n" +
-            "Você informou o nome da cidade, mas o comando `/importar_remume` exige que a **relação de medicamentos venha colada na mesma mensagem**, a partir da 2ª linha.\n\n" +
-            "💡 *Como enviar corretamente (copie o modelo abaixo e cole seus remédios):*\n" +
-            "```text\n" +
-            "/importar_remume " + munPre + (ufPre ? " - " + ufPre : "") + "\n" +
-            "Amoxicilina 500mg cápsula\n" +
-            "Dipirona 500mg comprimido\n" +
-            "Losartana 50mg comprimido\n" +
-            "Omeprazol 20mg cápsula\n" +
-            "```\n\n" +
-            "👇 *Outras opções imediatas:*\n" +
-            "• Quer apenas ativar sua cidade no perfil agora? Use `/cidade " + munPre + (ufPre ? " - " + ufPre : "") + "` (você fica protegido pela RENAME Nacional do SUS para receitas e condutas).\n" +
-            "• Não tem a lista em mãos? Toque em **Solicitar ao Desenvolvedor** abaixo para priorizarmos a inclusão oficial!";
-          var kbAviso = {
-            inline_keyboard: [
-              [{ text: "📩 Solicitar REMUME ao Desenvolvedor", callback_data: cbSol }],
-              [{ text: "🔙 Escolher Cidade", callback_data: "ux:cidade:menu" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
-            ]
-          };
-          return enviarMensagemComTecladoParaChat(chatId, txtAviso, kbAviso);
-        }
-        if (typeof tratarCallbackSolicitarOuImportarRemume === "function") {
-          return tratarCallbackSolicitarOuImportarRemume(chatId, "instrucoes");
-        }
-        return enviarMensagemParaChat(chatId, "📥 Envie `/importar_remume Cidade - UF` na primeira linha e a lista de medicamentos nas linhas seguintes.");
+      // Redirecionamento transparente e defensivo para a seleção de cidade
+      var argCid = texto.replace(/^\/importar_remume\s*/i, "").trim().split(/\r?\n/)[0].trim();
+      if (argCid) {
+        texto = "/cidade " + argCid;
+        return cmdHandlers["/cidade"]();
       }
-      var cabecalhoCid = linhasImp[0].trim();
-      var partesCab = cabecalhoCid.split(/[-/,]/);
-      var munImp = (partesCab[0] || "Município").trim();
-      var ufImp = (partesCab[1] || "BR").trim().toUpperCase();
-      var textoMeds = linhasImp.slice(1).join("\n");
-
-      if (typeof ConfigService !== "undefined" && typeof ConfigService.promoverRemumeParaPresetGlobal === "function") {
-        var resProm = ConfigService.promoverRemumeParaPresetGlobal(munImp, ufImp, textoMeds, "Colaboração Verificada via Telegram (" + munImp + ")", chatId);
-        if (resProm && resProm.sucesso) {
-          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
-          return enviarMensagemComTecladoParaChat(chatId,
-            "🎉 *REMUME de " + munImp + " (" + ufImp + ") Importada e Promovida para Preset Oficial!*\n\n" +
-            "• *Medicamentos Cadastrados:* `" + resProm.total + "`\n" +
-            "• *Preset Global:* `" + resProm.slug + "`\n\n" +
-            "✅ Sua cidade já está ativa no seu perfil e disponível automaticamente nos presets para todos os outros médicos e internos de *" + munImp + "*!",
-            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "📍 Ver Presets", callback_data: "ux:cidade:menu" }]] }
-          );
-        }
-      }
-      return enviarMensagemParaChat(chatId, "⚠️ Não foi possível extrair medicamentos válidos do texto enviado. Certifique-se de incluir nome e dosagem (ex: `Amoxicilina 500mg cápsula`).");
+      if (typeof enviarMenuCidadeERemume === "function") return enviarMenuCidadeERemume(chatId);
+      return enviarMensagemParaChat(chatId, "📍 Para escolher sua cidade de atuação, envie:\n`/cidade Nome da Cidade - UF`");
     },
     "/aprovar_remume": function() {
       if (typeof ehUsuarioTitular === "function" && !ehUsuarioTitular(chatId)) {
@@ -1372,10 +1323,6 @@ function rotearAtalhoTecladoFixo(texto, comando, chatId) {
     return { executado: true, resultado: enviarMensagemParaChat(chatId, "🎧 Grave ou envie um caso clínico para o Preceptor Socrático.") };
   }
 
-  // 12. Dúvida MedQuest
-  if (texto === "🧠 Dúvida MedQuest") {
-    return { executado: true, resultado: enviarMensagemParaChat(chatId, "🧠 *DÚVIDA MÉDICA (MEDQUEST)*\n\nDigite sua dúvida para arquivar no bloco de estudo noturno:\n💡 *Ex:* `/duvida Indicações de drenagem torácica no empiema`") };
-  }
 
   // 12.1. Minha Rotina
   if (texto === "📅 Minha Rotina" || texto === "📅 Minha rotina" || texto === "📅 Rotina") {

@@ -110,6 +110,30 @@ async function executarTestesSniperPlantoesRotina() {
   });
   assert.ok(callbacksRespondidos.length >= 3, 'Deve responder ao callback sniper:diag');
 
+  // Teste do novo menu de piso e definição direta de valor
+  ctx.processarCallbackBotao({
+    id: 'cb_sniper_4',
+    from: { id: chatId },
+    message: { message_id: 104, chat: { id: chatId } },
+    data: 'sniper:menu_piso'
+  });
+  assert.ok(callbacksRespondidos.length >= 4, 'Deve responder ao callback sniper:menu_piso');
+
+  ctx.processarCallbackBotao({
+    id: 'cb_sniper_5',
+    from: { id: chatId },
+    message: { message_id: 105, chat: { id: chatId } },
+    data: 'sniper:set_piso:1800'
+  });
+  const cfgPiso1800 = ctx.PlantaoSniperService.obterConfigSniper();
+  assert.strictEqual(cfgPiso1800.valorMinimo12h, 1800, 'Piso deve ter sido definido diretamente para 1800 via callback');
+
+  // Teste do comando direto /piso 1500
+  const resCmdPiso = ctx.despacharComandosRotinaEProdutividade('/piso', '/piso 1500', chatId, {});
+  assert.strictEqual(resCmdPiso.tratado, true, 'Comando /piso deve ser tratado pelo despachante de rotina');
+  const cfgPiso1500 = ctx.PlantaoSniperService.obterConfigSniper();
+  assert.strictEqual(cfgPiso1500.valorMinimo12h, 1500, 'Piso deve ter sido atualizado para 1500 via comando /piso');
+
   console.log('[5] Testando Blindagem Zero-Trust em Dupla Camada (Chats Privados, Status, FromMe e Allowlist de Grupos)...');
   const bridge = require('../server/whatsapp-bridge.js');
   const allowlistPadrao = ctx.PlantaoSniperService.obterGruposAllowlist();

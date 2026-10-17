@@ -3718,18 +3718,22 @@ function extrairDadosEventoCalendario(textoMensagem, agoraDataRef) {
 function gerarCriticaSocraticaPreceptor(casoOuLeitoTexto) {
   var ctxCrit = _obterBlocoContextoIaDinamico();
   var promptSistema = [
-    "Você é um preceptor experiente de clínica médica fazendo uma sabatina à beira do leito com um interno.",
-    "Com base no caso informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico ou decisão de conduta em situação de risco. A pergunta deve exigir que o interno justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
+    "Você é um preceptor experiente de clínica médica e emergência fazendo uma sabatina à beira do leito com um médico interno/residente.",
+    "Com base no caso ou tema informado, formule UMA ÚNICA pergunta clinicamente discriminante que teste raciocínio diagnóstico, fisiopatologia aplicada ou decisão de conduta em situação de risco. A pergunta deve exigir que o médico justifique a decisão, sem pegadinha e sem depender de detalhe não informado.",
     "REGRAS:",
-    "1. Uma ou duas frases completas, terminando em interrogação (?).",
+    "1. Uma ou duas frases completas, terminando obrigatoriamente com ponto de interrogação (?).",
     "2. Sem introdução, saudação, gabarito ou rodeios. Comece direto na pergunta.",
-    "3. Não invente dados do paciente. Não assuma valores numéricos ou achados não mencionados. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
-    "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança."
+    "3. Se o texto for um caso específico de paciente, não invente dados fictícios. Se o caso estiver omisso em dados críticos, pergunte o dado que falta. Não use LaTeX nem markdown. Português do Brasil natural.",
+    "4. Se o caso descrever instabilidade, a pergunta deve focar a prioridade imediata de segurança hemodinâmica ou ventilatória.",
+    "5. Se for um tema clínico ou ponto cego do plantão (ex: IAM de VD, Sepse, CAD, EAP), formule uma provocação clínica afiada sobre contraindicações graves, metas ou conduta de ouro daquele cenário."
   ].join("\n");
-  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO:\n" + casoOuLeitoTexto, 400, { thinkingBudget: 0, semThinking: true });
+  var res = executarRaciocinioClinico(promptSistema, "CASO CLÍNICO OU TEMA DO PLANTÃO:\n" + casoOuLeitoTexto, 400, { thinkingBudget: 0, semThinking: true });
   if (res) {
-    var limpo = _iaTextoFalado(res);
-    if (/\?\s*$/.test(limpo)) return limpo;
+    var limpo = _iaTextoFalado(res).replace(/^["'\s]+|["'\s]+$/g, '').trim();
+    if (limpo && /\?/.test(limpo)) {
+      if (!/\?\s*$/.test(limpo) && !/[.!]$/.test(limpo)) limpo = limpo + '?';
+      return limpo;
+    }
     Logger.log("Crítica socrática incompleta; usando pergunta padrão");
   }
   return ctxCrit.saudacao + ", qual o principal risco de descompensação aguda desse paciente nas próximas duas horas e qual a sua conduta imediata?";

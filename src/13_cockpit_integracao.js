@@ -833,15 +833,36 @@ function _cockpitAcaoPlano(chat, dadosAtuais) {
   return { sucesso: true, acao: 'plano', resposta: String(soapPlano), soap: String(soapPlano), revision: estPlano ? estPlano.revision : null };
 }
 
-function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado) {
-  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : (dadosAtuais ? dadosAtuais.trim() : '');
-  if (!casoPreceptor) throw new Error('Nenhum caso ativo ou digitado para solicitar provocação do preceptor.');
+function _cockpitAcaoPreceptor(chat, dadosAtuais, texto, estado, params) {
+  params = params || {};
+  var casoPreceptor = (texto && texto.trim()) ? texto.trim() : '';
+  if (!casoPreceptor && params.tema) {
+    casoPreceptor = 'Tema Clínico: ' + params.tema +
+      (params.area ? ' (' + params.area + ')' : '') +
+      (params.pontoAtencao ? '\nPonto de Atenção: ' + params.pontoAtencao : '') +
+      (params.perolaClinica ? '\nPérola Clínica: ' + params.perolaClinica : '') +
+      (params.diretriz ? '\nDiretriz Salva-Vidas: ' + params.diretriz : '');
+  }
+  if (!casoPreceptor && dadosAtuais && dadosAtuais.trim()) {
+    casoPreceptor = dadosAtuais.trim();
+  }
+  if (!casoPreceptor) {
+    casoPreceptor = 'Plantão Geral de Emergência: Paciente agudo admitido na sala vermelha. Faça uma pergunta socrática discriminante sobre conduta crítica em emergência clínica.';
+  }
   var critica = (typeof gerarCriticaSocraticaPreceptor === 'function')
     ? gerarCriticaSocraticaPreceptor(casoPreceptor)
     : 'Qual a sua principal hipótese diagnóstica e conduta imediata?';
   var sview = PersistenciaBot.ler('soapview_' + chat);
   if (typeof sview === 'string') { try { sview = JSON.parse(sview); } catch(e) {} }
-  return { sucesso: true, acao: 'preceptor', resposta: String(critica), soap: sview ? sview.texto : '', revision: estado ? estado.revision : null };
+  return {
+    sucesso: true,
+    acao: 'preceptor',
+    resposta: String(critica),
+    tema: params.tema || null,
+    area: params.area || null,
+    soap: sview ? sview.texto : '',
+    revision: estado ? estado.revision : null
+  };
 }
 
 function _cockpitAcaoPrescricao(chat, dadosAtuais, texto, estado) {
@@ -926,7 +947,7 @@ var DISPATCH_COCKPIT_ACOES = {
   novo: function(chat) { return _cockpitAcaoNovo(chat); },
   ef_normal: function(chat, dadosAtuais, p) { return _cockpitAcaoEfNormal(chat, dadosAtuais, p); },
   plano: function(chat, dadosAtuais) { return _cockpitAcaoPlano(chat, dadosAtuais); },
-  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est); },
+  preceptor: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPreceptor(chat, dadosAtuais, txt, est, p); },
   prescricao: function(chat, dadosAtuais, p, txt, est) { return _cockpitAcaoPrescricao(chat, dadosAtuais, txt, est); }
 };
 

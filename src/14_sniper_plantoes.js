@@ -1427,6 +1427,7 @@ function _construirPainelGruposAllowlistTelegram(notaTopo) {
     "━━━━━━━━━━━━━━━━━━━━",
     "🔒 *Camada 1 (Hard-Coded):* 100% das conversas privadas (`@s.whatsapp.net`), Status e mensagens próprias são descartadas na memória.",
     "🛡️ *Camada 2 (Allowlist):* Somente grupos autorizados abaixo são lidos (*" + liberados + "/" + grupos.length + " liberados*).",
+    "📍 *Abrangência:* As cidades são definidas pelos grupos de WhatsApp em que você entrar (todas as vagas dos grupos liberados são aceitas sem filtro de cidade).",
     "",
     "*Toque em um grupo abaixo para alternar o nível de acesso:*",
     "• 🔴 *BLOQUEADO:* Ignora 100% do grupo.",
@@ -1470,7 +1471,6 @@ function _construirPainelSniperTelegram() {
     "🛡️ *Modo Fantasma (PV):* " + labelStealth,
     "🔒 *Blindagem WhatsApp:* Zero-Trust Ativo (*" + qtdLiberados + "/" + gruposAllowlist.length + " grupos liberados* | 100% chats privados bloqueados)",
     "💰 *Piso Mínimo (12h):* *R$ " + cfg.valorMinimo12h + "* (`R$ " + cfg.valorMinimoHora + "/h`)",
-    "📍 *Cidades:* " + (cfg.cidadesPermitidas || []).join(", "),
     "🩺 *Setores:* " + (cfg.setoresPermitidos || []).join(", "),
     "📅 *Sync Aba Rotina:* Ativo (Anti-Conflito + Auto-Bloco)",
     "",
@@ -1500,14 +1500,11 @@ function _construirPainelSniperTelegram() {
         }
       ],
       [
-        { text: "💰 Piso +R$100", callback_data: "sniper:val_up" },
-        { text: "💰 Piso -R$100", callback_data: "sniper:val_down" }
-      ],
-      [
-        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
+        { text: "💰 Definir Piso Mínimo", callback_data: "sniper:menu_piso" },
         { text: "🚫 Blacklist Anti-Calote", callback_data: "sniper:blacklist" }
       ],
       [
+        { text: "📱 Parear Whats (8 Dígitos)", callback_data: "sniper:pair_wa" },
         { text: "🛠️ Diagnóstico & Ferramentas", callback_data: "sniper:diag" }
       ],
       [
@@ -1563,6 +1560,25 @@ function tratarComandoSniperPlantoes(chatId, argTexto, msgId) {
     }
     enviarMensagemParaChat(chatId, resumo.join("\n"));
     return true;
+  } else if (arg.toLowerCase().indexOf("piso") === 0 || /^\d+$/.test(arg)) {
+    var valorStr = arg.replace(/^[^\d]*/, "").trim();
+    var valorNum = parseInt(valorStr, 10);
+    if (valorNum && valorNum >= 500 && valorNum <= 10000) {
+      var atualizado = PlantaoSniperService.salvarConfigSniper({ valorMinimo12h: valorNum });
+      enviarMensagemParaChat(
+        chatId,
+        "💰 *Piso Mínimo Atualizado com Sucesso!*\n\n" +
+        "Novo piso configurado: *R$ " + atualizado.valorMinimo12h + "/12h* (`R$ " + atualizado.valorMinimoHora + "/h`).\n" +
+        "Plantões com remuneração inferior a este piso serão recusados automaticamente."
+      );
+      return true;
+    } else {
+      enviarMensagemParaChat(
+        chatId,
+        "⚠️ *Valor inválido.* Envie um valor entre R$ 500 e R$ 10.000.\nExemplo: `/piso 1500` ou `/sniper piso 1600`"
+      );
+      return true;
+    }
   }
 
   var painel = _construirPainelSniperTelegram();
@@ -1666,6 +1682,55 @@ function tratarCallbackSniperPlantoes(cb, data, ctx) {
     }
     var p3 = _construirPainelSniperTelegram();
     return _enviarOuEditarPainelSniper(chatId, msgId, token, p3.texto, p3.teclado);
+  }
+
+  if (acao === "menu_piso") {
+    if (cbId && typeof responderCallbackTelegram === "function") {
+      responderCallbackTelegram(cbId, "💰 Selecione ou defina o piso", false);
+    }
+    var cfgPiso = PlantaoSniperService.obterConfigSniper();
+    var msgPiso = [
+      "💰 *DEFINIR PISO MÍNIMO DE PLANTÃO (12h)*",
+      "━━━━━━━━━━━━━━━━━━━━",
+      "Piso atual configurado: *R$ " + cfgPiso.valorMinimo12h + "/12h* (`R$ " + cfgPiso.valorMinimoHora + "/h`)",
+      "",
+      "Selecione um piso comum abaixo com 1 toque, ou defina qualquer valor digitando `/piso <valor>` no chat (ex: `/piso 1600`):"
+    ].join("\n");
+
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, msgPiso, {
+      inline_keyboard: [
+        [
+          { text: "R$ 1.200", callback_data: "sniper:set_piso:1200" },
+          { text: "R$ 1.300", callback_data: "sniper:set_piso:1300" },
+          { text: "R$ 1.400", callback_data: "sniper:set_piso:1400" }
+        ],
+        [
+          { text: "R$ 1.500", callback_data: "sniper:set_piso:1500" },
+          { text: "R$ 1.600", callback_data: "sniper:set_piso:1600" },
+          { text: "R$ 1.800", callback_data: "sniper:set_piso:1800" }
+        ],
+        [
+          { text: "R$ 2.000", callback_data: "sniper:set_piso:2000" },
+          { text: "R$ 2.200", callback_data: "sniper:set_piso:2200" },
+          { text: "R$ 2.500", callback_data: "sniper:set_piso:2500" }
+        ],
+        [
+          { text: "🔙 Voltar ao Painel Sniper", callback_data: "sniper:painel" }
+        ]
+      ]
+    });
+  }
+
+  if (acao.indexOf("set_piso:") === 0) {
+    var vPiso = parseInt(acao.slice(9), 10);
+    if (vPiso && vPiso >= 500) {
+      PlantaoSniperService.salvarConfigSniper({ valorMinimo12h: vPiso });
+      if (cbId && typeof responderCallbackTelegram === "function") {
+        responderCallbackTelegram(cbId, "💰 Piso definido para R$ " + vPiso + "/12h!", false);
+      }
+    }
+    var pAtualizado = _construirPainelSniperTelegram();
+    return _enviarOuEditarPainelSniper(chatId, msgId, token, pAtualizado.texto, pAtualizado.teclado);
   }
 
   if (acao === "unlock_all") {

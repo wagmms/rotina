@@ -97,16 +97,15 @@ async function executarTestesCentralRotinaPlantaoUX() {
   const textosPrincipal = extrairTextosBotoes(msgPrincipal.kb);
 
   assert.ok(cbsPrincipal.includes('rotina:ajustar'), 'Deve conter botão Ajustar Rotina');
-  assert.ok(cbsPrincipal.includes('rotina:descanso'), 'Deve conter botão Modo Descanso');
+  assert.ok(!cbsPrincipal.includes('rotina:descanso'), 'Central de Rotina NÃO deve conter botão Modo Descanso');
   assert.ok(cbsPrincipal.includes('rotina:reset'), 'Deve conter botão Restaurar Padrão');
   assert.ok(cbsPrincipal.includes('rotina:cal_sync'), 'Deve conter botão Sincronizar Google');
   assert.ok(cbsPrincipal.includes('ux:rotina:agenda'), 'Deve conter botão Agenda de Hoje');
   assert.ok(cbsPrincipal.includes('ux:rotina:agenda_amanha'), 'Deve conter botão Agenda de Amanhã');
-  assert.ok(cbsPrincipal.includes('ux:rotina:tasks'), 'Deve conter botão Tarefas Notion');
+  assert.ok(!cbsPrincipal.includes('ux:rotina:tasks'), 'Central de Rotina NÃO deve conter botão Tarefas Notion');
   assert.ok(cbsPrincipal.includes('ux:rotina:briefing'), 'Deve conter botão Briefing Matinal');
   assert.ok(cbsPrincipal.includes('ux:rotina:checkin'), 'Deve conter botão Check-in Noturno');
-  assert.ok(cbsPrincipal.includes('ux:rotina:plantao_fim'), 'Deve conter botão Fim de Plantão');
-  assert.ok(cbsPrincipal.includes('ux:rotina:duvida'), 'Deve conter botão Dúvida MedQuest');
+  assert.ok(!cbsPrincipal.includes('ux:rotina:duvida'), 'Central de Rotina NÃO deve conter botão Dúvida MedQuest');
   assert.ok(cbsPrincipal.includes('ux:hub:inicio'), 'Deve conter botão [🏠 Início]');
 
   // Teste de segurança: usuário não-titular
@@ -211,7 +210,8 @@ async function executarTestesCentralRotinaPlantaoUX() {
   assert.ok(mensagensEnviadas[0].texto.includes('Central de Rotina & Lifestyle Adaptativo') || mensagensEnviadas[0].texto.includes('HUB DE ROTINA & PRODUTIVIDADE'), 'Deve abrir a Central de Rotina');
   const cbsSlashRotina = extrairCallbacks(mensagensEnviadas[0].kb);
   assert.ok(cbsSlashRotina.includes('ux:rotina:agenda') || cbsSlashRotina.includes('rotina_agenda'), '/rotina deve ter agenda');
-  assert.ok(cbsSlashRotina.includes('ux:rotina:tasks') || cbsSlashRotina.includes('rotina_tasks'), '/rotina deve ter tasks');
+  assert.ok(!cbsSlashRotina.includes('ux:rotina:tasks') && !cbsSlashRotina.includes('rotina_tasks'), '/rotina NÃO deve ter tasks Notion');
+  assert.ok(!cbsSlashRotina.includes('rotina_duvida'), '/rotina NÃO deve ter duvida MedQuest');
   assert.ok(cbsSlashRotina.includes('ux:rotina:briefing') || cbsSlashRotina.includes('rotina_briefing'), '/rotina deve ter briefing');
   assert.ok(cbsSlashRotina.includes('ux:rotina:checkin') || cbsSlashRotina.includes('rotina_checkin'), '/rotina deve ter checkin');
 

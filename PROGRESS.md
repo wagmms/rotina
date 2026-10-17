@@ -15,10 +15,10 @@
 
 ## 🔄 Tarefa Concluída
  
-- [x] **Expurgo de Tokens Base64 de Equipe e Modernização da Configuração de Unidade (`src/12_experiencia_bot.js`, `src/07a_telegram_router.js`, `tests/test_multi_localidade_whitelabel.cjs`)**:
-    - **Expurgo do Token Base64 Inútil**: Eliminada a tela poluída de "Compartilhamento de Equipe" (`EQP-...`) e o comando `/importar_unidade` como fluxo primário.
-    - **Nova Tela e Fluxo de Unidade de Saúde (`enviarTelaUnidadeSaude`)**: Botão no `/perfil` atualizado para `[🏥 Unidade / Hospital (/unidade)]`. Ao tocar ou enviar `/unidade`, exibe a unidade atual e exemplos objetivos de como alterá-la (`/unidade UPA 24h Central`, `/unidade Hospital das Clínicas`).
-    - **Testes Aprovados**: `tests/test_multi_localidade_whitelabel.cjs` validado com zero regressões.
+- [x] **Conexão Nativa com Google Calendar e Expurgo de Plantão Hardcoded na Central de Rotina (`server/google_calendar.js`, `server/runtime.js`, `src/06_rotina_agenda.js`, `src/07i_telegram_rotina_central.js`)**:
+    - **Arquivo/Módulo Alvo**: `server/google_calendar.js`, `server/runtime.js`, `src/06_rotina_agenda.js`, `src/07i_telegram_rotina_central.js` e `src/12_experiencia_bot.js`.
+    - **Função/Componente/Seletor**: `GoogleCalendarService.obterClientCredentials`, `GoogleCalendarService.obterTokenData`, `RotinaService.obterBlocosDoDia`, `RotinaService.aplicarInstrucao`, ação `rotina:cal_sync` e `enviarRotinaBot`.
+    - **Comportamento Esperado / Critério de Aceite**: Resolvida a falha de conexão com a Google Calendar API em ambientes de contêiner/Render via ponte com `PropertiesService` (`GOOGLE_CALENDAR_TOKEN_JSON` e `GOOGLE_CALENDAR_CREDS_JSON`). Eliminada a retenção de plantões falsos do Sniper na mesclagem da agenda viva, adicionado suporte explícito para remover plantão via instrução de texto/áudio e aprimorado o feedback e re-renderização do botão de sincronização no Telegram. Bateria completa com 57/57 suítes aprovadas com zero regressões.
  
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

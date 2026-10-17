@@ -24,7 +24,8 @@ var TABELA_COMANDOS_ROTINA_PRODUTIVIDADE_ = {
   "/briefing": true,
   "/rotina": true,
   "/sniper": true,
-  "/vagas": true
+  "/vagas": true,
+  "/piso": true
 };
 
 /**
@@ -42,7 +43,7 @@ function construirTecladoHubRotina() {
     "inline_keyboard": [
       [
         {"text": "📅 Agenda Hoje", "callback_data": "rotina_agenda"},
-        {"text": "📋 Tarefas Notion", "callback_data": "rotina_tasks"}
+        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"}
       ],
       [
         {"text": "☀️ Briefing Matinal", "callback_data": "rotina_briefing"},
@@ -50,10 +51,6 @@ function construirTecladoHubRotina() {
       ],
       [
         {"text": "📊 Relatório Semanal", "callback_data": "rotina_semana"},
-        {"text": "🧠 MedQuest / Dúvidas", "callback_data": "rotina_duvida"}
-      ],
-      [
-        {"text": "⏱️ Time-Blocking Hoje", "callback_data": "rotina_timeline"},
         {"text": "📊 Aderência Semanal", "callback_data": "rotina:aderencia"}
       ],
       [
@@ -84,8 +81,10 @@ function despacharComandosRotinaEProdutividade(comando, texto, chatId, message) 
   if (comando === "/agenda") {
     var paramAgenda = (texto || "").replace(/^\/agenda\s*/i, "").trim();
     res = (typeof consultarEventosAgenda === "function") ? consultarEventosAgenda(paramAgenda, chatId) : false;
-  } else if (comando === "/sniper" || comando === "/vagas") {
-    var argSniper = (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
+  } else if (comando === "/sniper" || comando === "/vagas" || comando === "/piso") {
+    var argSniper = (comando === "/piso")
+      ? ("piso " + (texto || "").replace(/^\/piso\s*/i, "").trim())
+      : (texto || "").replace(/^\/(sniper|vagas)\s*/i, "").trim();
     res = (typeof tratarComandoSniperPlantoes === "function") ? tratarComandoSniperPlantoes(chatId, argSniper) : false;
   } else if (comando === "/task" || comando === "/tarefa") {
     var tarefaTexto = (texto || "").replace(/^\/(task|tarefa)\s*/i, "").trim();
@@ -322,6 +321,10 @@ function tratarCallbackRotina(cb) {
     if (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.limparCache) {
       GoogleCalendarService.limparCache();
     }
+    var stGcal = (typeof GoogleCalendarService !== "undefined" && GoogleCalendarService.obterStatus)
+      ? GoogleCalendarService.obterStatus()
+      : null;
+
     var blocosFrescos = RotinaService.importarEventosGoogleCalendar(hoje);
     if (blocosFrescos && blocosFrescos.length > 0) {
       var salvosAtuais = RotinaService.obterBlocosSalvos(hoje);
@@ -340,9 +343,12 @@ function tratarCallbackRotina(cb) {
         }
       }
       RotinaService.salvarBlocosDoDia(hoje, blocosFrescos);
-      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados do Google Calendar!");
+      responderCallbackTelegram(cb.id, "📆 " + blocosFrescos.length + " blocos sincronizados da Agenda Google!");
+    } else if (stGcal && (!stGcal.conectado || !stGcal.tokenValido)) {
+      responderCallbackTelegram(cb.id, "⚠️ Google Calendar desconectado. Renove as credenciais.");
     } else {
-      responderCallbackTelegram(cb.id, "📆 Agenda Google verificada!");
+      RotinaService.salvarBlocosDoDia(hoje, []);
+      responderCallbackTelegram(cb.id, "📆 Agenda verificada: nenhum evento registrado hoje.");
     }
   } else if (subAcao === "ajustar") {
     responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
@@ -353,7 +359,6 @@ function tratarCallbackRotina(cb) {
       "• _'Hoje vou estudar das 15h às 17h'_\n" +
       "• _'Sem cochilo hoje'_\n" +
       "• _'Troquei musculação por corrida de 40 min'_\n" +
-      "• _'Modo descanso'_\n" +
       "• _'Reset' (volta para a grade padrão)_";
     var kbDica = {
       inline_keyboard: [
