@@ -11,7 +11,10 @@
     "test:affected": "node scripts/run_tests.cjs --affected",
     "build": "python3 build_master.py",
     "extrair:hsl": "node scripts/extrair_guia_hsl.js",
-    "test:all": "node scripts/run_tests.cjs --all"
+    "test:all": "node scripts/run_tests.cjs --all",
+    "test:prime": "bash scripts/testador_prime.sh --mode all",
+    "test:prime:cockpit": "bash scripts/testador_prime.sh --mode cockpit",
+    "test:prime:telegram": "bash scripts/testador_prime.sh --mode telegram"
   },
   "dependencies": {
     "@fastify/compress": "^9.2.1",

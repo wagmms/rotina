@@ -4,6 +4,34 @@ Command failures, exceptions, and unexpected behaviors.
 
 ---
 
+## [ERR-20261017-002] google_calendar_silent_unauthenticated_sync
+
+**Logged**: 2026-10-17T14:45:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Falso positivo de sincronização da Agenda Google: serviço em nuvem no Render não possuía arquivos locais de credenciais (`credentials.json` e `token.json` ignorados no git), retornava lista vazia e a UI emitia recibo de sucesso enganoso ("Agenda Google verificada!"), fazendo o usuário acreditar que os eventos reais da agenda haviam sido apagados ou que havia travamento na timeline.
+
+### Context
+- Arquivos: `server/google_calendar.js`, `src/06_rotina_agenda.js`, `src/07i_telegram_rotina_central.js`
+- Comportamento errôneo: Ausência de credencial era tratada como `eventos = []` em vez de erro de autenticação explícito.
+
+### Suggested Fix
+Distinguir categoricamente lista de eventos vazia de serviço não autenticado. Quando `conectado: false` ou `tokenValido: false`, alertar explicitamente na UI/Telegram que a conta Google não está conectada, em vez de responder sucesso com timeline vazia.
+
+### Metadata
+- Reproducible: yes
+- Related Files: `server/google_calendar.js`, `src/06_rotina_agenda.js`
+- See Also: LRN-20261017-003
+- Pattern-Key: backend.google_calendar_silent_unauth_failure
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
 ## [ERR-20261014-001] testes SOAP concorrentes e asserção desatualizada
 
 **Logged**: 2026-10-14

@@ -96,10 +96,10 @@ async function executarTestesCentralRotinaPlantaoUX() {
   const cbsPrincipal = extrairCallbacks(msgPrincipal.kb);
   const textosPrincipal = extrairTextosBotoes(msgPrincipal.kb);
 
-  assert.ok(cbsPrincipal.includes('rotina:ajustar'), 'Deve conter botão Ajustar Rotina');
+  assert.ok(!cbsPrincipal.includes('rotina:ajustar'), 'Central de Rotina NÃO deve conter botão manual Ajustar Rotina');
   assert.ok(!cbsPrincipal.includes('rotina:descanso'), 'Central de Rotina NÃO deve conter botão Modo Descanso');
   assert.ok(cbsPrincipal.includes('rotina:reset'), 'Deve conter botão Restaurar Padrão');
-  assert.ok(cbsPrincipal.includes('rotina:cal_sync'), 'Deve conter botão Sincronizar Google');
+  assert.ok(!cbsPrincipal.includes('rotina:cal_sync'), 'Central de Rotina NÃO deve conter botão manual Sincronizar Google (auto-sync)');
   assert.ok(cbsPrincipal.includes('ux:rotina:agenda'), 'Deve conter botão Agenda de Hoje');
   assert.ok(cbsPrincipal.includes('ux:rotina:agenda_amanha'), 'Deve conter botão Agenda de Amanhã');
   assert.ok(!cbsPrincipal.includes('ux:rotina:tasks'), 'Central de Rotina NÃO deve conter botão Tarefas Notion');
@@ -289,7 +289,7 @@ async function executarTestesCentralRotinaPlantaoUX() {
     message: { chat: { id: chatId }, message_id: 301 }
   });
   assert.ok(mensagensEnviadas.length > 0, 'rotina:ajustar deve responder com instruções');
-  assert.ok(mensagensEnviadas[0].texto.includes('COMO AJUSTAR SUA ROTINA HOJE'));
+  assert.ok(mensagensEnviadas[0].texto.includes('AJUSTES DE ROTINA NO GOOGLE CALENDAR'), 'Deve orientar que ajustes são feitos no Google Calendar');
   const cbsAjustar = extrairCallbacks(mensagensEnviadas[0].kb);
   assert.ok(cbsAjustar.includes('ux:hub:rotina'), 'rotina:ajustar deve ter [🔙 Central de Rotina]');
   assert.ok(cbsAjustar.includes('ux:hub:inicio'), 'rotina:ajustar deve ter [🏠 Início]');

@@ -2452,6 +2452,221 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     }) };
   }
 
+  // 4a. Cardiotocografia Intraparto & Reanimação Intrauterina (/ctg, /cardiotocografia)
+  if (comando === "/ctg" || comando === "/cardiotocografia") {
+    var dadosCtg = texto.replace(/^\/(ctg|cardiotocografia)\s*/i, "").trim();
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Cardiotocografia indisponível temporariamente.") };
+    }
+
+    var paramsCtg = {};
+    if (dadosCtg.match(/cat\s*3|cat\s*iii|sinusoidal|grave|asfixia/i)) {
+      paramsCtg.variabilidade = 'sinusoidal';
+    } else if (dadosCtg.match(/dip\s*2|dip\s*ii|tardi/i)) {
+      paramsCtg.desaceleracoes = 'dip2_tardia';
+      paramsCtg.variabilidade = dadosCtg.match(/ausente/i) ? 'ausente' : 'minima';
+    } else if (dadosCtg.match(/dip\s*3|dip\s*iii|variavel/i)) {
+      paramsCtg.desaceleracoes = 'dip3_variavel_simples';
+    } else if (dadosCtg.match(/dip\s*1|dip\s*i|precoce/i)) {
+      paramsCtg.desaceleracoes = 'dip1_precoce';
+    }
+
+    var mBcfCtg = dadosCtg.match(/bcf\s*[:=]?\s*(\d+)/i) || dadosCtg.match(/(\d{2,3})\s*bpm/i);
+    if (mBcfCtg) paramsCtg.bcfBasal = parseInt(mBcfCtg[1], 10);
+    if (dadosCtg.match(/taquissist|hiperdinam|\>5\s*contr/i)) paramsCtg.taquissistolia = true;
+
+    var resCtg = CentroObstetricoService.avaliarCardiotocografiaIntraparto(paramsCtg);
+    var linhasCtg = [
+      "📉 *" + resCtg.titulo + "*",
+      "",
+      "• *Fisiopatologia:* " + resCtg.fisiopatologia,
+      "",
+      "📋 *Conduta Imediata:*",
+      resCtg.condutas.join("\n")
+    ];
+    var txtCtg = linhasCtg.join("\n");
+    var ckCtg = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheCtg = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheCtg && typeof safePutCache === "function") safePutCache(cacheCtg, ckCtg, txtCtg, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4b. Distócia de Ombros (/distocia, /helperr)
+  if (comando === "/distocia" || comando === "/helperr") {
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.manejarDistociaDeOmbros) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Distócia indisponível temporariamente.") };
+    }
+    var resDist = CentroObstetricoService.manejarDistociaDeOmbros();
+    var linhasDist = [
+      "🆘 *" + resDist.protocolo + "*",
+      "⚠️ *" + resDist.diagnostico + "*\n",
+      "🚨 *TRAVAS DE SEGURANÇA CRÍTICAS:*",
+      resDist.travasSegurancaCriticas.join("\n"),
+      "\n⏱️ *SEQUÊNCIA DE MANOBRAS CRONOMETRADAS:*"
+    ];
+    resDist.sequenciaManobras.forEach(function(m) {
+      linhasDist.push("• *" + m.mnemonico + "* (" + m.tempoAlvo + "):\n  " + m.acao);
+    });
+    linhasDist.push("\n🩺 *PÓS-DESPRENDIMENTO:*\n" + resDist.cuidadosPosDesprendimento.join("\n"));
+
+    var txtDist = linhasDist.join("\n");
+    var ckDist = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheDist = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheDist && typeof safePutCache === "function") safePutCache(cacheDist, ckDist, txtDist, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtDist, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckDist }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4c. Sangramento de 1ª Metade da Gestação (/sangramento1tri, /abortamento, /ectopica)
+  if (comando === "/sangramento1tri" || comando === "/abortamento" || comando === "/ectopica") {
+    var dadosSang = texto.replace(/^\/(sangramento1tri|abortamento|ectopica)\s*/i, "").trim();
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarSangramentoPrimeiraMetade) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Sangramento 1º Trimestre indisponível temporariamente.") };
+    }
+    var pSang = {};
+    if (comando === "/ectopica" || dadosSang.match(/ectop/i)) pSang.quadroClinico = 'ectopica';
+    else if (dadosSang.match(/retid/i)) pSang.quadroClinico = 'aborto_retido';
+    else if (dadosSang.match(/infect|sept/i)) pSang.quadroClinico = 'aborto_infectado';
+    else if (dadosSang.match(/mola|trofoblast/i)) pSang.quadroClinico = 'mola';
+    else if (dadosSang.match(/aberto|incomplet|inevit/i)) {
+      pSang.orificioInternoColo = 'aberto';
+      pSang.quadroClinico = 'aborto_incompleto';
+    } else {
+      pSang.quadroClinico = 'ameaca_aborto';
+    }
+
+    var mBeta = dadosSang.match(/beta\s*[:=]?\s*(\d+)/i) || dadosSang.match(/(\d+)\s*mui/i);
+    if (mBeta) pSang.betaHcgQuantitativo = parseInt(mBeta[1], 10);
+    var mMassa = dadosSang.match(/massa\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosSang.match(/(\d+(?:[.,]\d+)?)\s*cm/i);
+    if (mMassa) pSang.massaAnexialCm = parseFloat(mMassa[1].replace(',', '.'));
+    if (dadosSang.match(/rh\s*neg|rh\s*-/i)) pSang.fatorRh = 'negativo';
+    if (dadosSang.match(/choque|instavel|peritonite|liquido\s*livre/i)) pSang.liquidoLivreAlemDaPelve = true;
+
+    var resSang = CentroObstetricoService.avaliarSangramentoPrimeiraMetade(pSang);
+    var linhasSang = [
+      "🩸 *" + resSang.protocolo + "*",
+      "🩺 *Diagnóstico:* " + resSang.diagnostico,
+      ""
+    ];
+    if (resSang.alertas && resSang.alertas.length > 0) {
+      linhasSang.push("⚠️ *ALERTAS CRÍTICOS:*\n" + resSang.alertas.join("\n") + "\n");
+    }
+    if (resSang.prescricoes && resSang.prescricoes.length > 0) {
+      linhasSang.push("💊 *PRESCRIÇÃO IMEDIATA:*\n" + resSang.prescricoes.join("\n") + "\n");
+    }
+    linhasSang.push("📋 *CONDUTAS RECOMENDADAS:*\n" + resSang.condutas.join("\n"));
+
+    var txtSang = linhasSang.join("\n");
+    var ckSang = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheSang = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheSang && typeof safePutCache === "function") safePutCache(cacheSang, ckSang, txtSang, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtSang, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckSang }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4d. Atendimento à Vítima de Violência Sexual (/violencia_sexual, /violenciasexual, /estupro, /pep_go)
+  if (comando === "/violencia_sexual" || comando === "/violenciasexual" || comando === "/estupro" || comando === "/pep_go") {
+    var dadosVio = texto.replace(/^\/(violencia_sexual|violenciasexual|estupro|pep_go)\s*/i, "").trim();
+    if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.protocoloViolenciaSexual) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Violência Sexual indisponível temporariamente.") };
+    }
+    var pVio = {};
+    var mHoras = dadosVio.match(/(\d+)\s*h/i);
+    if (mHoras) pVio.horasAposExposicao = parseInt(mHoras[1], 10);
+    if (dadosVio.match(/gestant/i)) pVio.gestante = true;
+    if (dadosVio.match(/vacina\s*hep\s*b|vacinada/i)) pVio.vacinadaHepatiteBCompleta = true;
+
+    var resVio = GinecologiaAmbulatorialService.protocoloViolenciaSexual(pVio);
+    var linhasVio = [
+      "🛡️ *" + resVio.protocolo + "*",
+      "⏱️ *Janela Temporal:* " + resVio.horasAposExposicao + "h pós-exposição",
+      "",
+      "🧪 *EXAMES BASAIS DE ADMISSÃO:*",
+      resVio.examesBasaisAdmissao.join("\n"),
+      "",
+      "💊 *PRESCRIÇÕES IMEDIATAS (KIT PROFILAXIA):*"
+    ];
+    resVio.prescricoes.forEach(function(pr) {
+      linhasVio.push("• *" + pr.finalidade + "*:\n  " + pr.farmaco + "\n  Posologia: " + pr.posologia);
+    });
+    linhasVio.push("\n⚖️ *ASPECTOS ÉTICOS E LEGAIS:*\n" + resVio.aspectosEticosLegais.join("\n"));
+
+    var txtVio = linhasVio.join("\n");
+    var ckVio = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheVio = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheVio && typeof safePutCache === "function") safePutCache(cacheVio, ckVio, txtVio, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtVio, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckVio }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4e. Urgências de Mama e Vulva (/mastite, /bartholin)
+  if (comando === "/mastite" || comando === "/bartholin") {
+    var dadosMv = texto.replace(/^\/(mastite|bartholin)\s*/i, "").trim();
+    if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Urgências de Mama/Vulva indisponível temporariamente.") };
+    }
+    var pMv = { condicao: comando === "/bartholin" || dadosMv.match(/bartholin/i) ? 'bartholin' : 'mastite' };
+    var resMv = GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(pMv);
+
+    var linhasMv = [
+      "🩺 *" + resMv.condicao + "*",
+      "🔍 *Quadro Clínico:* " + resMv.quadroClinico,
+      "",
+      "📋 *CONDUTA IMEDIATA:*",
+      resMv.condutaImediata.join("\n")
+    ];
+    if (resMv.alertaAbscesso) linhasMv.push("\n" + resMv.alertaAbscesso);
+    if (resMv.alertaOncologico) linhasMv.push("\n" + resMv.alertaOncologico);
+
+    var txtMv = linhasMv.join("\n");
+    var ckMv = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheMv = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheMv && typeof safePutCache === "function") safePutCache(cacheMv, ckMv, txtMv, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtMv, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckMv }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
   // 5. RCF / Doppler Fetal (/rcf, /ciur, /rciu, /doppler, /crescimentofetal)
   if (comando === "/rcf" || comando === "/ciur" || comando === "/rciu" || comando === "/doppler" || comando === "/crescimentofetal") {
     var dadosRcf = texto.replace(/^\/\w+\s*/, "").trim();

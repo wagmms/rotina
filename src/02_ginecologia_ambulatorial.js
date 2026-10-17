@@ -1095,13 +1095,142 @@ var GinecologiaAmbulatorialService = (function() {
     return linhas.join('\n');
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. ATENDIMENTO INTEGRAL À VÍTIMA DE VIOLÊNCIA SEXUAL (PCDT MS / FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Gera a prescrição completa e imediata de profilaxias (Contracepção de Emergência,
+   * ISTs Virais/HIV/HepB e ISTs Não Virais) e o checklist médico-legal para atendimento
+   * de urgência à vítima de violência sexual.
+   */
+  function protocoloViolenciaSexual(dados) {
+    dados = dados || {};
+    var horasAposExposicao = Number(dados.horasAposExposicao || 12);
+    var pesoKg = Number(dados.pesoKg || 60);
+    var gestante = Boolean(dados.gestante);
+    var vacinadaHepatiteB = Boolean(dados.vacinadaHepatiteBCompleta);
+
+    var dentroJanela72h = horasAposExposicao <= 72;
+    var dentroJanela120h = horasAposExposicao <= 120;
+
+    var prescricoes = [];
+
+    // 1. Contracepção de Emergência (Até 5 dias / 120h, ideal < 72h)
+    if (!gestante && dentroJanela120h) {
+      prescricoes.push({
+        finalidade: '1. Anticoncepção de Emergência (Prevenção de Gravidez Decorrente de Estupro)',
+        farmaco: 'Levonorgestrel 1,5 mg VO (1 comprimido de 1,5 mg ou 2 comprimidos de 0,75 mg)',
+        posologia: 'Tomar 1,5 mg por via oral em DOSE ÚNICA imediatamente (eficácia máxima em até 72h; indicado até 5 dias / 120h da violência).'
+      });
+    }
+
+    // 2. Profilaxia de ISTs Não Virais (Sífilis, Gonorreia, Clamídia e Tricomoníase)
+    prescricoes.push({
+      finalidade: '2. Profilaxia de Sífilis',
+      farmaco: 'Penicilina G Benzatina 2.400.000 UI IM',
+      posologia: 'Aplicar 1.200.000 UI IM profunda em cada glúteo em DOSE ÚNICA.'
+    });
+
+    prescricoes.push({
+      finalidade: '3. Profilaxia de Gonorreia e Clamídia / Cancro Mole',
+      farmaco: 'Ceftriaxona 500 mg IM + Azitromicina 1 g VO',
+      posologia: 'Aplicar Ceftriaxona 500 mg IM em dose única + Tomar Azitromicina 1 g (2 comprimidos de 500 mg) VO em dose única.'
+    });
+
+    prescricoes.push({
+      finalidade: '4. Profilaxia de Tricomoníase',
+      farmaco: 'Metronidazol 2 g VO (4 comprimidos de 500 mg)',
+      posologia: 'Tomar 2 g VO em dose única. DICA PRÁTICA DE PLANTÃO: Pode ser postergado para o 3º ou 5º dia para evitar náuseas/vômitos sinérgicos com o Levonorgestrel e os antirretrovirais no D1!'
+    });
+
+    // 3. PEP para HIV (Estritamente se <= 72 horas da exposição)
+    if (dentroJanela72h) {
+      prescricoes.push({
+        finalidade: '5. Profilaxia Pós-Exposição ao HIV (PEP — Iniciar idealmente em 2h, máximo 72h)',
+        farmaco: 'Tenofovir (TDF) 300 mg + Lamivudina (3TC) 300 mg + Dolutegravir (DTG) 50 mg',
+        posologia: 'Tomar 1 comprimido coformulado de TDF/3TC (300/300 mg) + 1 comprimido de Dolutegravir 50 mg por via oral, 1 vez ao dia, durante 28 DIAS ININTERRUPTOS.'
+      });
+    }
+
+    // 4. Imunoprofilaxia de Hepatite B
+    if (!vacinadaHepatiteB) {
+      prescricoes.push({
+        finalidade: '6. Imunoprofilaxia de Hepatite B (Paciente Não Vacinada ou Esquema Incompleto)',
+        farmaco: 'Vacina Hepatite B + Imunoglobulina Humana Anti-Hepatite B (IGHAHB)',
+        posologia: 'Aplicar 1ª dose da Vacina Hepatite B IM no deltoide + IGHAHB 0,06 mL/kg IM em grupo muscular diferente (até no máximo 14 dias após a exposição).'
+      });
+    }
+
+    return {
+      protocolo: 'Atendimento Integral à Vítima de Violência Sexual (PCDT MS / FEBRASGO)',
+      horasAposExposicao: horasAposExposicao,
+      elegivelPepHiv: dentroJanela72h,
+      elegivelContracepcaoEmergencia: !gestante && dentroJanela120h,
+      examesBasaisAdmissao: [
+        'Testes Rápidos basais na admissão: HIV, Sífilis, Hepatite B (HBsAg) e Hepatite C (Anti-HCV).',
+        'Beta-hCG / Teste Rápido de Gravidez (para documentar ausência de gestação prévia).',
+        'Hemograma, TGO/TGP e Creatinina (basal para acompanhamento da PEP).'
+      ],
+      prescricoes: prescricoes,
+      aspectosEticosLegais: [
+        'O atendimento médico é uma EMERGÊNCIA e NÃO depende da apresentação de Boletim de Ocorrência (B.O.) ou laudo do IML.',
+        'Realizar Notificação Compulsória no SINAN (Ficha de Violência Interpessoal/Autoprovocada) em até 24 horas.',
+        'Acionar Serviço Social e Psicologia para acolhimento humanizado e agendar retorno em 2 semanas, 30 dias, 90 dias e 6 meses.'
+      ]
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. URGÊNCIAS DE MAMA E VULVA: MASTITE PUERPERAL & ABSCESSO DE BARTHOLIN
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function manejarUrgenciaMamaVulva(dados) {
+    dados = dados || {};
+    var tipo = String(dados.condicao || 'mastite').toLowerCase();
+
+    if (tipo.indexOf('bartholin') >= 0) {
+      return {
+        condicao: 'Bartolinite Aguda / Abscesso de Glândula de Bartholin',
+        quadroClinico: 'Abaulamento doloroso, quente, hiperemiado e flutuante no terço posteroinferior do grande lábio (posição 4h ou 8h do introito vaginal).',
+        condutaImediata: [
+          '1. ABSCESSO FLUTUANTE FORMADO: O tratamento definitivo é CIRÚRGICO/MECÂNICO (Antibiótico isolado sem drenagem tem altíssimo índice de falha).',
+          '   • Opção A (Preferencial em urgência/recorrência): MARSUPIALIZAÇÃO sob anestesia local/bloqueio pudendo (incisão vertical de 1,5 a 2 cm na face mucosa interna do vestíbulo, logo fora do anel himenal, lavagem com SF 0,9% e sutura da cápsula do cisto à mucosa vestibular com fio absorvível 3-0).',
+          '   • Opção B: Inserção de Cateter de Word (insuflado com 2 a 3 mL de SF 0,9% por 4 semanas para epitelização do trajeto).',
+          '   • Opção C (Alívio rápido no PS): Incisão e drenagem simples com lâmina 11 na face mucosa vestibular (orientar que há risco de recidiva).',
+          '2. ANTIBIOTICOTERAPIA ASSOCIADA (Indicada se celulite perineal adjacente, febre, sinais sistêmicos, gestação ou suspeita de N. gonorrhoeae / C. trachomatis):',
+          '   • Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg VO 12/12h por 7 a 10 dias + Metronidazol 500 mg VO 12/12h por 7 dias (ou Amoxicilina-Clavulanato 875/125 mg VO 12/12h por 7 dias).',
+          '3. Analgesia, AINEs e banhos de assento mornos 3 a 4x ao dia.'
+        ],
+        alertaOncologico: '⚠️ Em mulheres > 40 anos ou na pós-menopausa com massa na topografia da glândula de Bartholin: realizar BIÓPSIA excisional para afastar Carcinoma de Glândula de Bartholin!'
+      };
+    }
+
+    return {
+      condicao: 'Mastite Puerperal Aguda (Lactacional)',
+      quadroClinico: 'Dor mamária unilateral, eritema cuneiforme (em cunha), calor local, ingurgitamento, febre alta (> 38,5 ºC), calafrios e mialgia. Agente principal: Staphylococcus aureus.',
+      condutaImediata: [
+        '1. MEDIDA MAIS IMPORTANTE: NÃO SUSPENDER A AMAMENTAÇÃO! O esvaziamento frequente e completo da mama afetada (amamentação em livre demanda iniciando pela mama sadia ou ordenha manual/elétrica) é fundamental para a cura e não oferece risco ao RN a termo.',
+        '2. Corrigir a pega e posicionamento do lactente (causa base da fissura mamilar e estase láctea). Compressas frias após as mamadas para reduzir edema e dor.',
+        '3. ANTIBIOTICOTERAPIA EMPÍRICA DE 1ª LINHA (Segura na Amamentação — por 10 a 14 dias):',
+        '   • Cefalexina 500 mg VO de 6/6 horas por 10 a 14 dias.',
+        '   • OU Amoxicilina + Clavulanato 500/125 mg VO 8/8h (ou 875/125 mg 12/12h) por 10 a 14 dias.',
+        '   • Se alérgica a betalactâmicos ou suspeita de MRSA comunitário: Clindamicina 300 a 600 mg VO de 6/6h ou 8/8h.',
+        '4. Sintomáticos: Ibuprofeno 400 a 600 mg VO 8/8h + Paracetamol 500 a 750 mg VO 6/6h.'
+      ],
+      alertaAbscesso: '🚨 CRITÉRIO DE ULTRASSONOGRAFIA / DRENAGEM: Se presença de área de flutuação à palpação OU ausência de melhora clínica/febre após 48 a 72 horas de antibiótico adequado, solicitar USG de Mamas urgente para investigar ABSCESSO MAMÁRIO (tratar com punção aspirativa por agulha grossa guiada por USG ou drenagem cirúrgica, mantendo amamentação).'
+    };
+  }
+
   // Exportação Pública
   return {
     avaliarRastreioColoUterino: avaliarRastreioColoUterino,
     avaliarSangramentoUterinoAnormal: avaliarSangramentoUterinoAnormal,
     avaliarCriteriosElegibilidadeContracepcao: avaliarCriteriosElegibilidadeContracepcao,
     avaliarInfeccaoVulvovaginal: avaliarInfeccaoVulvovaginal,
-    gerarResumoGinecologia: gerarResumoGinecologia
+    gerarResumoGinecologia: gerarResumoGinecologia,
+    protocoloViolenciaSexual: protocoloViolenciaSexual,
+    manejarUrgenciaMamaVulva: manejarUrgenciaMamaVulva
   };
 })();
 

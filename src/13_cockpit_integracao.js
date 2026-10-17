@@ -1381,6 +1381,66 @@ function cockpitResumoCentroObstetrico(initData, params) {
 }
 
 /**
+ * cockpitCardiotocografia — classificação NICHD/FIGO (Cat I, II, III, DIPs) e reanimação intrauterina.
+ */
+function cockpitCardiotocografia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
+    throw new Error('Função avaliarCardiotocografiaIntraparto indisponível.');
+  }
+  return CentroObstetricoService.avaliarCardiotocografiaIntraparto(params);
+}
+
+/**
+ * cockpitDistociaOmbros — protocolo de emergência HELPERR (McRoberts, Rubin, Woods, Jacquemier).
+ */
+function cockpitDistociaOmbros(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.manejarDistociaDeOmbros) {
+    throw new Error('Função manejarDistociaDeOmbros indisponível.');
+  }
+  return CentroObstetricoService.manejarDistociaDeOmbros();
+}
+
+/**
+ * cockpitSangramentoPrimeiraMetade — diagnóstico de abortamento, ectópica (Metotrexato) e mola com Anti-D.
+ */
+function cockpitSangramentoPrimeiraMetade(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.avaliarSangramentoPrimeiraMetade) {
+    throw new Error('Função avaliarSangramentoPrimeiraMetade indisponível.');
+  }
+  return CentroObstetricoService.avaliarSangramentoPrimeiraMetade(params);
+}
+
+/**
+ * cockpitViolenciaSexual — atendimento integral, PEP HIV, profilaxias ISTs e contracepção de emergência.
+ */
+function cockpitViolenciaSexual(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined' || !GinecologiaAmbulatorialService.protocoloViolenciaSexual) {
+    throw new Error('Função protocoloViolenciaSexual indisponível.');
+  }
+  return GinecologiaAmbulatorialService.protocoloViolenciaSexual(params);
+}
+
+/**
+ * cockpitUrgenciaMamaVulva — manejo de Mastite Puerperal (manter lactação) e Abscesso de Bartholin.
+ */
+function cockpitUrgenciaMamaVulva(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined' || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
+    throw new Error('Função manejarUrgenciaMamaVulva indisponível.');
+  }
+  return GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(params);
+}
+
+/**
  * cockpitRastreioColoUterino — rastreio de câncer de colo de útero (INCA/MS).
  */
 function cockpitRastreioColoUterino(initData, params) {
@@ -3209,6 +3269,11 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
   module.exports.cockpitRotinaAderencia = cockpitRotinaAderencia;
   module.exports.cockpitRotinaAdiarBloco = cockpitRotinaAdiarBloco;
+  module.exports.cockpitCardiotocografia = cockpitCardiotocografia;
+  module.exports.cockpitDistociaOmbros = cockpitDistociaOmbros;
+  module.exports.cockpitSangramentoPrimeiraMetade = cockpitSangramentoPrimeiraMetade;
+  module.exports.cockpitViolenciaSexual = cockpitViolenciaSexual;
+  module.exports.cockpitUrgenciaMamaVulva = cockpitUrgenciaMamaVulva;
 }
 
 

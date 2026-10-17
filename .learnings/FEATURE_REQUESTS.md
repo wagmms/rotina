@@ -54,3 +54,49 @@ Configurar Web Push Protocol no backend Fastify com chaves VAPID e listener `pus
 - Pattern-Key: rotina.push_notifications
 
 ---
+
+## [FEAT-20261017-001] estacao_soap_telegram_bidirecional
+
+**Logged**: 2026-10-17T14:44:00-03:00
+**Priority**: high
+**Status**: pending
+**Area**: backend
+
+### Summary
+Comando `/soap` e suporte a áudio no bot Telegram integrado à Estação SOAP com segurança clínica auditada.
+
+### Details
+Permitir que o médico envie áudios de relatos clínicos ou execute `/soap` no Telegram. O backend processa via `soap_service.js`, aplica `safety_guard.js` com segmentação de orações adversativas (LRN-20261017-001) e devolve prontuário estruturado e receita médica formatada.
+
+### Suggested Action
+Criar módulo desacoplado `src/07_telegram_soap.js` integrado a `src/07a_telegram_router.js` com testes unitários em `tests/test_soap_telegram.cjs`.
+
+### Metadata
+- Source: PROGRESS.md / auditoria 17/10
+- Related Files: `src/clinical/soap_service.js`, `src/07a_telegram_router.js`, `src/07_telegram_soap.js`
+- Tags: soap, telegram, clinical_safety, voice_notes
+- Pattern-Key: clinical.soap_telegram_voice
+
+---
+
+## [FEAT-20261017-002] pomodoro_inteligente_indexeddb
+
+**Logged**: 2026-10-17T14:44:00-03:00
+**Priority**: high
+**Status**: in_progress
+**Area**: frontend
+
+### Summary
+Timer Pomodoro resiliente no IndexedDB com feedback sonoro/háptico e conclusão de bloco de estudo em 1 toque.
+
+### Details
+Timer para blocos de estudo ativo (MedQuest e Anki) na Aba Rotina. Sobrevive a recarregamentos ou minimização da tela, respeita a política de AudioContext em mobile e sincroniza a conclusão via Fastify/Telegram sem colidir com eventos da agenda Google (LRN-20261017-003).
+
+### Suggested Action
+Implementar em `rotina_timeline.js` e espelhar em `gh_cockpit_deploy/rotina_timeline.js` com testes em `tests/test_aba_rotina_cockpit.cjs`.
+
+### Metadata
+- Source: PROGRESS.md
+- Related Files: `rotina_timeline.js`, `gh_cockpit_deploy/rotina_timeline.js`, `tests/test_aba_rotina_cockpit.cjs`
+- Tags: pomodoro, indexeddb, rotina, haptics, webaudio
+- Pattern-Key: rotina.pomodoro_resilient_timer

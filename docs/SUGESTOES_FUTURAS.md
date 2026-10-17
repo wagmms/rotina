@@ -174,6 +174,10 @@ As sugestões abaixo representam as intervenções de maior valor prático para 
   Transcrição prévia local no próprio navegador móvel antes do envio à rede, permitindo conferência e edição rápida do texto ditado pelo médico.
 - **Sincronização em Segundo Plano com Fila Outbox Local**:
   Armazenamento resiliente no IndexedDB de ações tomadas offline durante passagens por áreas de sombra ou subsolos hospitalares, sincronizando automaticamente ao recuperar sinal.
+- **Teclado Numérico Decimal Automático (`inputmode="decimal"`) nos Inputs Clínicos**:
+  Adicionar `inputmode="decimal"` nos campos numéricos clínicos de peso, creatinina, idade e doses (`glasgow-o`, `glasgow-v`, `glasgow-m`, etc.), forçando a abertura instantânea do teclado numérico em smartphones e economizando toques beira-leito.
+- **Unificação de Ações Recorrentes (Fechar / Limpar) em Barra Fixa Inferior**:
+  Unificar múltiplos botões idênticos repetidos no DOM (como 'Fechar' 11x e 'Limpar' 7x) em uma barra inferior de ações compartilhada (bottom sheet), reduzindo poluição de layout e peso do DOM móvel.
 
 ---
 
@@ -210,5 +214,9 @@ As sugestões abaixo representam as intervenções de maior valor prático para 
   Endpoint de redefinição de sessão capaz de expurgar caches e Service Workers corrompidos no dispositivo móvel do médico.
 - **Cabeçalho de Segurança `Permissions-Policy` no Cockpit**:
   Restrição ativa de recursos dispensáveis (câmera, geolocalização) preservando apenas microfone para ditado e reforçando privacidade de dados beira-leito.
+- **Agrupamento Temático do Menu da Sala Vermelha (Anti-Sobrecarga Cognitiva)**:
+  Reestruturar o menu da Sala Vermelha (`src/07_menu_navegacao.js`) — que atualmente exibe 15 botões simultâneos — com subcategorias clínicas (PCR/ACLS, Choque/DVA, Via Aérea/IOT) mantendo no máximo 8 a 10 botões na primeira dobra para agilizar a conduta na emergência.
+- **Otimização de Rótulos em 2 Colunas no Menu de Configurações (Prevenção de Truncamento 360px)**:
+  Ajustar rótulos com mais de 28 caracteres em linhas de 2 colunas (`src/07_menu_navegacao.js`), como '🏥 Cenário & Módulos' e '📥 Inserir REMUME', reduzindo para <= 20 caracteres ou alocando em linha exclusiva para evitar truncamento em telas móveis compactas.
 - **Gatilho Automático de Compactação de Métricas por Tamanho (`auto_rollup_threshold_mb`)**:
   Implementar disparo automático de `prune_and_rollup_metrics` quando `autoloop_metrics.jsonl` ultrapassar 500 KB durante a gravação de métricas em tempo real (`record_metric`), garantindo que o log nunca cresça além do teto configurado mesmo em execuções ininterruptas de 24h a 48h sem intervenção manual.

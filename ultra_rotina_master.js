@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 14:21:56
- * Checksum SHA256: f1b1cc756bd7971f
+ * Gerado automaticamente via build_master.py em: 2026-10-17 14:40:06
+ * Checksum SHA256: 5fd3e531b9bc3bc9
  * ==============================================================================
  */
 
@@ -9585,6 +9585,295 @@ var CentroObstetricoService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. CARDIOTOCOGRAFIA (CTG) INTRAPARTO & RESSUSCITAÇÃO INTRAUTERINA (FIGO / NICHD)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Classifica o traçado cardiotocográfico intraparto (Categorias I, II e III da ACOG/NICHD e FIGO)
+   * e emite o protocolo determinístico de reanimação intrauterina e resolução.
+   */
+  function avaliarCardiotocografiaIntraparto(dados) {
+    dados = dados || {};
+    var bcfBasal = toNumberSafe(dados.bcfBasal, 140);
+    var variabilidade = String(dados.variabilidade || 'moderada').toLowerCase();
+    var aceleracoes = Boolean(dados.aceleracoesPresentes !== undefined ? dados.aceleracoesPresentes : true);
+    var desaceleracao = String(dados.desaceleracoes || 'nenhuma').toLowerCase();
+    var taquissistolia = Boolean(dados.taquissistolia);
+
+    var categoria = 'CATEGORIA_I';
+    var titulo = 'Categoria I (Traçado Normal / Feto Bem Oxigenado)';
+    var fisiopatologia = 'Equilíbrio ácido-básico fetal preservado. Ausência de acidemia hipóxica.';
+    var condutas = [];
+
+    var ehBradicardia = bcfBasal < 110;
+    var ehTaquicardia = bcfBasal > 160;
+    var varNormal = variabilidade === 'moderada';
+    var varAusente = variabilidade === 'ausente' || variabilidade === 'sinusoidal';
+
+    if (
+      variabilidade === 'sinusoidal' ||
+      (varAusente && (ehBradicardia || desaceleracao.indexOf('dip2') >= 0 || desaceleracao.indexOf('dip3') >= 0 || desaceleracao.indexOf('prolong') >= 0))
+    ) {
+      categoria = 'CATEGORIA_III';
+      titulo = '⛔ CATEGORIA III (Traçado Patológico / Hipóxia ou Acidemia Fetal Iminente)';
+      fisiopatologia = 'Alto valor preditivo para acidose metabólica fetal, encefalopatia hipóxico-isquêmica e óbito intraparto.';
+      condutas = [
+        '1. SUSPENDER IMEDIATAMENTE OCITOCINA ou retirar Misoprostol vaginal residual.',
+        '2. MANOBRAS DE RESSUSCITAÇÃO INTRAUTERINA IMEDIATAS:',
+        '   • Decúbito Lateral Esquerdo (DLE) para descomprimir veia cava inferior e aorta.',
+        '   • Infusão rápida de cristaloide IV (500 mL de Ringer Lactato ou SF 0,9%).',
+        '   • Oxigenoterapia materna sob máscara (8-10 L/min) se hipoxemia materna ou enquanto prepara sala cirúrgica.',
+        '   • Se taquissistolia (> 5 contrações/10 min): Tocólise aguda de emergência (Terbutalina 0,25 mg SC ou Nifedipino 10-20 mg VO).',
+        '3. EXAME VAGINAL IMEDIATO: Afastar PROLAPSO DE CORDÃO UMBILICAL ou período expulsivo iminente.',
+        '4. RESOLUÇÃO IMEDIATA DA GESTAÇÃO (Regra dos 15 a 30 minutos): Se não houver reversão rápida do padrão, realizar parto instrumental (Fórcipe/Vácuo se plano +2/+3 e dilatação total) ou CESARIANA DE EMERGÊNCIA com pediatra em sala.'
+      ];
+    } else if (
+      bcfBasal >= 110 &&
+      bcfBasal <= 160 &&
+      varNormal &&
+      (desaceleracao === 'nenhuma' || desaceleracao.indexOf('dip1') >= 0)
+    ) {
+      categoria = 'CATEGORIA_I';
+      titulo = '✅ CATEGORIA I (Traçado Tranquilizador / Fisiológico)';
+      if (desaceleracao.indexOf('dip1') >= 0) {
+        fisiopatologia = 'DIP I (Desaceleração Precoce): Imagem em espelho da contração uterina por compressão do polo cefálico (reflexo vagal fisiológico). Não indica hipóxia.';
+      }
+      condutas = [
+        'Manter assistência obstétrica habitual ao trabalho de parto.',
+        'Ausculta intermitente de BCF a cada 15-30 min na fase ativa e a cada 5 min no período expulsivo.'
+      ];
+    } else {
+      categoria = 'CATEGORIA_II';
+      titulo = '⚠️ CATEGORIA II (Traçado Indeterminado / Suspeito — Requer Reavaliação e Manobras)';
+
+      if (desaceleracao.indexOf('dip2') >= 0) {
+        fisiopatologia = 'DIP II (Desaceleração Tardia): Decalagem >= 18-20s entre o pico da contração e o nadir do BCF. Indica INSUFICIÊNCIA UTEROPLACENTÁRIA e hipóxia fetal (reserva placentária reduzida).';
+      } else if (desaceleracao.indexOf('dip3') >= 0) {
+        fisiopatologia = 'DIP III (Desaceleração Variável): Queda abrupta do BCF por COMPRESSÃO DE CORDÃO UMBILICAL (oligoidrâmnio, circular de cordão). Atenção aos sinais de gravidade de Kubli (perda de ombros, retorno lento à linha de base, queda > 60 bpm ou duração > 60s).';
+      } else if (variabilidade === 'minima') {
+        fisiopatologia = 'Variabilidade mínima (<= 5 bpm): Avaliar ciclo de sono fetal (dura até 20-40 min), uso materno de opioides/sulfato de magnésio ou hipóxia incipiente.';
+      }
+
+      condutas = [
+        '1. Posicionar gestante em Decúbito Lateral Esquerdo (DLE) ou mudar posição materna (alivia compressão de cordão no DIP III).',
+        '2. Suspender ou reduzir infusão de Ocitocina (especialmente se DIP II recorrente ou taquissistolia > 5 contrações/10 min).',
+        '3. Corrigir hipotensão materna (ex: pós-analgesia de parto) com bolus de 500 mL de Ringer Lactato IV e efedrina/fenilefrina se necessário.',
+        '4. Realizar estímulo sônico ou digital no couro cabeludo fetal se variabilidade mínima (presença de aceleração afasta acidemia fetal).',
+        '5. Manter monitorização contínua e reavaliar em 20 a 30 minutos: se evoluir com perda da variabilidade ou DIP II/III recorrentes refratários, indicar resolução do parto.'
+      ];
+    }
+
+    return {
+      protocolo: 'Classificação de Cardiotocografia Intraparto (NICHD / ACOG / FIGO)',
+      categoria: categoria,
+      titulo: titulo,
+      parametros: {
+        bcfBasal: bcfBasal,
+        variabilidade: variabilidade,
+        aceleracoes: aceleracoes,
+        desaceleracoes: desaceleracao,
+        taquissistolia: taquissistolia
+      },
+      fisiopatologia: fisiopatologia,
+      condutas: condutas
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. DISTÓCIA DE OMBROS — PROTOCOLO DE EMERGÊNCIA (HELPERR / ALERTA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Retorna o algoritmo sequencial cronometrado para resolução de Distócia de Ombros
+   * ("Sinal da Tartaruga" / falha de desprendimento do ombro anterior após 60s da saída do polo cefálico).
+   */
+  function manejarDistociaDeOmbros() {
+    return {
+      protocolo: 'Distócia de Ombros — Algoritmo HELPERR / ALERTA (FEBRASGO / ALSO)',
+      diagnostico: 'Falha no desprendimento do ombro anterior após a saída da cabeça fetal ("Sinal da Tartaruga": retração do mento fetal contra o períneo materno).',
+      travasSegurancaCriticas: [
+        '⛔ PROIBIDO REALIZAR MANOBRA DE KRISTELLER (pressão no fundo uterino impacta ainda mais o ombro anterior atrás da sínfise púbica e causa rotura uterina / lesão grave do plexo braquial).',
+        '⛔ PROIBIDO TRACIONAR EXCESSIVAMENTE O POLO CEFÁLICO OU RODAR O PESCOÇO FETAL (risco de paralisia de Erb-Duchenne ou Klumpke).',
+        '⛔ NÃO CORTAR CORDÃO CIRCULAR ANTES DO DESPRENDIMENTO se possível (apenas afrouxar).'
+      ],
+      sequenciaManobras: [
+        {
+          ordem: 1,
+          mnemonico: 'H / A — Help (Chamar Ajuda e Cronometrar)',
+          tempoAlvo: '0 a 30 segundos',
+          acao: 'Acionar imediatamente obstetra sênior, neonatologista, anestesista e enfermagem. Designar 1 profissional para cronometrar o tempo em voz alta a cada 30 segundos. Esvaziar bexiga se distendida.'
+        },
+        {
+          ordem: 2,
+          mnemonico: 'L + E — Legs (McRoberts) + External Pressure (Rubin I / Mazzanti)',
+          tempoAlvo: '30 a 90 segundos (Resolve 85% dos casos)',
+          acao: '1) MANOBRA DE McROBERTS: Retirar pernas das perneiras e hiperflexionar/abduzir intensamente as coxas maternas sobre o abdome (retifica o promontório sacral e roda a sínfise púbica cefalicamente). 2) MANOBRA DE RUBIN I / MAZZANTI: Auxiliar aplica pressão SUPRAPÚBICA firme (nunca fúndica!) de forma contínua ou em báscula na direção do tórax fetal para aduzir o ombro anterior e deslocá-lo sob a sínfise púbica.'
+        },
+        {
+          ordem: 3,
+          mnemonico: 'E / R — Enter (Manobras Internas Rotacionais: Rubin II e Woods)',
+          tempoAlvo: '90 a 150 segundos',
+          acao: 'Avaliar episiotomia ampla apenas para ganhar espaço para a mão do obstetra na vagina: 1) RUBIN II: Introduzir dois dedos atrás do ombro anterior e empurrá-lo em direção ao tórax fetal. 2) SACA-ROLHAS DE WOODS: Com a outra mão na face anterior do ombro posterior, girar o feto 180º como uma rosca. 3) WOODS REVERSA: Pressionar a face posterior do ombro posterior.'
+        },
+        {
+          ordem: 4,
+          mnemonico: 'R / T — Remove Posterior Arm (Manobra de Jacquemier)',
+          tempoAlvo: '150 a 210 segundos',
+          acao: 'MANOBRA DE JACQUEMIER: Introduzir a mão lubrificada pela escava sacral (onde há mais espaço), localizar o úmero posterior, fletir o cotovelo fetal na frente do tórax e apreender o antebraço/mão fetal, varrendo-o pelo tórax até exteriorizar o braço posterior.'
+        },
+        {
+          ordem: 5,
+          mnemonico: 'R / A — Roll Over (Manobra de Gaskin — 4 Apoios)',
+          tempoAlvo: '210 a 270 segundos',
+          acao: 'MANOBRA DE GASKIN: Se paciente sem bloqueio motor completo, colocá-la em posição de quatro apoios (mãos e joelhos). Aumenta os diâmetros conjugados pélvicos e utiliza a gravidade para liberar o ombro posterior primeiro.'
+        },
+        {
+          ordem: 6,
+          mnemonico: 'Resgate Extremo (Última Linha)',
+          tempoAlvo: '> 4 a 5 minutos',
+          acao: 'Fratura intencional da clavícula fetal (pressionando-a para fora da caixa torácica), Manobra de Zavanelli (recolocação cefálica sob tocólise + cesariana de emergência) ou Sinfisiotomia.'
+        }
+      ],
+      cuidadosPosDesprendimento: [
+        'Prevenção ativa de Hemorragia Pós-Parto (atonia uterina e lacerações graves de canal de parto são muito frequentes).',
+        'Coletar gasometria arterial e venosa do cordão umbilical.',
+        'Exame neonatal detalhado de clavículas e plexo braquial + registro cronometrado rigoroso em prontuário.'
+      ]
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. SANGRAMENTO DA 1ª METADE DA GESTAÇÃO (ABORTAMENTO, ECTÓPICA E MOLA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia determinística e rapidamente gestante com sangramento na 1ª metade (< 20 semanas):
+   * diferencia formas clínicas de abortamento, gravidez ectópica (íntegra vs rota e critérios de Metotrexato)
+   * e doença trofoblástica gestacional (Mola Hidatiforme), incluindo profilaxia Anti-D.
+   */
+  function avaliarSangramentoPrimeiraMetade(dados) {
+    dados = dados || {};
+    var cenario = String(dados.quadroClinico || 'ameaca_aborto').toLowerCase();
+    var pas = toNumberSafe(dados.pas, 115);
+    var fc = toNumberSafe(dados.fc, 82);
+    var colo = String(dados.orificioInternoColo || 'fechado').toLowerCase();
+    var betaHcg = toNumberSafe(dados.betaHcgQuantitativo, 0);
+    var massaAnexialCm = toNumberSafe(dados.massaAnexialCm, 0);
+    var bcfEmbriaoAnexial = Boolean(dados.bcfEmbriaoAnexial);
+    var liquidoLivrePeritonio = Boolean(dados.liquidoLivreAlemDaPelve);
+    var febreOuSecrecaoFetida = Boolean(dados.febreOuSecrecaoPurulenta);
+    var rhMaterno = String(dados.fatorRh || 'positivo').toLowerCase();
+
+    var instavel = pas < 90 || fc > 110 || liquidoLivrePeritonio;
+    var condutas = [];
+    var prescricoes = [];
+    var alertas = [];
+    var diagnostico = '';
+
+    var profilaxiaAntiD = null;
+    if (rhMaterno.indexOf('neg') >= 0 || rhMaterno === '-') {
+      profilaxiaAntiD = '💉 PROFILAXIA ANTI-D OBRIGATÓRIA (Mãe Rh Negativo com Coombs Indireto Negativo): Administrar Imunoglobulina Anti-D 300 mcg IM (ou 120-150 mcg se < 12 semanas conforme disponibilidade) em até 72 horas do início do sangramento ou esvaziamento uterino.';
+      alertas.push(profilaxiaAntiD);
+    }
+
+    if (cenario.indexOf('ectop') >= 0 || massaAnexialCm > 0 || liquidoLivrePeritonio) {
+      if (instavel) {
+        diagnostico = 'GRAVIDEZ ECTÓPICA ROTA (Abdome Agudo Hemorrágico)';
+        alertas.push('🚨 EMERGÊNCIA CIRÚRGICA IMEDIATA: Choque hipovolêmico / Hemoperitônio por Ectópica Rota!');
+        condutas = [
+          '1. Dois acessos venosos calibrosos (14G ou 16G) + reposição volêmica vigorosa com cristaloide aquecido.',
+          '2. Tipagem sanguínea, reserva e transfusão de Concentrado de Hemácias.',
+          '3. LAPAROTOMIA EXPLORADORA IMEDIATA (ou Videolaparoscopia se equipe/equipamento imediatos e estabilização rápida) para Salpingectomia total ipsilateral.'
+        ];
+      } else {
+        var elegivelMtx =
+          betaHcg > 0 &&
+          betaHcg <= 5000 &&
+          massaAnexialCm > 0 &&
+          massaAnexialCm <= 3.5 &&
+          !bcfEmbriaoAnexial &&
+          !liquidoLivrePeritonio;
+
+        if (elegivelMtx) {
+          diagnostico = 'GRAVIDEZ ECTÓPICA ÍNTEGRA — ELEGÍVEL PARA TRATAMENTO MEDICAMENTOSO (METOTREXATO)';
+          condutas = [
+            'Critérios de elegibilidade preenchidos: Estabilidade hemodinâmica, Massa anexial <= 3,5-4,0 cm, Beta-hCG <= 5.000 mUI/mL, BCF embrionário AUSENTE e ausência de líquido livre além da pelve.',
+            'Coletar antes da aplicação (D1): Beta-hCG quantitativo basal, Hemograma completo, TGO/TGP, Creatinina e Tipagem Sanguínea/Rh.',
+            'PROTOCOLO DE SEGUIMENTO PÓS-METOTREXATO (Dose Única):',
+            '  • D1: Aplicar Metotrexato 50 mg/m² IM em dose única.',
+            '  • D4: Coletar Beta-hCG quantitativo (é comum haver leve subida entre D1 e D4 pela lise trofoblástica).',
+            '  • D7: Coletar Beta-hCG quantitativo. META: Queda >= 15% nos níveis de Beta-hCG entre o D4 e o D7.',
+            '  • Se queda >= 15% entre D4 e D7: Acompanhar com Beta-hCG semanal até negativação (< 5 mUI/mL).',
+            '  • Se queda < 15% entre D4 e D7: Aplicar 2ª dose de Metotrexato 50 mg/m² IM (se mantiver estabilidade) ou indicar cirurgia.',
+            'Orientações críticas à paciente: Suspender Ácido Fólico/polivitamínicos, abstinência sexual, evitar exposição solar e retornar imediatamente ao PS se dor abdominal súbita.'
+          ];
+          prescricoes.push('Metotrexato 50 mg/m² de superfície corporal via Intramuscular (IM) em dose única no D1.');
+        } else {
+          diagnostico = 'GRAVIDEZ ECTÓPICA ÍNTEGRA — INDICAÇÃO CIRÚRGICA (Inelegível para Metotrexato)';
+          condutas = [
+            'Contraindicação ao tratamento clínico (Beta-hCG > 5.000 mUI/mL, massa > 3,5-4,0 cm ou presença de BCF embrionário vivo).',
+            'Indicar Videolaparoscopia cirúrgica (Salpingectomia se tuba contralateral sadia ou lesão extensa; Salpingostomia linear se desejo reprodutivo e tuba única).'
+          ];
+        }
+      }
+    }
+    else if (cenario.indexOf('mola') >= 0 || cenario.indexOf('trofoblast') >= 0) {
+      diagnostico = 'DOENÇA TROFOBLÁSTICA GESTACIONAL (Mola Hidatiforme)';
+      alertas.push('⚠️ PROIBIDO USO DE MISOPROSTOL/OCITOCINA PARA PREPARO DE COLO ANTES DO ESVAZIAMENTO (risco de embolização trofoblástica pulmonar e deportação de células molares).');
+      condutas = [
+        '1. Solicitar Beta-hCG quantitativo basal (frequentemente > 100.000 mUI/mL), Hemograma, Coagulograma, TSH/T4 livre (rastreio de tireotoxicose molar) e Radiografia de Tórax.',
+        '2. ESVAZIAMENTO UTERINO PREFERENCIAL POR VÁCUO-ASPIRAÇÃO (Aspiração Elétrica ou AMIU). Infundir Ocitocina IV contínua apenas APÓS o início da dilatação/aspiração para prevenir perfuração e hemorragia.',
+        '3. Enviar todo o material aspirado para estudo anatomopatológico (diferenciar Mola Completa 46,XX de Mola Parcial triploide 69,XXY).',
+        '4. SEGUIMENTO PÓS-MOLAR OBRIGATÓRIO: Dosagem semanal/quinzenal de Beta-hCG até 3 resultados negativos consecutivos, seguido de dosagem mensal por 6 meses + Anticoncepção hormonal rigorosa durante todo o seguimento (DIU é contraindicado até normalização do Beta-hCG).'
+      ];
+    }
+    else if (febreOuSecrecaoFetida || cenario.indexOf('infect') >= 0 || cenario.indexOf('sept') >= 0) {
+      diagnostico = 'ABORTAMENTO INFECTADO / SÉPTICO';
+      alertas.push('🚨 EMERGÊNCIA INFECCIOSA E OBSTÉTRICA: Risco de choque séptico polimicrobiano e síndrome de Mondor (Clostridium perfringens)!');
+      condutas = [
+        '1. Coletar Hemoculturas, Hemograma, Lactato, Função Renal, Coagulograma e Bilirrubinas + Ressuscitação volêmica (Pacote de 1 hora da Sepse).',
+        '2. INICIAR ANTIBIOTICOTERAPIA ENDOVENOSA DE AMPLO ESPECTRO IMEDIATAMENTE (antes da manipulação cirúrgica):',
+        '   • Clindamicina 900 mg IV de 8/8h + Gentamicina 5 mg/kg IV 1x/dia (ou 1,5 mg/kg 8/8h) — associar Ampicilina 2g IV 6/6h se sepse grave.',
+        '3. CONTROLE DO FOCO INFECCIOSO: Realizar esvaziamento uterino cirúrgico (Curetagem cuidadosa sob infusão de ocitocina pelo alto risco de perfuração de miométrio friável) logo após a 1ª dose de antibiótico.',
+        '4. Se refratariedade clínica, necrose miometrial ou abscesso pélvico roto: Histerectomia total de urgência.'
+      ];
+    }
+    else if (colo === 'fechado' && cenario.indexOf('retid') < 0 && cenario.indexOf('complet') < 0) {
+      diagnostico = 'AMEAÇA DE ABORTAMENTO (Colo Uterino Fechado + Embrião Vivo)';
+      condutas = [
+        '1. Ultrassonografia transvaginal confirma saco gestacional tópico regular e embrião com BCF presente.',
+        '2. Orientações: Repouso relativo e abstinência sexual durante o episódio de sangramento ativo.',
+        '3. Analgesia simples se cólicas: Escopolamina 10 mg + Paracetamol 500 mg VO de 6/6h se dor.',
+        '4. Tranquilizar a gestante (aprox. 80-85% evoluem favoravelmente quando já há BCF embrionário documentado).'
+      ];
+    } else if (cenario.indexOf('retid') >= 0) {
+      diagnostico = 'ABORTAMENTO RETIDO (Colo Fechado + Embrião sem BCF >= 7 mm ou SG >= 25 mm sem embrião)';
+      condutas = [
+        '1. Confirmar critérios ultrassonográficos definitivos de perda gestacional (CCN >= 7 mm sem BCF ou Diâmetro Médio do Saco Gestacional >= 25 mm sem embrião).',
+        '2. Se <= 12 semanas: Preparo cervical com Misoprostol 800 mcg via vaginal (ou 400 mcg de 4/4h) seguido de Aspiração Manual Intrauterina (AMIU) — método de escolha padrão ouro (menor risco de sinéquias de Asherman que a curetagem).',
+        '3. Se > 12 semanas: Internação hospitalar para indução da expulsão fetal com Misoprostol (200 a 400 mcg via vaginal a cada 4-6h) seguido de curetagem complementar se retenção placentária.'
+      ];
+    } else {
+      diagnostico = 'ABORTAMENTO INCOMPLETO / INEVITÁVEL (Orifício Interno do Colo Aberto)';
+      condutas = [
+        '1. Internação para esvaziamento uterino: Preferir AMIU (Aspiração Manual Intrauterina) em gestações <= 12 semanas (alternativa: Curetagem Uterina).',
+        '2. Enviar material para anatomopatológico (afastar degeneração molar).',
+        '3. Alta hospitalar após estabilização com prescrição de Sulfato Ferroso se anemia, analgesia e orientação contraceptiva imediata.'
+      ];
+    }
+
+    return {
+      protocolo: 'Sangramento da 1ª Metade da Gestação (FEBRASGO / MS)',
+      diagnostico: diagnostico,
+      hemodinamicaEstavel: !instavel,
+      profilaxiaAntiD: profilaxiaAntiD,
+      alertas: alertas,
+      prescricoes: prescricoes,
+      condutas: condutas
+    };
+  }
+
   return {
     avaliarTrabalhoParto: avaliarTrabalhoParto,
     calcularIndiceBishop: calcularIndiceBishopInternal,
@@ -9597,7 +9886,10 @@ var CentroObstetricoService = (function() {
     avaliarRcfDopplerCentroObstetrico: avaliarRcfDopplerCentroObstetrico,
     avaliarProfilaxiaGbs: avaliarProfilaxiaGbs,
     protocoloPrematuridadeRpmo: protocoloPrematuridadeRpmo,
-    gerarResumoCentroObstetrico: gerarResumoCentroObstetrico
+    gerarResumoCentroObstetrico: gerarResumoCentroObstetrico,
+    avaliarCardiotocografiaIntraparto: avaliarCardiotocografiaIntraparto,
+    manejarDistociaDeOmbros: manejarDistociaDeOmbros,
+    avaliarSangramentoPrimeiraMetade: avaliarSangramentoPrimeiraMetade
   };
 })();
 
@@ -17209,13 +17501,142 @@ var GinecologiaAmbulatorialService = (function() {
     return linhas.join('\n');
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 6. ATENDIMENTO INTEGRAL À VÍTIMA DE VIOLÊNCIA SEXUAL (PCDT MS / FEBRASGO)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Gera a prescrição completa e imediata de profilaxias (Contracepção de Emergência,
+   * ISTs Virais/HIV/HepB e ISTs Não Virais) e o checklist médico-legal para atendimento
+   * de urgência à vítima de violência sexual.
+   */
+  function protocoloViolenciaSexual(dados) {
+    dados = dados || {};
+    var horasAposExposicao = Number(dados.horasAposExposicao || 12);
+    var pesoKg = Number(dados.pesoKg || 60);
+    var gestante = Boolean(dados.gestante);
+    var vacinadaHepatiteB = Boolean(dados.vacinadaHepatiteBCompleta);
+
+    var dentroJanela72h = horasAposExposicao <= 72;
+    var dentroJanela120h = horasAposExposicao <= 120;
+
+    var prescricoes = [];
+
+    // 1. Contracepção de Emergência (Até 5 dias / 120h, ideal < 72h)
+    if (!gestante && dentroJanela120h) {
+      prescricoes.push({
+        finalidade: '1. Anticoncepção de Emergência (Prevenção de Gravidez Decorrente de Estupro)',
+        farmaco: 'Levonorgestrel 1,5 mg VO (1 comprimido de 1,5 mg ou 2 comprimidos de 0,75 mg)',
+        posologia: 'Tomar 1,5 mg por via oral em DOSE ÚNICA imediatamente (eficácia máxima em até 72h; indicado até 5 dias / 120h da violência).'
+      });
+    }
+
+    // 2. Profilaxia de ISTs Não Virais (Sífilis, Gonorreia, Clamídia e Tricomoníase)
+    prescricoes.push({
+      finalidade: '2. Profilaxia de Sífilis',
+      farmaco: 'Penicilina G Benzatina 2.400.000 UI IM',
+      posologia: 'Aplicar 1.200.000 UI IM profunda em cada glúteo em DOSE ÚNICA.'
+    });
+
+    prescricoes.push({
+      finalidade: '3. Profilaxia de Gonorreia e Clamídia / Cancro Mole',
+      farmaco: 'Ceftriaxona 500 mg IM + Azitromicina 1 g VO',
+      posologia: 'Aplicar Ceftriaxona 500 mg IM em dose única + Tomar Azitromicina 1 g (2 comprimidos de 500 mg) VO em dose única.'
+    });
+
+    prescricoes.push({
+      finalidade: '4. Profilaxia de Tricomoníase',
+      farmaco: 'Metronidazol 2 g VO (4 comprimidos de 500 mg)',
+      posologia: 'Tomar 2 g VO em dose única. DICA PRÁTICA DE PLANTÃO: Pode ser postergado para o 3º ou 5º dia para evitar náuseas/vômitos sinérgicos com o Levonorgestrel e os antirretrovirais no D1!'
+    });
+
+    // 3. PEP para HIV (Estritamente se <= 72 horas da exposição)
+    if (dentroJanela72h) {
+      prescricoes.push({
+        finalidade: '5. Profilaxia Pós-Exposição ao HIV (PEP — Iniciar idealmente em 2h, máximo 72h)',
+        farmaco: 'Tenofovir (TDF) 300 mg + Lamivudina (3TC) 300 mg + Dolutegravir (DTG) 50 mg',
+        posologia: 'Tomar 1 comprimido coformulado de TDF/3TC (300/300 mg) + 1 comprimido de Dolutegravir 50 mg por via oral, 1 vez ao dia, durante 28 DIAS ININTERRUPTOS.'
+      });
+    }
+
+    // 4. Imunoprofilaxia de Hepatite B
+    if (!vacinadaHepatiteB) {
+      prescricoes.push({
+        finalidade: '6. Imunoprofilaxia de Hepatite B (Paciente Não Vacinada ou Esquema Incompleto)',
+        farmaco: 'Vacina Hepatite B + Imunoglobulina Humana Anti-Hepatite B (IGHAHB)',
+        posologia: 'Aplicar 1ª dose da Vacina Hepatite B IM no deltoide + IGHAHB 0,06 mL/kg IM em grupo muscular diferente (até no máximo 14 dias após a exposição).'
+      });
+    }
+
+    return {
+      protocolo: 'Atendimento Integral à Vítima de Violência Sexual (PCDT MS / FEBRASGO)',
+      horasAposExposicao: horasAposExposicao,
+      elegivelPepHiv: dentroJanela72h,
+      elegivelContracepcaoEmergencia: !gestante && dentroJanela120h,
+      examesBasaisAdmissao: [
+        'Testes Rápidos basais na admissão: HIV, Sífilis, Hepatite B (HBsAg) e Hepatite C (Anti-HCV).',
+        'Beta-hCG / Teste Rápido de Gravidez (para documentar ausência de gestação prévia).',
+        'Hemograma, TGO/TGP e Creatinina (basal para acompanhamento da PEP).'
+      ],
+      prescricoes: prescricoes,
+      aspectosEticosLegais: [
+        'O atendimento médico é uma EMERGÊNCIA e NÃO depende da apresentação de Boletim de Ocorrência (B.O.) ou laudo do IML.',
+        'Realizar Notificação Compulsória no SINAN (Ficha de Violência Interpessoal/Autoprovocada) em até 24 horas.',
+        'Acionar Serviço Social e Psicologia para acolhimento humanizado e agendar retorno em 2 semanas, 30 dias, 90 dias e 6 meses.'
+      ]
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. URGÊNCIAS DE MAMA E VULVA: MASTITE PUERPERAL & ABSCESSO DE BARTHOLIN
+  // ───────────────────────────────────────────────────────────────────────────
+
+  function manejarUrgenciaMamaVulva(dados) {
+    dados = dados || {};
+    var tipo = String(dados.condicao || 'mastite').toLowerCase();
+
+    if (tipo.indexOf('bartholin') >= 0) {
+      return {
+        condicao: 'Bartolinite Aguda / Abscesso de Glândula de Bartholin',
+        quadroClinico: 'Abaulamento doloroso, quente, hiperemiado e flutuante no terço posteroinferior do grande lábio (posição 4h ou 8h do introito vaginal).',
+        condutaImediata: [
+          '1. ABSCESSO FLUTUANTE FORMADO: O tratamento definitivo é CIRÚRGICO/MECÂNICO (Antibiótico isolado sem drenagem tem altíssimo índice de falha).',
+          '   • Opção A (Preferencial em urgência/recorrência): MARSUPIALIZAÇÃO sob anestesia local/bloqueio pudendo (incisão vertical de 1,5 a 2 cm na face mucosa interna do vestíbulo, logo fora do anel himenal, lavagem com SF 0,9% e sutura da cápsula do cisto à mucosa vestibular com fio absorvível 3-0).',
+          '   • Opção B: Inserção de Cateter de Word (insuflado com 2 a 3 mL de SF 0,9% por 4 semanas para epitelização do trajeto).',
+          '   • Opção C (Alívio rápido no PS): Incisão e drenagem simples com lâmina 11 na face mucosa vestibular (orientar que há risco de recidiva).',
+          '2. ANTIBIOTICOTERAPIA ASSOCIADA (Indicada se celulite perineal adjacente, febre, sinais sistêmicos, gestação ou suspeita de N. gonorrhoeae / C. trachomatis):',
+          '   • Ceftriaxona 500 mg IM dose única + Doxiciclina 100 mg VO 12/12h por 7 a 10 dias + Metronidazol 500 mg VO 12/12h por 7 dias (ou Amoxicilina-Clavulanato 875/125 mg VO 12/12h por 7 dias).',
+          '3. Analgesia, AINEs e banhos de assento mornos 3 a 4x ao dia.'
+        ],
+        alertaOncologico: '⚠️ Em mulheres > 40 anos ou na pós-menopausa com massa na topografia da glândula de Bartholin: realizar BIÓPSIA excisional para afastar Carcinoma de Glândula de Bartholin!'
+      };
+    }
+
+    return {
+      condicao: 'Mastite Puerperal Aguda (Lactacional)',
+      quadroClinico: 'Dor mamária unilateral, eritema cuneiforme (em cunha), calor local, ingurgitamento, febre alta (> 38,5 ºC), calafrios e mialgia. Agente principal: Staphylococcus aureus.',
+      condutaImediata: [
+        '1. MEDIDA MAIS IMPORTANTE: NÃO SUSPENDER A AMAMENTAÇÃO! O esvaziamento frequente e completo da mama afetada (amamentação em livre demanda iniciando pela mama sadia ou ordenha manual/elétrica) é fundamental para a cura e não oferece risco ao RN a termo.',
+        '2. Corrigir a pega e posicionamento do lactente (causa base da fissura mamilar e estase láctea). Compressas frias após as mamadas para reduzir edema e dor.',
+        '3. ANTIBIOTICOTERAPIA EMPÍRICA DE 1ª LINHA (Segura na Amamentação — por 10 a 14 dias):',
+        '   • Cefalexina 500 mg VO de 6/6 horas por 10 a 14 dias.',
+        '   • OU Amoxicilina + Clavulanato 500/125 mg VO 8/8h (ou 875/125 mg 12/12h) por 10 a 14 dias.',
+        '   • Se alérgica a betalactâmicos ou suspeita de MRSA comunitário: Clindamicina 300 a 600 mg VO de 6/6h ou 8/8h.',
+        '4. Sintomáticos: Ibuprofeno 400 a 600 mg VO 8/8h + Paracetamol 500 a 750 mg VO 6/6h.'
+      ],
+      alertaAbscesso: '🚨 CRITÉRIO DE ULTRASSONOGRAFIA / DRENAGEM: Se presença de área de flutuação à palpação OU ausência de melhora clínica/febre após 48 a 72 horas de antibiótico adequado, solicitar USG de Mamas urgente para investigar ABSCESSO MAMÁRIO (tratar com punção aspirativa por agulha grossa guiada por USG ou drenagem cirúrgica, mantendo amamentação).'
+    };
+  }
+
   // Exportação Pública
   return {
     avaliarRastreioColoUterino: avaliarRastreioColoUterino,
     avaliarSangramentoUterinoAnormal: avaliarSangramentoUterinoAnormal,
     avaliarCriteriosElegibilidadeContracepcao: avaliarCriteriosElegibilidadeContracepcao,
     avaliarInfeccaoVulvovaginal: avaliarInfeccaoVulvovaginal,
-    gerarResumoGinecologia: gerarResumoGinecologia
+    gerarResumoGinecologia: gerarResumoGinecologia,
+    protocoloViolenciaSexual: protocoloViolenciaSexual,
+    manejarUrgenciaMamaVulva: manejarUrgenciaMamaVulva
   };
 })();
 
@@ -24404,7 +24825,11 @@ var ObstetriciaPrenatalService = (function() {
         'Ácido Fólico: 0,4 mg/dia VO (iniciar preferencialmente no período pré-concepcional e manter até 12-14 semanas) para prevenção de defeitos do tubo neural (DTN).',
         'Ácido Fólico em Alta Dose (4 a 5 mg/dia): indicado se antecedente de filho com DTN, gestante usuária de anticonvulsivantes ou diabetes pré-gestacional.',
         'Sulfato Ferroso: iniciar profilaxia (40 mg de ferro elementar/dia = 200 mg de sulfato ferroso) se gestante não anêmica a partir da 20ª semana.'
-      ]
+      ],
+      profilaxiaPreEclampsia: {
+        indicacao: 'INICIAR ENTRE 12 E 16 SEMANAS nas gestantes de alto risco (PE prévia, HAS crônica, DM1/DM2, Doença Renal, LES/SAF, Gemelar) ou >= 2 fatores de risco moderado (nulípara, IMC > 30, idade >= 35 anos).',
+        esquemaRecomendado: 'AAS 100 a 150 mg/dia VO à noite antes de dormir (iniciar com 12s, obrigatoriamente antes de 16s, e manter até 36 semanas) + Carbonato de Cálcio 1000 a 1500 mg de cálcio elementar/dia (fracionado longe do Sulfato Ferroso).'
+      }
     },
     2: {
       trimestre: '2º Trimestre (14 semanas a 27 semanas e 6 dias)',
@@ -51389,15 +51814,12 @@ var RotinaService = {
             if (matchGId || matchId || matchTit) {
               if (!b.googleEventId && svGIdPuro) b.googleEventId = svGIdPuro;
 
-              // Preserva status de override se existir
+              // Preserva status de override se existir (ex: concluido, pulado)
               if (sv.status && sv.status !== "pendente") {
                 b.status = sv.status;
               }
-              // Preserva horários de override caso tenha sido adiado ou alterado localmente
-              if (sv.status === "adiado" || (sv.inicio && sv.inicio !== b.inicio)) {
-                if (sv.inicio) b.inicio = sv.inicio;
-                if (sv.fim) b.fim = sv.fim;
-              }
+              // Ajustes de horários e rotina são feitos no Google Calendar (fonte soberana).
+              // b.inicio e b.fim vêm sempre atualizados do Google Calendar.
               if (sv.nota && sv.nota.indexOf("[Adiado") !== -1) {
                 b.nota = (b.nota && b.nota !== "Agenda Google" ? b.nota + " " : "") + sv.nota;
               } else if (sv.nota && (!b.nota || b.nota === "Agenda Google")) {
@@ -51408,11 +51830,12 @@ var RotinaService = {
             }
           }
         }
-        // Incorpora blocos de salvos que não vieram do Google Calendar
+        // Incorpora blocos de salvos que não vieram do Google Calendar (não ressuscita eventos excluídos da Agenda)
         for (var s = 0; s < salvos.length; s++) {
           var sv = salvos[s];
           var chaveSv = sv.id || sv.titulo;
-          if (!idsOuTitulosEncontrados[chaveSv]) {
+          var ehEventoGoogle = (sv.id && (sv.id.indexOf("google_") === 0 || sv.id.indexOf("gcal_") === 0)) || sv.googleEventId;
+          if (!idsOuTitulosEncontrados[chaveSv] && !ehEventoGoogle) {
             blocosAgenda.push(sv);
           }
         }
@@ -51423,7 +51846,14 @@ var RotinaService = {
       return blocosAgenda;
     }
 
-    if (salvos && salvos.length > 0) return salvos;
+    if (salvos && salvos.length > 0) {
+      // Se a agenda Google não retornou eventos (excluídos na agenda), preserva apenas blocos manuais locais
+      var salvosValidos = salvos.filter(function(sv) {
+        var ehGoogle = (sv.id && (sv.id.indexOf("google_") === 0 || sv.id.indexOf("gcal_") === 0)) || sv.googleEventId;
+        return !ehGoogle;
+      });
+      if (salvosValidos.length > 0) return salvosValidos;
+    }
 
     var stPl = typeof detectarPlantaoStatus === "function" ? detectarPlantaoStatus(ref) : { ehPlantaoHoje: false, ehPosPlantao: false };
     if (stPl && stPl.ehPosPlantao) {
@@ -51742,9 +52172,8 @@ var RotinaService = {
       teclado.push(botoesAcao);
     }
 
-    // Linha 2: Ações de flexibilidade e restauração
+    // Linha 2: Flexibilidade e restauração
     teclado.push([
-      { text: "✏️ Ajustar / Voz", callback_data: "rotina:ajustar" },
       { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" }
     ]);
 
@@ -51754,18 +52183,13 @@ var RotinaService = {
       { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
     ]);
 
-    // Linha 4: Sincronização Google Calendar
-    teclado.push([
-      { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
-    ]);
-
-    // Linha 5: Navegação Hoje / Amanhã / Placar
+    // Linha 4: Navegação Hoje / Amanhã / Placar
     teclado.push([
       { text: "📆 Ver Amanhã", callback_data: "rotina:ver_amanha" },
       { text: "📊 Aderência Semanal", callback_data: "rotina:aderencia" }
     ]);
 
-    // Linha 6: Retorno Contextual Padronizado Beira-Leito
+    // Linha 5: Retorno Contextual Padronizado Beira-Leito
     teclado.push([
       { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
       { text: "🏠 Início", callback_data: "ux:hub:inicio" }
@@ -54969,6 +55393,221 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, "🩹 *CONDUTA DE DOENÇA INFLAMATÓRIA PÉLVICA (DIP):*\n\n```\n" + textoResumoDip + "\n```", {
       inline_keyboard: [
         [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckDip }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4a. Cardiotocografia Intraparto & Reanimação Intrauterina (/ctg, /cardiotocografia)
+  if (comando === "/ctg" || comando === "/cardiotocografia") {
+    var dadosCtg = texto.replace(/^\/(ctg|cardiotocografia)\s*/i, "").trim();
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Cardiotocografia indisponível temporariamente.") };
+    }
+
+    var paramsCtg = {};
+    if (dadosCtg.match(/cat\s*3|cat\s*iii|sinusoidal|grave|asfixia/i)) {
+      paramsCtg.variabilidade = 'sinusoidal';
+    } else if (dadosCtg.match(/dip\s*2|dip\s*ii|tardi/i)) {
+      paramsCtg.desaceleracoes = 'dip2_tardia';
+      paramsCtg.variabilidade = dadosCtg.match(/ausente/i) ? 'ausente' : 'minima';
+    } else if (dadosCtg.match(/dip\s*3|dip\s*iii|variavel/i)) {
+      paramsCtg.desaceleracoes = 'dip3_variavel_simples';
+    } else if (dadosCtg.match(/dip\s*1|dip\s*i|precoce/i)) {
+      paramsCtg.desaceleracoes = 'dip1_precoce';
+    }
+
+    var mBcfCtg = dadosCtg.match(/bcf\s*[:=]?\s*(\d+)/i) || dadosCtg.match(/(\d{2,3})\s*bpm/i);
+    if (mBcfCtg) paramsCtg.bcfBasal = parseInt(mBcfCtg[1], 10);
+    if (dadosCtg.match(/taquissist|hiperdinam|\>5\s*contr/i)) paramsCtg.taquissistolia = true;
+
+    var resCtg = CentroObstetricoService.avaliarCardiotocografiaIntraparto(paramsCtg);
+    var linhasCtg = [
+      "📉 *" + resCtg.titulo + "*",
+      "",
+      "• *Fisiopatologia:* " + resCtg.fisiopatologia,
+      "",
+      "📋 *Conduta Imediata:*",
+      resCtg.condutas.join("\n")
+    ];
+    var txtCtg = linhasCtg.join("\n");
+    var ckCtg = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheCtg = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheCtg && typeof safePutCache === "function") safePutCache(cacheCtg, ckCtg, txtCtg, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4b. Distócia de Ombros (/distocia, /helperr)
+  if (comando === "/distocia" || comando === "/helperr") {
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.manejarDistociaDeOmbros) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Distócia indisponível temporariamente.") };
+    }
+    var resDist = CentroObstetricoService.manejarDistociaDeOmbros();
+    var linhasDist = [
+      "🆘 *" + resDist.protocolo + "*",
+      "⚠️ *" + resDist.diagnostico + "*\n",
+      "🚨 *TRAVAS DE SEGURANÇA CRÍTICAS:*",
+      resDist.travasSegurancaCriticas.join("\n"),
+      "\n⏱️ *SEQUÊNCIA DE MANOBRAS CRONOMETRADAS:*"
+    ];
+    resDist.sequenciaManobras.forEach(function(m) {
+      linhasDist.push("• *" + m.mnemonico + "* (" + m.tempoAlvo + "):\n  " + m.acao);
+    });
+    linhasDist.push("\n🩺 *PÓS-DESPRENDIMENTO:*\n" + resDist.cuidadosPosDesprendimento.join("\n"));
+
+    var txtDist = linhasDist.join("\n");
+    var ckDist = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheDist = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheDist && typeof safePutCache === "function") safePutCache(cacheDist, ckDist, txtDist, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtDist, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckDist }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4c. Sangramento de 1ª Metade da Gestação (/sangramento1tri, /abortamento, /ectopica)
+  if (comando === "/sangramento1tri" || comando === "/abortamento" || comando === "/ectopica") {
+    var dadosSang = texto.replace(/^\/(sangramento1tri|abortamento|ectopica)\s*/i, "").trim();
+    if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarSangramentoPrimeiraMetade) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Sangramento 1º Trimestre indisponível temporariamente.") };
+    }
+    var pSang = {};
+    if (comando === "/ectopica" || dadosSang.match(/ectop/i)) pSang.quadroClinico = 'ectopica';
+    else if (dadosSang.match(/retid/i)) pSang.quadroClinico = 'aborto_retido';
+    else if (dadosSang.match(/infect|sept/i)) pSang.quadroClinico = 'aborto_infectado';
+    else if (dadosSang.match(/mola|trofoblast/i)) pSang.quadroClinico = 'mola';
+    else if (dadosSang.match(/aberto|incomplet|inevit/i)) {
+      pSang.orificioInternoColo = 'aberto';
+      pSang.quadroClinico = 'aborto_incompleto';
+    } else {
+      pSang.quadroClinico = 'ameaca_aborto';
+    }
+
+    var mBeta = dadosSang.match(/beta\s*[:=]?\s*(\d+)/i) || dadosSang.match(/(\d+)\s*mui/i);
+    if (mBeta) pSang.betaHcgQuantitativo = parseInt(mBeta[1], 10);
+    var mMassa = dadosSang.match(/massa\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosSang.match(/(\d+(?:[.,]\d+)?)\s*cm/i);
+    if (mMassa) pSang.massaAnexialCm = parseFloat(mMassa[1].replace(',', '.'));
+    if (dadosSang.match(/rh\s*neg|rh\s*-/i)) pSang.fatorRh = 'negativo';
+    if (dadosSang.match(/choque|instavel|peritonite|liquido\s*livre/i)) pSang.liquidoLivreAlemDaPelve = true;
+
+    var resSang = CentroObstetricoService.avaliarSangramentoPrimeiraMetade(pSang);
+    var linhasSang = [
+      "🩸 *" + resSang.protocolo + "*",
+      "🩺 *Diagnóstico:* " + resSang.diagnostico,
+      ""
+    ];
+    if (resSang.alertas && resSang.alertas.length > 0) {
+      linhasSang.push("⚠️ *ALERTAS CRÍTICOS:*\n" + resSang.alertas.join("\n") + "\n");
+    }
+    if (resSang.prescricoes && resSang.prescricoes.length > 0) {
+      linhasSang.push("💊 *PRESCRIÇÃO IMEDIATA:*\n" + resSang.prescricoes.join("\n") + "\n");
+    }
+    linhasSang.push("📋 *CONDUTAS RECOMENDADAS:*\n" + resSang.condutas.join("\n"));
+
+    var txtSang = linhasSang.join("\n");
+    var ckSang = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheSang = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheSang && typeof safePutCache === "function") safePutCache(cacheSang, ckSang, txtSang, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtSang, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckSang }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4d. Atendimento à Vítima de Violência Sexual (/violencia_sexual, /violenciasexual, /estupro, /pep_go)
+  if (comando === "/violencia_sexual" || comando === "/violenciasexual" || comando === "/estupro" || comando === "/pep_go") {
+    var dadosVio = texto.replace(/^\/(violencia_sexual|violenciasexual|estupro|pep_go)\s*/i, "").trim();
+    if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.protocoloViolenciaSexual) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Violência Sexual indisponível temporariamente.") };
+    }
+    var pVio = {};
+    var mHoras = dadosVio.match(/(\d+)\s*h/i);
+    if (mHoras) pVio.horasAposExposicao = parseInt(mHoras[1], 10);
+    if (dadosVio.match(/gestant/i)) pVio.gestante = true;
+    if (dadosVio.match(/vacina\s*hep\s*b|vacinada/i)) pVio.vacinadaHepatiteBCompleta = true;
+
+    var resVio = GinecologiaAmbulatorialService.protocoloViolenciaSexual(pVio);
+    var linhasVio = [
+      "🛡️ *" + resVio.protocolo + "*",
+      "⏱️ *Janela Temporal:* " + resVio.horasAposExposicao + "h pós-exposição",
+      "",
+      "🧪 *EXAMES BASAIS DE ADMISSÃO:*",
+      resVio.examesBasaisAdmissao.join("\n"),
+      "",
+      "💊 *PRESCRIÇÕES IMEDIATAS (KIT PROFILAXIA):*"
+    ];
+    resVio.prescricoes.forEach(function(pr) {
+      linhasVio.push("• *" + pr.finalidade + "*:\n  " + pr.farmaco + "\n  Posologia: " + pr.posologia);
+    });
+    linhasVio.push("\n⚖️ *ASPECTOS ÉTICOS E LEGAIS:*\n" + resVio.aspectosEticosLegais.join("\n"));
+
+    var txtVio = linhasVio.join("\n");
+    var ckVio = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheVio = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheVio && typeof safePutCache === "function") safePutCache(cacheVio, ckVio, txtVio, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtVio, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckVio }],
+        [
+          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
+          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+        ]
+      ]
+    }) };
+  }
+
+  // 4e. Urgências de Mama e Vulva (/mastite, /bartholin)
+  if (comando === "/mastite" || comando === "/bartholin") {
+    var dadosMv = texto.replace(/^\/(mastite|bartholin)\s*/i, "").trim();
+    if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
+      return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Urgências de Mama/Vulva indisponível temporariamente.") };
+    }
+    var pMv = { condicao: comando === "/bartholin" || dadosMv.match(/bartholin/i) ? 'bartholin' : 'mastite' };
+    var resMv = GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(pMv);
+
+    var linhasMv = [
+      "🩺 *" + resMv.condicao + "*",
+      "🔍 *Quadro Clínico:* " + resMv.quadroClinico,
+      "",
+      "📋 *CONDUTA IMEDIATA:*",
+      resMv.condutaImediata.join("\n")
+    ];
+    if (resMv.alertaAbscesso) linhasMv.push("\n" + resMv.alertaAbscesso);
+    if (resMv.alertaOncologico) linhasMv.push("\n" + resMv.alertaOncologico);
+
+    var txtMv = linhasMv.join("\n");
+    var ckMv = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
+    var cacheMv = (typeof uxCache === "function") ? uxCache() : null;
+    if (cacheMv && typeof safePutCache === "function") safePutCache(cacheMv, ckMv, txtMv, 21600);
+
+    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtMv, {
+      inline_keyboard: [
+        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckMv }],
         [
           { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
           { text: "🏠 Início", callback_data: "ux:hub:inicio" }
@@ -65190,7 +65829,6 @@ function construirTecladoHubRotina() {
         {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
       ],
       [
-        {"text": "📆 Sincronizar Google", "callback_data": "rotina:cal_sync"},
         {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
     ]
@@ -65345,7 +65983,7 @@ function tratarComandoRotina(chatId, argRotina) {
     var blocosHoje = RotinaService.obterBlocosDoDia(hoje);
     var txtHoje = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosHoje, hoje) +
-      "\n\n💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbHoje = RotinaService.construirTecladoTimeline(hoje, blocosHoje);
     return enviarMensagemComTecladoParaChat(chatId, txtHoje, kbHoje);
   }
@@ -65355,7 +65993,7 @@ function tratarComandoRotina(chatId, argRotina) {
     var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
     var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbAmanha = RotinaService.construirTecladoTimeline(amanha, blocosAmanha);
     return enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
   }
@@ -65488,15 +66126,11 @@ function tratarCallbackRotina(cb) {
       responderCallbackTelegram(cb.id, "📆 Agenda verificada: nenhum evento registrado hoje.");
     }
   } else if (subAcao === "ajustar") {
-    responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
-    var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +
-      "Basta digitar ou mandar um áudio gravado no chat. Exemplos:\n" +
-      "• _'Hoje não vou treinar'_\n" +
-      "• _'Mudei o treino para as 19h'_\n" +
-      "• _'Hoje vou estudar das 15h às 17h'_\n" +
-      "• _'Sem cochilo hoje'_\n" +
-      "• _'Troquei musculação por corrida de 40 min'_\n" +
-      "• _'Reset' (volta para a grade padrão)_";
+    responderCallbackTelegram(cb.id, "📅 Ajustes pelo Google Calendar");
+    var msgDica = "📅 *AJUSTES DE ROTINA NO GOOGLE CALENDAR*\n\n" +
+      "Seus ajustes de horários e rotina são feitos diretamente no seu *Google Calendar* e sincronizados automaticamente aqui em tempo real!\n\n" +
+      "• Crie, altere ou remova eventos na sua agenda do Google\n" +
+      "• A timeline reflete as alterações automaticamente sem necessidade de comandos adicionais.";
     var kbDica = {
       inline_keyboard: [
         [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
@@ -65519,7 +66153,7 @@ function tratarCallbackRotina(cb) {
     var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
     var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbAmanha = {
       inline_keyboard: [
         [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
@@ -65545,7 +66179,7 @@ function tratarCallbackRotina(cb) {
   var blocosAtualizados = RotinaService.obterBlocosDoDia(hoje);
   var textoAtualizado = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
     RotinaService.formatarTimelineMarkdown(blocosAtualizados, hoje) +
-    "\n\n💡 *Para ajustar:* Toque abaixo ou envie áudio/texto:";
+    "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
   var tecladoAtualizado = RotinaService.construirTecladoTimeline(hoje, blocosAtualizados);
 
   if (msgId && token) {
@@ -69815,11 +70449,10 @@ function enviarRotinaBot(chat, messageId) {
 
   var texto = "*📅 Central de Rotina & Lifestyle Adaptativo*\n\n" +
               (timeline ? timeline + "\n\n" : "") +
-              "Selecione uma ação rápida ou envie áudio/texto para ajustar seus blocos:";
+              "Selecione uma opção rápida:";
 
   var botoes = botoesBot([
-    [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
+    [['🎯 Sniper de Plantões', 'sniper:painel'], ['🔄 Restaurar Padrão', 'rotina:reset']],
     [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
     [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
     [['🏠 Início', 'ux:hub:inicio']]
@@ -74051,6 +74684,66 @@ function cockpitResumoCentroObstetrico(initData, params) {
 }
 
 /**
+ * cockpitCardiotocografia — classificação NICHD/FIGO (Cat I, II, III, DIPs) e reanimação intrauterina.
+ */
+function cockpitCardiotocografia(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
+    throw new Error('Função avaliarCardiotocografiaIntraparto indisponível.');
+  }
+  return CentroObstetricoService.avaliarCardiotocografiaIntraparto(params);
+}
+
+/**
+ * cockpitDistociaOmbros — protocolo de emergência HELPERR (McRoberts, Rubin, Woods, Jacquemier).
+ */
+function cockpitDistociaOmbros(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.manejarDistociaDeOmbros) {
+    throw new Error('Função manejarDistociaDeOmbros indisponível.');
+  }
+  return CentroObstetricoService.manejarDistociaDeOmbros();
+}
+
+/**
+ * cockpitSangramentoPrimeiraMetade — diagnóstico de abortamento, ectópica (Metotrexato) e mola com Anti-D.
+ */
+function cockpitSangramentoPrimeiraMetade(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof CentroObstetricoService === 'undefined' || !CentroObstetricoService.avaliarSangramentoPrimeiraMetade) {
+    throw new Error('Função avaliarSangramentoPrimeiraMetade indisponível.');
+  }
+  return CentroObstetricoService.avaliarSangramentoPrimeiraMetade(params);
+}
+
+/**
+ * cockpitViolenciaSexual — atendimento integral, PEP HIV, profilaxias ISTs e contracepção de emergência.
+ */
+function cockpitViolenciaSexual(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined' || !GinecologiaAmbulatorialService.protocoloViolenciaSexual) {
+    throw new Error('Função protocoloViolenciaSexual indisponível.');
+  }
+  return GinecologiaAmbulatorialService.protocoloViolenciaSexual(params);
+}
+
+/**
+ * cockpitUrgenciaMamaVulva — manejo de Mastite Puerperal (manter lactação) e Abscesso de Bartholin.
+ */
+function cockpitUrgenciaMamaVulva(initData, params) {
+  cockpitAutorizar_(initData);
+  params = params || {};
+  if (typeof GinecologiaAmbulatorialService === 'undefined' || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
+    throw new Error('Função manejarUrgenciaMamaVulva indisponível.');
+  }
+  return GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(params);
+}
+
+/**
  * cockpitRastreioColoUterino — rastreio de câncer de colo de útero (INCA/MS).
  */
 function cockpitRastreioColoUterino(initData, params) {
@@ -75879,6 +76572,11 @@ if (typeof module !== 'undefined' && module.exports) {
   module.exports.cockpitRotinaSyncAgenda = cockpitRotinaSyncAgenda;
   module.exports.cockpitRotinaAderencia = cockpitRotinaAderencia;
   module.exports.cockpitRotinaAdiarBloco = cockpitRotinaAdiarBloco;
+  module.exports.cockpitCardiotocografia = cockpitCardiotocografia;
+  module.exports.cockpitDistociaOmbros = cockpitDistociaOmbros;
+  module.exports.cockpitSangramentoPrimeiraMetade = cockpitSangramentoPrimeiraMetade;
+  module.exports.cockpitViolenciaSexual = cockpitViolenciaSexual;
+  module.exports.cockpitUrgenciaMamaVulva = cockpitUrgenciaMamaVulva;
 }
 
 

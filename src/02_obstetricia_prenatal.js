@@ -542,7 +542,11 @@ var ObstetriciaPrenatalService = (function() {
         'Ácido Fólico: 0,4 mg/dia VO (iniciar preferencialmente no período pré-concepcional e manter até 12-14 semanas) para prevenção de defeitos do tubo neural (DTN).',
         'Ácido Fólico em Alta Dose (4 a 5 mg/dia): indicado se antecedente de filho com DTN, gestante usuária de anticonvulsivantes ou diabetes pré-gestacional.',
         'Sulfato Ferroso: iniciar profilaxia (40 mg de ferro elementar/dia = 200 mg de sulfato ferroso) se gestante não anêmica a partir da 20ª semana.'
-      ]
+      ],
+      profilaxiaPreEclampsia: {
+        indicacao: 'INICIAR ENTRE 12 E 16 SEMANAS nas gestantes de alto risco (PE prévia, HAS crônica, DM1/DM2, Doença Renal, LES/SAF, Gemelar) ou >= 2 fatores de risco moderado (nulípara, IMC > 30, idade >= 35 anos).',
+        esquemaRecomendado: 'AAS 100 a 150 mg/dia VO à noite antes de dormir (iniciar com 12s, obrigatoriamente antes de 16s, e manter até 36 semanas) + Carbonato de Cálcio 1000 a 1500 mg de cálcio elementar/dia (fracionado longe do Sulfato Ferroso).'
+      }
     },
     2: {
       trimestre: '2º Trimestre (14 semanas a 27 semanas e 6 dias)',

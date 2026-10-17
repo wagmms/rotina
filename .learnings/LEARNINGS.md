@@ -6,6 +6,151 @@ Corrections, insights, and knowledge gaps captured during development.
 **Areas**: frontend | backend | infra | tests | docs | config
 **Statuses**: pending | in_progress | resolved | wont_fix | promoted | promoted_to_skill
 
+## [LRN-20261017-006] insight
+
+**Logged**: 2026-10-17T14:45:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Heurísticas ingênuas de filtragem por contagem de caracteres (`len(text) < threshold`) descartam fluxogramas clínicos e tabelas estruturadas na ingestão.
+
+### Details
+1. Em scripts de raspagem ou ingestão de conhecimento médico (ex: acervo do Tá de Clinicagem), aplicar filtros ingênuos de tamanho de texto corrido para eliminar páginas "vazias" descartou mais de 2.000 fluxogramas visuais, tabelas posológicas e nós de decisão que continham poucas palavras mas altíssima densidade clínica em elementos estruturados (SVGs, `table`, `img`).
+2. O usuário percebeu que as primeiras categorias tinham muitos dados e as últimas quase nenhum, apontando a assimetria na extração.
+
+### Suggested Action
+Nunca utilizar comprimento de texto puro como critério de descarte em extratores. A validação de conteúdo deve checar a presença de tags estruturadas (`<svg>`, `<table>`, `<img>`, nós de grafos) antes de considerar um documento vazio.
+
+### Metadata
+- Source: user_feedback
+- Related Files: `scripts/extrator_tdc.py`, `data/tdc_knowledge.db`
+- Tags: scraping, ingestion, flowcharts, data_integrity
+- Pattern-Key: backend.scraper_visual_flowcharts_preservation
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
+## [LRN-20261017-005] best_practice
+
+**Logged**: 2026-10-17T14:45:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Ergonomia de contingência offline: proibição de respostas genéricas volumosas ("textão alucinatório") que simulam atendimento falso.
+
+### Details
+1. Quando a IA falha por oscilação de rede, despejar um bloco estático de 30 linhas com `🚨 SISTEMATIZAÇÃO DETERMINÍSTICA DE EMERGÊNCIA (MÉTODO ABCDE / MOV)` para qualquer pergunta (inclusive dúvidas simples de ambulatório) gera a sensação imediata de que o bot está "bugado" ou alucinando.
+2. Em modo de contingência, o bot deve ser transparente, conciso e admitir a indisponibilidade temporária da IA de forma enxuta, apresentando apenas referências canônicas puras ou solicitando dados objetivos em vez de tentar inventar conduta geral.
+
+### Suggested Action
+Extirpar checklists acadêmicos descabidos e cabeçalhos de engenheiro de TI do módulo `src/04_ia_local_fallback.js`. Responder de forma ágil, admitindo contingência com cartões visuais limpos.
+
+### Metadata
+- Source: user_feedback
+- Related Files: `src/04_ia_local_fallback.js`, `src/07c_telegram_consultas_e_ia.js`
+- Tags: fallback, offline, ux, ergonomics, contingency
+- Pattern-Key: backend.offline_fallback_ergonomics
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
+## [LRN-20261017-004] best_practice
+
+**Logged**: 2026-10-17T14:45:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: frontend
+
+### Summary
+Erradicação de Fake Search e filtros ingênuos sobre arrays estáticos reduzidos em ferramentas clínicas.
+
+### Details
+1. A ferramenta de "Busca Inteligente de CID" mantinha um array estático de apenas 13 a 19 códigos pré-definidos no frontend e backend. Se o médico digitasse doenças corriqueiras (pneumonia, otite, amigdalite, sinusite, dengue, herpes, cólica renal), a busca retornava "nenhum resultado", frustrando o uso clínico beira-leito.
+2. Componentes de pesquisa médica nunca devem fingir inteligência sobre coleções mockadas. Devem conectar-se a bases completas indexadas (como SQLite com FTS5, bases oficiais do DATASUS/CID-10 ou buscas semânticas via IA com fallback amplo).
+
+### Suggested Action
+Remover filtros ingênuos estáticos de componentes de busca e vincular a endpoints reais de banco de dados ou índices canônicos integrais com suporte a busca fonética/sinônimos.
+
+### Metadata
+- Source: user_feedback
+- Related Files: `gh_cockpit_deploy/index.html`, `src/13_cockpit_integracao.js`, `src/03_bases_locais.js`
+- Tags: search, cid10, fts5, anti_mock, clinical_ux
+- Pattern-Key: frontend.anti_mock_clinical_search
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
+## [LRN-20261017-003] best_practice
+
+
+**Logged**: 2026-10-17T14:40:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Autoridade soberana de provedor externo (Google Calendar) sobre cache local e prevenção de ressurreição anti-zumbi de eventos excluídos.
+
+### Details
+1. **Autoridade Soberana da Fonte da Verdade**: Quando o usuário realiza ajustes de agenda diretamente no Google Calendar (fonte externa primária), os horários retornados pela API (`b.inicio`, `b.fim`) não devem ser sobrescritos por estados salvos locais (`sv.inicio`, `sv.fim`), mesmo que houvesse marcações anteriores de adiamento.
+2. **Prevenção Anti-Zumbi de Eventos Deletados**: Ao mesclar eventos frescos de uma API com dados persistidos localmente (`salvos`), o algoritmo de reconciliação não pode reinserir eventos excluídos da fonte externa caso pertençam àquele provedor (`ehEventoGoogle`). Apenas blocos nativos/manuais gerados localmente devem ser preservados.
+3. **Erradicação de Botões Manuais Redundantes**: Se a sincronização com a API possui TTL reduzido (ex: 20s) e revalidação contínua transparente no backend e na renderização do PWA/bot, botões manuais de "Sincronizar" ou "Ajustar" causam confusão e devem ser substituídos por indicadores visuais de estado ativo.
+
+### Suggested Action
+Em integrações com Google Calendar ou outros provedores de calendário, garantir que os horários e a existência dos eventos venham incondicionalmente da API, usando o cache local estritamente para status de conclusão (concluído/pulado) e metadados contextuais.
+
+### Metadata
+- Source: user_feedback
+- Related Files: `src/06_rotina_agenda.js`, `server/google_calendar.js`, `tests/test_google_calendar_sync.cjs`
+- Tags: google_calendar, sync, state_reconciliation, anti_zombie, ttl_cache
+- Pattern-Key: backend.google_calendar_sovereignty_and_auto_sync
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
+## [LRN-20261017-002] best_practice
+
+**Logged**: 2026-10-17T14:26:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: frontend
+
+### Summary
+Conexão dinâmica de sabatinas socráticas à IA com fallback resiliente e paridade em espelhos de PWA.
+
+### Details
+1. **Erradicação de Conteúdo Hardcoded em Componentes Clínicos**: Interfaces de mentoria clínica e sabatina médica não devem exibir perguntas estáticas repetitivas de catálogos locais. Ao disparar uma auditoria ou sabatina de ponto cego (`solicitarSabatinaPreceptorPlantao`), a requisição deve ser delegada via RPC à IA (Gemini 4 Argon), injetando o contexto rico do tema (`pontoAtencao`, `perolaClinica`, `diretriz`) ou os dados do SOAP ativo.
+2. **Resiliência e Fallback Transparente**: Se houver falha de rede beira-leito ou modo offline, o card renderiza a pergunta de contingência clínica com badge visual explícito `(Modo Offline)` e botão de reconexão à IA.
+3. **Controles Interativos Beira-Leito**: Cards de sabatina devem oferecer ações ágeis em 1 toque:
+   - Ouvir no fone (`SpeechSynthesis` em PT-BR).
+   - Responder no chat (foco e scroll suave até `#input-conversa-texto`).
+   - Regeneração imediata de nova pergunta com IA (`[🔄]`).
+4. **Sincronia Estrita de Espelhos PWA**: No ecossistema do Cockpit, qualquer modificação em `gh_cockpit_deploy/index.html` deve ser replicada para `cockpit_movel.html`, `index.html` e `gh_cockpit_deploy/cockpit_movel.html` com paridade SHA-256 de 100%.
+
+### Suggested Action
+Sempre vincular botões de sabatina e preceptor aos endpoints de IA do backend, garantindo feedback visual de carregamento e testes de integridade em todas as telas.
+
+### Metadata
+- Source: user_feedback
+- Related Files: `gh_cockpit_deploy/index.html`, `cockpit_movel.html`, `src/13_cockpit_integracao.js`, `src/04_motores_ia.js`
+- Tags: preceptor, socratic_ai, gemini_argon, pwa, speech_synthesis, offline_resilience
+- Pattern-Key: frontend.socratic_preceptor_ai_connection
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
 ---
 
 ## [LRN-20261017-001] best_practice

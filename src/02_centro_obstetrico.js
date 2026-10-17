@@ -1501,6 +1501,295 @@ var CentroObstetricoService = (function() {
     };
   }
 
+  // ───────────────────────────────────────────────────────────────────────────
+  // 7. CARDIOTOCOGRAFIA (CTG) INTRAPARTO & RESSUSCITAÇÃO INTRAUTERINA (FIGO / NICHD)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Classifica o traçado cardiotocográfico intraparto (Categorias I, II e III da ACOG/NICHD e FIGO)
+   * e emite o protocolo determinístico de reanimação intrauterina e resolução.
+   */
+  function avaliarCardiotocografiaIntraparto(dados) {
+    dados = dados || {};
+    var bcfBasal = toNumberSafe(dados.bcfBasal, 140);
+    var variabilidade = String(dados.variabilidade || 'moderada').toLowerCase();
+    var aceleracoes = Boolean(dados.aceleracoesPresentes !== undefined ? dados.aceleracoesPresentes : true);
+    var desaceleracao = String(dados.desaceleracoes || 'nenhuma').toLowerCase();
+    var taquissistolia = Boolean(dados.taquissistolia);
+
+    var categoria = 'CATEGORIA_I';
+    var titulo = 'Categoria I (Traçado Normal / Feto Bem Oxigenado)';
+    var fisiopatologia = 'Equilíbrio ácido-básico fetal preservado. Ausência de acidemia hipóxica.';
+    var condutas = [];
+
+    var ehBradicardia = bcfBasal < 110;
+    var ehTaquicardia = bcfBasal > 160;
+    var varNormal = variabilidade === 'moderada';
+    var varAusente = variabilidade === 'ausente' || variabilidade === 'sinusoidal';
+
+    if (
+      variabilidade === 'sinusoidal' ||
+      (varAusente && (ehBradicardia || desaceleracao.indexOf('dip2') >= 0 || desaceleracao.indexOf('dip3') >= 0 || desaceleracao.indexOf('prolong') >= 0))
+    ) {
+      categoria = 'CATEGORIA_III';
+      titulo = '⛔ CATEGORIA III (Traçado Patológico / Hipóxia ou Acidemia Fetal Iminente)';
+      fisiopatologia = 'Alto valor preditivo para acidose metabólica fetal, encefalopatia hipóxico-isquêmica e óbito intraparto.';
+      condutas = [
+        '1. SUSPENDER IMEDIATAMENTE OCITOCINA ou retirar Misoprostol vaginal residual.',
+        '2. MANOBRAS DE RESSUSCITAÇÃO INTRAUTERINA IMEDIATAS:',
+        '   • Decúbito Lateral Esquerdo (DLE) para descomprimir veia cava inferior e aorta.',
+        '   • Infusão rápida de cristaloide IV (500 mL de Ringer Lactato ou SF 0,9%).',
+        '   • Oxigenoterapia materna sob máscara (8-10 L/min) se hipoxemia materna ou enquanto prepara sala cirúrgica.',
+        '   • Se taquissistolia (> 5 contrações/10 min): Tocólise aguda de emergência (Terbutalina 0,25 mg SC ou Nifedipino 10-20 mg VO).',
+        '3. EXAME VAGINAL IMEDIATO: Afastar PROLAPSO DE CORDÃO UMBILICAL ou período expulsivo iminente.',
+        '4. RESOLUÇÃO IMEDIATA DA GESTAÇÃO (Regra dos 15 a 30 minutos): Se não houver reversão rápida do padrão, realizar parto instrumental (Fórcipe/Vácuo se plano +2/+3 e dilatação total) ou CESARIANA DE EMERGÊNCIA com pediatra em sala.'
+      ];
+    } else if (
+      bcfBasal >= 110 &&
+      bcfBasal <= 160 &&
+      varNormal &&
+      (desaceleracao === 'nenhuma' || desaceleracao.indexOf('dip1') >= 0)
+    ) {
+      categoria = 'CATEGORIA_I';
+      titulo = '✅ CATEGORIA I (Traçado Tranquilizador / Fisiológico)';
+      if (desaceleracao.indexOf('dip1') >= 0) {
+        fisiopatologia = 'DIP I (Desaceleração Precoce): Imagem em espelho da contração uterina por compressão do polo cefálico (reflexo vagal fisiológico). Não indica hipóxia.';
+      }
+      condutas = [
+        'Manter assistência obstétrica habitual ao trabalho de parto.',
+        'Ausculta intermitente de BCF a cada 15-30 min na fase ativa e a cada 5 min no período expulsivo.'
+      ];
+    } else {
+      categoria = 'CATEGORIA_II';
+      titulo = '⚠️ CATEGORIA II (Traçado Indeterminado / Suspeito — Requer Reavaliação e Manobras)';
+
+      if (desaceleracao.indexOf('dip2') >= 0) {
+        fisiopatologia = 'DIP II (Desaceleração Tardia): Decalagem >= 18-20s entre o pico da contração e o nadir do BCF. Indica INSUFICIÊNCIA UTEROPLACENTÁRIA e hipóxia fetal (reserva placentária reduzida).';
+      } else if (desaceleracao.indexOf('dip3') >= 0) {
+        fisiopatologia = 'DIP III (Desaceleração Variável): Queda abrupta do BCF por COMPRESSÃO DE CORDÃO UMBILICAL (oligoidrâmnio, circular de cordão). Atenção aos sinais de gravidade de Kubli (perda de ombros, retorno lento à linha de base, queda > 60 bpm ou duração > 60s).';
+      } else if (variabilidade === 'minima') {
+        fisiopatologia = 'Variabilidade mínima (<= 5 bpm): Avaliar ciclo de sono fetal (dura até 20-40 min), uso materno de opioides/sulfato de magnésio ou hipóxia incipiente.';
+      }
+
+      condutas = [
+        '1. Posicionar gestante em Decúbito Lateral Esquerdo (DLE) ou mudar posição materna (alivia compressão de cordão no DIP III).',
+        '2. Suspender ou reduzir infusão de Ocitocina (especialmente se DIP II recorrente ou taquissistolia > 5 contrações/10 min).',
+        '3. Corrigir hipotensão materna (ex: pós-analgesia de parto) com bolus de 500 mL de Ringer Lactato IV e efedrina/fenilefrina se necessário.',
+        '4. Realizar estímulo sônico ou digital no couro cabeludo fetal se variabilidade mínima (presença de aceleração afasta acidemia fetal).',
+        '5. Manter monitorização contínua e reavaliar em 20 a 30 minutos: se evoluir com perda da variabilidade ou DIP II/III recorrentes refratários, indicar resolução do parto.'
+      ];
+    }
+
+    return {
+      protocolo: 'Classificação de Cardiotocografia Intraparto (NICHD / ACOG / FIGO)',
+      categoria: categoria,
+      titulo: titulo,
+      parametros: {
+        bcfBasal: bcfBasal,
+        variabilidade: variabilidade,
+        aceleracoes: aceleracoes,
+        desaceleracoes: desaceleracao,
+        taquissistolia: taquissistolia
+      },
+      fisiopatologia: fisiopatologia,
+      condutas: condutas
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 8. DISTÓCIA DE OMBROS — PROTOCOLO DE EMERGÊNCIA (HELPERR / ALERTA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Retorna o algoritmo sequencial cronometrado para resolução de Distócia de Ombros
+   * ("Sinal da Tartaruga" / falha de desprendimento do ombro anterior após 60s da saída do polo cefálico).
+   */
+  function manejarDistociaDeOmbros() {
+    return {
+      protocolo: 'Distócia de Ombros — Algoritmo HELPERR / ALERTA (FEBRASGO / ALSO)',
+      diagnostico: 'Falha no desprendimento do ombro anterior após a saída da cabeça fetal ("Sinal da Tartaruga": retração do mento fetal contra o períneo materno).',
+      travasSegurancaCriticas: [
+        '⛔ PROIBIDO REALIZAR MANOBRA DE KRISTELLER (pressão no fundo uterino impacta ainda mais o ombro anterior atrás da sínfise púbica e causa rotura uterina / lesão grave do plexo braquial).',
+        '⛔ PROIBIDO TRACIONAR EXCESSIVAMENTE O POLO CEFÁLICO OU RODAR O PESCOÇO FETAL (risco de paralisia de Erb-Duchenne ou Klumpke).',
+        '⛔ NÃO CORTAR CORDÃO CIRCULAR ANTES DO DESPRENDIMENTO se possível (apenas afrouxar).'
+      ],
+      sequenciaManobras: [
+        {
+          ordem: 1,
+          mnemonico: 'H / A — Help (Chamar Ajuda e Cronometrar)',
+          tempoAlvo: '0 a 30 segundos',
+          acao: 'Acionar imediatamente obstetra sênior, neonatologista, anestesista e enfermagem. Designar 1 profissional para cronometrar o tempo em voz alta a cada 30 segundos. Esvaziar bexiga se distendida.'
+        },
+        {
+          ordem: 2,
+          mnemonico: 'L + E — Legs (McRoberts) + External Pressure (Rubin I / Mazzanti)',
+          tempoAlvo: '30 a 90 segundos (Resolve 85% dos casos)',
+          acao: '1) MANOBRA DE McROBERTS: Retirar pernas das perneiras e hiperflexionar/abduzir intensamente as coxas maternas sobre o abdome (retifica o promontório sacral e roda a sínfise púbica cefalicamente). 2) MANOBRA DE RUBIN I / MAZZANTI: Auxiliar aplica pressão SUPRAPÚBICA firme (nunca fúndica!) de forma contínua ou em báscula na direção do tórax fetal para aduzir o ombro anterior e deslocá-lo sob a sínfise púbica.'
+        },
+        {
+          ordem: 3,
+          mnemonico: 'E / R — Enter (Manobras Internas Rotacionais: Rubin II e Woods)',
+          tempoAlvo: '90 a 150 segundos',
+          acao: 'Avaliar episiotomia ampla apenas para ganhar espaço para a mão do obstetra na vagina: 1) RUBIN II: Introduzir dois dedos atrás do ombro anterior e empurrá-lo em direção ao tórax fetal. 2) SACA-ROLHAS DE WOODS: Com a outra mão na face anterior do ombro posterior, girar o feto 180º como uma rosca. 3) WOODS REVERSA: Pressionar a face posterior do ombro posterior.'
+        },
+        {
+          ordem: 4,
+          mnemonico: 'R / T — Remove Posterior Arm (Manobra de Jacquemier)',
+          tempoAlvo: '150 a 210 segundos',
+          acao: 'MANOBRA DE JACQUEMIER: Introduzir a mão lubrificada pela escava sacral (onde há mais espaço), localizar o úmero posterior, fletir o cotovelo fetal na frente do tórax e apreender o antebraço/mão fetal, varrendo-o pelo tórax até exteriorizar o braço posterior.'
+        },
+        {
+          ordem: 5,
+          mnemonico: 'R / A — Roll Over (Manobra de Gaskin — 4 Apoios)',
+          tempoAlvo: '210 a 270 segundos',
+          acao: 'MANOBRA DE GASKIN: Se paciente sem bloqueio motor completo, colocá-la em posição de quatro apoios (mãos e joelhos). Aumenta os diâmetros conjugados pélvicos e utiliza a gravidade para liberar o ombro posterior primeiro.'
+        },
+        {
+          ordem: 6,
+          mnemonico: 'Resgate Extremo (Última Linha)',
+          tempoAlvo: '> 4 a 5 minutos',
+          acao: 'Fratura intencional da clavícula fetal (pressionando-a para fora da caixa torácica), Manobra de Zavanelli (recolocação cefálica sob tocólise + cesariana de emergência) ou Sinfisiotomia.'
+        }
+      ],
+      cuidadosPosDesprendimento: [
+        'Prevenção ativa de Hemorragia Pós-Parto (atonia uterina e lacerações graves de canal de parto são muito frequentes).',
+        'Coletar gasometria arterial e venosa do cordão umbilical.',
+        'Exame neonatal detalhado de clavículas e plexo braquial + registro cronometrado rigoroso em prontuário.'
+      ]
+    };
+  }
+
+  // ───────────────────────────────────────────────────────────────────────────
+  // 9. SANGRAMENTO DA 1ª METADE DA GESTAÇÃO (ABORTAMENTO, ECTÓPICA E MOLA)
+  // ───────────────────────────────────────────────────────────────────────────
+
+  /**
+   * Avalia determinística e rapidamente gestante com sangramento na 1ª metade (< 20 semanas):
+   * diferencia formas clínicas de abortamento, gravidez ectópica (íntegra vs rota e critérios de Metotrexato)
+   * e doença trofoblástica gestacional (Mola Hidatiforme), incluindo profilaxia Anti-D.
+   */
+  function avaliarSangramentoPrimeiraMetade(dados) {
+    dados = dados || {};
+    var cenario = String(dados.quadroClinico || 'ameaca_aborto').toLowerCase();
+    var pas = toNumberSafe(dados.pas, 115);
+    var fc = toNumberSafe(dados.fc, 82);
+    var colo = String(dados.orificioInternoColo || 'fechado').toLowerCase();
+    var betaHcg = toNumberSafe(dados.betaHcgQuantitativo, 0);
+    var massaAnexialCm = toNumberSafe(dados.massaAnexialCm, 0);
+    var bcfEmbriaoAnexial = Boolean(dados.bcfEmbriaoAnexial);
+    var liquidoLivrePeritonio = Boolean(dados.liquidoLivreAlemDaPelve);
+    var febreOuSecrecaoFetida = Boolean(dados.febreOuSecrecaoPurulenta);
+    var rhMaterno = String(dados.fatorRh || 'positivo').toLowerCase();
+
+    var instavel = pas < 90 || fc > 110 || liquidoLivrePeritonio;
+    var condutas = [];
+    var prescricoes = [];
+    var alertas = [];
+    var diagnostico = '';
+
+    var profilaxiaAntiD = null;
+    if (rhMaterno.indexOf('neg') >= 0 || rhMaterno === '-') {
+      profilaxiaAntiD = '💉 PROFILAXIA ANTI-D OBRIGATÓRIA (Mãe Rh Negativo com Coombs Indireto Negativo): Administrar Imunoglobulina Anti-D 300 mcg IM (ou 120-150 mcg se < 12 semanas conforme disponibilidade) em até 72 horas do início do sangramento ou esvaziamento uterino.';
+      alertas.push(profilaxiaAntiD);
+    }
+
+    if (cenario.indexOf('ectop') >= 0 || massaAnexialCm > 0 || liquidoLivrePeritonio) {
+      if (instavel) {
+        diagnostico = 'GRAVIDEZ ECTÓPICA ROTA (Abdome Agudo Hemorrágico)';
+        alertas.push('🚨 EMERGÊNCIA CIRÚRGICA IMEDIATA: Choque hipovolêmico / Hemoperitônio por Ectópica Rota!');
+        condutas = [
+          '1. Dois acessos venosos calibrosos (14G ou 16G) + reposição volêmica vigorosa com cristaloide aquecido.',
+          '2. Tipagem sanguínea, reserva e transfusão de Concentrado de Hemácias.',
+          '3. LAPAROTOMIA EXPLORADORA IMEDIATA (ou Videolaparoscopia se equipe/equipamento imediatos e estabilização rápida) para Salpingectomia total ipsilateral.'
+        ];
+      } else {
+        var elegivelMtx =
+          betaHcg > 0 &&
+          betaHcg <= 5000 &&
+          massaAnexialCm > 0 &&
+          massaAnexialCm <= 3.5 &&
+          !bcfEmbriaoAnexial &&
+          !liquidoLivrePeritonio;
+
+        if (elegivelMtx) {
+          diagnostico = 'GRAVIDEZ ECTÓPICA ÍNTEGRA — ELEGÍVEL PARA TRATAMENTO MEDICAMENTOSO (METOTREXATO)';
+          condutas = [
+            'Critérios de elegibilidade preenchidos: Estabilidade hemodinâmica, Massa anexial <= 3,5-4,0 cm, Beta-hCG <= 5.000 mUI/mL, BCF embrionário AUSENTE e ausência de líquido livre além da pelve.',
+            'Coletar antes da aplicação (D1): Beta-hCG quantitativo basal, Hemograma completo, TGO/TGP, Creatinina e Tipagem Sanguínea/Rh.',
+            'PROTOCOLO DE SEGUIMENTO PÓS-METOTREXATO (Dose Única):',
+            '  • D1: Aplicar Metotrexato 50 mg/m² IM em dose única.',
+            '  • D4: Coletar Beta-hCG quantitativo (é comum haver leve subida entre D1 e D4 pela lise trofoblástica).',
+            '  • D7: Coletar Beta-hCG quantitativo. META: Queda >= 15% nos níveis de Beta-hCG entre o D4 e o D7.',
+            '  • Se queda >= 15% entre D4 e D7: Acompanhar com Beta-hCG semanal até negativação (< 5 mUI/mL).',
+            '  • Se queda < 15% entre D4 e D7: Aplicar 2ª dose de Metotrexato 50 mg/m² IM (se mantiver estabilidade) ou indicar cirurgia.',
+            'Orientações críticas à paciente: Suspender Ácido Fólico/polivitamínicos, abstinência sexual, evitar exposição solar e retornar imediatamente ao PS se dor abdominal súbita.'
+          ];
+          prescricoes.push('Metotrexato 50 mg/m² de superfície corporal via Intramuscular (IM) em dose única no D1.');
+        } else {
+          diagnostico = 'GRAVIDEZ ECTÓPICA ÍNTEGRA — INDICAÇÃO CIRÚRGICA (Inelegível para Metotrexato)';
+          condutas = [
+            'Contraindicação ao tratamento clínico (Beta-hCG > 5.000 mUI/mL, massa > 3,5-4,0 cm ou presença de BCF embrionário vivo).',
+            'Indicar Videolaparoscopia cirúrgica (Salpingectomia se tuba contralateral sadia ou lesão extensa; Salpingostomia linear se desejo reprodutivo e tuba única).'
+          ];
+        }
+      }
+    }
+    else if (cenario.indexOf('mola') >= 0 || cenario.indexOf('trofoblast') >= 0) {
+      diagnostico = 'DOENÇA TROFOBLÁSTICA GESTACIONAL (Mola Hidatiforme)';
+      alertas.push('⚠️ PROIBIDO USO DE MISOPROSTOL/OCITOCINA PARA PREPARO DE COLO ANTES DO ESVAZIAMENTO (risco de embolização trofoblástica pulmonar e deportação de células molares).');
+      condutas = [
+        '1. Solicitar Beta-hCG quantitativo basal (frequentemente > 100.000 mUI/mL), Hemograma, Coagulograma, TSH/T4 livre (rastreio de tireotoxicose molar) e Radiografia de Tórax.',
+        '2. ESVAZIAMENTO UTERINO PREFERENCIAL POR VÁCUO-ASPIRAÇÃO (Aspiração Elétrica ou AMIU). Infundir Ocitocina IV contínua apenas APÓS o início da dilatação/aspiração para prevenir perfuração e hemorragia.',
+        '3. Enviar todo o material aspirado para estudo anatomopatológico (diferenciar Mola Completa 46,XX de Mola Parcial triploide 69,XXY).',
+        '4. SEGUIMENTO PÓS-MOLAR OBRIGATÓRIO: Dosagem semanal/quinzenal de Beta-hCG até 3 resultados negativos consecutivos, seguido de dosagem mensal por 6 meses + Anticoncepção hormonal rigorosa durante todo o seguimento (DIU é contraindicado até normalização do Beta-hCG).'
+      ];
+    }
+    else if (febreOuSecrecaoFetida || cenario.indexOf('infect') >= 0 || cenario.indexOf('sept') >= 0) {
+      diagnostico = 'ABORTAMENTO INFECTADO / SÉPTICO';
+      alertas.push('🚨 EMERGÊNCIA INFECCIOSA E OBSTÉTRICA: Risco de choque séptico polimicrobiano e síndrome de Mondor (Clostridium perfringens)!');
+      condutas = [
+        '1. Coletar Hemoculturas, Hemograma, Lactato, Função Renal, Coagulograma e Bilirrubinas + Ressuscitação volêmica (Pacote de 1 hora da Sepse).',
+        '2. INICIAR ANTIBIOTICOTERAPIA ENDOVENOSA DE AMPLO ESPECTRO IMEDIATAMENTE (antes da manipulação cirúrgica):',
+        '   • Clindamicina 900 mg IV de 8/8h + Gentamicina 5 mg/kg IV 1x/dia (ou 1,5 mg/kg 8/8h) — associar Ampicilina 2g IV 6/6h se sepse grave.',
+        '3. CONTROLE DO FOCO INFECCIOSO: Realizar esvaziamento uterino cirúrgico (Curetagem cuidadosa sob infusão de ocitocina pelo alto risco de perfuração de miométrio friável) logo após a 1ª dose de antibiótico.',
+        '4. Se refratariedade clínica, necrose miometrial ou abscesso pélvico roto: Histerectomia total de urgência.'
+      ];
+    }
+    else if (colo === 'fechado' && cenario.indexOf('retid') < 0 && cenario.indexOf('complet') < 0) {
+      diagnostico = 'AMEAÇA DE ABORTAMENTO (Colo Uterino Fechado + Embrião Vivo)';
+      condutas = [
+        '1. Ultrassonografia transvaginal confirma saco gestacional tópico regular e embrião com BCF presente.',
+        '2. Orientações: Repouso relativo e abstinência sexual durante o episódio de sangramento ativo.',
+        '3. Analgesia simples se cólicas: Escopolamina 10 mg + Paracetamol 500 mg VO de 6/6h se dor.',
+        '4. Tranquilizar a gestante (aprox. 80-85% evoluem favoravelmente quando já há BCF embrionário documentado).'
+      ];
+    } else if (cenario.indexOf('retid') >= 0) {
+      diagnostico = 'ABORTAMENTO RETIDO (Colo Fechado + Embrião sem BCF >= 7 mm ou SG >= 25 mm sem embrião)';
+      condutas = [
+        '1. Confirmar critérios ultrassonográficos definitivos de perda gestacional (CCN >= 7 mm sem BCF ou Diâmetro Médio do Saco Gestacional >= 25 mm sem embrião).',
+        '2. Se <= 12 semanas: Preparo cervical com Misoprostol 800 mcg via vaginal (ou 400 mcg de 4/4h) seguido de Aspiração Manual Intrauterina (AMIU) — método de escolha padrão ouro (menor risco de sinéquias de Asherman que a curetagem).',
+        '3. Se > 12 semanas: Internação hospitalar para indução da expulsão fetal com Misoprostol (200 a 400 mcg via vaginal a cada 4-6h) seguido de curetagem complementar se retenção placentária.'
+      ];
+    } else {
+      diagnostico = 'ABORTAMENTO INCOMPLETO / INEVITÁVEL (Orifício Interno do Colo Aberto)';
+      condutas = [
+        '1. Internação para esvaziamento uterino: Preferir AMIU (Aspiração Manual Intrauterina) em gestações <= 12 semanas (alternativa: Curetagem Uterina).',
+        '2. Enviar material para anatomopatológico (afastar degeneração molar).',
+        '3. Alta hospitalar após estabilização com prescrição de Sulfato Ferroso se anemia, analgesia e orientação contraceptiva imediata.'
+      ];
+    }
+
+    return {
+      protocolo: 'Sangramento da 1ª Metade da Gestação (FEBRASGO / MS)',
+      diagnostico: diagnostico,
+      hemodinamicaEstavel: !instavel,
+      profilaxiaAntiD: profilaxiaAntiD,
+      alertas: alertas,
+      prescricoes: prescricoes,
+      condutas: condutas
+    };
+  }
+
   return {
     avaliarTrabalhoParto: avaliarTrabalhoParto,
     calcularIndiceBishop: calcularIndiceBishopInternal,
@@ -1513,7 +1802,10 @@ var CentroObstetricoService = (function() {
     avaliarRcfDopplerCentroObstetrico: avaliarRcfDopplerCentroObstetrico,
     avaliarProfilaxiaGbs: avaliarProfilaxiaGbs,
     protocoloPrematuridadeRpmo: protocoloPrematuridadeRpmo,
-    gerarResumoCentroObstetrico: gerarResumoCentroObstetrico
+    gerarResumoCentroObstetrico: gerarResumoCentroObstetrico,
+    avaliarCardiotocografiaIntraparto: avaliarCardiotocografiaIntraparto,
+    manejarDistociaDeOmbros: manejarDistociaDeOmbros,
+    avaliarSangramentoPrimeiraMetade: avaliarSangramentoPrimeiraMetade
   };
 })();
 

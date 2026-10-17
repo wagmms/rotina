@@ -57,7 +57,6 @@ function construirTecladoHubRotina() {
         {"text": "🎯 Sniper de Plantões (WhatsApp)", "callback_data": "sniper:painel"}
       ],
       [
-        {"text": "📆 Sincronizar Google", "callback_data": "rotina:cal_sync"},
         {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}
       ]
     ]
@@ -212,7 +211,7 @@ function tratarComandoRotina(chatId, argRotina) {
     var blocosHoje = RotinaService.obterBlocosDoDia(hoje);
     var txtHoje = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosHoje, hoje) +
-      "\n\n💡 *Para ajustar:* Toque abaixo ou envie: _'Hoje treino às 19h'_ ou áudio gravado!";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbHoje = RotinaService.construirTecladoTimeline(hoje, blocosHoje);
     return enviarMensagemComTecladoParaChat(chatId, txtHoje, kbHoje);
   }
@@ -222,7 +221,7 @@ function tratarComandoRotina(chatId, argRotina) {
     var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
     var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbAmanha = RotinaService.construirTecladoTimeline(amanha, blocosAmanha);
     return enviarMensagemComTecladoParaChat(chatId, txtAmanha, kbAmanha);
   }
@@ -355,15 +354,11 @@ function tratarCallbackRotina(cb) {
       responderCallbackTelegram(cb.id, "📆 Agenda verificada: nenhum evento registrado hoje.");
     }
   } else if (subAcao === "ajustar") {
-    responderCallbackTelegram(cb.id, "✏️ Envie sua instrução de ajuste!");
-    var msgDica = "✏️ *COMO AJUSTAR SUA ROTINA HOJE:*\n\n" +
-      "Basta digitar ou mandar um áudio gravado no chat. Exemplos:\n" +
-      "• _'Hoje não vou treinar'_\n" +
-      "• _'Mudei o treino para as 19h'_\n" +
-      "• _'Hoje vou estudar das 15h às 17h'_\n" +
-      "• _'Sem cochilo hoje'_\n" +
-      "• _'Troquei musculação por corrida de 40 min'_\n" +
-      "• _'Reset' (volta para a grade padrão)_";
+    responderCallbackTelegram(cb.id, "📅 Ajustes pelo Google Calendar");
+    var msgDica = "📅 *AJUSTES DE ROTINA NO GOOGLE CALENDAR*\n\n" +
+      "Seus ajustes de horários e rotina são feitos diretamente no seu *Google Calendar* e sincronizados automaticamente aqui em tempo real!\n\n" +
+      "• Crie, altere ou remova eventos na sua agenda do Google\n" +
+      "• A timeline reflete as alterações automaticamente sem necessidade de comandos adicionais.";
     var kbDica = {
       inline_keyboard: [
         [{ text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
@@ -386,7 +381,7 @@ function tratarCallbackRotina(cb) {
     var blocosAmanha = RotinaService.obterBlocosDoDia(amanha);
     var txtAmanha = "📆 *ROTINA DE AMANHÃ (PLANEJAMENTO ADAPTATIVO)*\n\n" +
       RotinaService.formatarTimelineMarkdown(blocosAmanha, amanha) +
-      "\n\n💡 *Para ajustar amanhã:* Envie: _'/rotina alterar amanhã <instrução>'_.";
+      "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
     var kbAmanha = {
       inline_keyboard: [
         [{ text: "📅 Voltar para Hoje", callback_data: "rotina:ver_hoje" }],
@@ -412,7 +407,7 @@ function tratarCallbackRotina(cb) {
   var blocosAtualizados = RotinaService.obterBlocosDoDia(hoje);
   var textoAtualizado = "☀️ *ROTINA DO DIA (TIME-BLOCKING ADAPTATIVO)*\n\n" +
     RotinaService.formatarTimelineMarkdown(blocosAtualizados, hoje) +
-    "\n\n💡 *Para ajustar:* Toque abaixo ou envie áudio/texto:";
+    "\n\n📅 _Sincronizado automaticamente com o seu Google Calendar._";
   var tecladoAtualizado = RotinaService.construirTecladoTimeline(hoje, blocosAtualizados);
 
   if (msgId && token) {

@@ -103,6 +103,31 @@ async function runTests() {
   runtime.ctx.CalendarApp._setMockEventos(null);
   console.log('✓ Teste 5.1: Sincronia de temas reais e reagendamento seguro com updateEvent offline validado');
 
+  // Teste 5.2: Autoridade soberana do Google Calendar para ajustes de horários e exclusão automática
+  const mockEvsAjustados = [{
+    getId: () => 'medquest-ev-42',
+    getTitle: () => temaRealMedQuest,
+    getStartTime: () => new Date(2026, 9, 14, 21, 0, 0), // Ajustado pelo usuário no Google Calendar para 21:00
+    getEndTime: () => new Date(2026, 9, 14, 22, 30, 0),
+    isAllDayEvent: () => false,
+    getLocation: () => 'Home Office',
+    getDescription: () => 'Horário reajustado no Calendar'
+  }];
+  runtime.ctx.CalendarApp._setMockEventos(mockEvsAjustados);
+  const blocosReajustados = runtime.ctx.RotinaService.obterBlocosDoDia(dataTeste);
+  const blocoReajustado = blocosReajustados.find(b => b.googleEventId === 'medquest-ev-42');
+  assert(blocoReajustado, 'Bloco deve existir');
+  assert.strictEqual(blocoReajustado.inicio, '21:00', 'Horário do Google Calendar deve prevalecer soberanamente');
+  assert.strictEqual(blocoReajustado.fim, '22:30', 'Horário final do Google Calendar deve prevalecer');
+
+  // Teste 5.3: Exclusão de evento no Google Calendar (não ressuscita bloco excluído)
+  runtime.ctx.CalendarApp._setMockEventos([]); // Usuário deletou o evento no Google Calendar
+  const blocosAposExclusao = runtime.ctx.RotinaService.obterBlocosDoDia(dataTeste);
+  const blocoExcluido = blocosAposExclusao.find(b => b.googleEventId === 'medquest-ev-42');
+  assert.strictEqual(blocoExcluido, undefined, 'Evento excluído do Google Calendar não deve ser ressuscitado do cache');
+  runtime.ctx.CalendarApp._setMockEventos(null);
+  console.log('✓ Teste 5.2 e 5.3: Ajustes e exclusões diretas no Google Calendar refletem automaticamente');
+
   // Teste 6: Inicialização do servidor Fastify e endpoints REST
   const app = await buildServer({ logger: false });
 

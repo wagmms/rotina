@@ -2412,11 +2412,10 @@ function enviarRotinaBot(chat, messageId) {
 
   var texto = "*📅 Central de Rotina & Lifestyle Adaptativo*\n\n" +
               (timeline ? timeline + "\n\n" : "") +
-              "Selecione uma ação rápida ou envie áudio/texto para ajustar seus blocos:";
+              "Selecione uma opção rápida:";
 
   var botoes = botoesBot([
-    [['🎯 Sniper de Plantões', 'sniper:painel'], ['✏️ Ajustar Rotina', 'rotina:ajustar']],
-    [['🔄 Restaurar Padrão', 'rotina:reset'], ['📆 Sincronizar Google', 'rotina:cal_sync']],
+    [['🎯 Sniper de Plantões', 'sniper:painel'], ['🔄 Restaurar Padrão', 'rotina:reset']],
     [['📆 Agenda de Hoje', 'ux:rotina:agenda'], ['📆 Agenda de Amanhã', 'ux:rotina:agenda_amanha']],
     [['☀️ Briefing Matinal', 'ux:rotina:briefing'], ['🌙 Check-in Noturno', 'ux:rotina:checkin']],
     [['🏠 Início', 'ux:hub:inicio']]

@@ -30,7 +30,7 @@ class GoogleCalendarService {
     this.timezone = options.timezone || process.env.TIMEZONE || 'America/Sao_Paulo';
     
     this._cacheEventos = new Map();
-    this._cacheTTL = 60 * 1000; // 1 minuto de cache
+    this._cacheTTL = options.cacheTTL || (20 * 1000); // 20 segundos de cache para sincronização contínua e automática
     this._tokenMemoria = null;
     this._credsMemoria = null;
     this._propsGetter = null;

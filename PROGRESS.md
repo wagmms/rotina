@@ -15,10 +15,10 @@
 
 ## 🔄 Tarefa Concluída
  
-- [x] **Pipeline Determinístico de Busca Oficial de REMUME (.gov.br) com Extrator de PDF e Gatekeeper Clínico (`src/data/remumes/index.js`, `tests/test_remume_busca_gatekeeper_argon.cjs`)**:
-    - **Arquivo/Módulo Alvo**: `src/data/remumes/index.js` e `tests/test_remume_busca_gatekeeper_argon.cjs`.
-    - **Função/Componente/Seletor**: `_buscarUrlsCandidatasGovBr`, `_ehUrlOficialConfiavel`, `_httpGetBufferSeguro`, `_extrairTextoDeBuffer`, `_extrairTextoDePdfBuffer`, `validarSanidadeClinicaRemume`.
-    - **Comportamento Esperado / Critério de Aceite**: Implementação do mecanismo determinístico de busca restrito a domínios governamentais brasileiros (`.gov.br`), transporte binário resiliente com streaming, parser nativo de PDF via `zlib` FlateDecode e operadores de texto, e Gatekeeper Clínico de Sanidade Farmacológica (Zero Invenção) exigindo vínculo territorial do município, mínimo de 5 de 10 medicamentos âncora da Atenção Primária do SUS e densidade de 15+ medicamentos válidos com dosagem. Suíte dedicada aprovada com 5/5 testes em 0.05s.
+- [x] **Aba Rotina & Telegram: Erradicação de 'Ajustar Rotina', Botões de Sincronização Manual e Auto-Sync Soberano com Google Calendar (`src/06_rotina_agenda.js`, `src/12_experiencia_bot.js`, `src/07i_telegram_rotina_central.js`, `cockpit_movel.html`, `gh_cockpit_deploy/`, `server/google_calendar.js`, `tests/test_google_calendar_sync.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `src/06_rotina_agenda.js`, `src/12_experiencia_bot.js`, `src/07i_telegram_rotina_central.js`, `cockpit_movel.html`, `server/google_calendar.js`, `tests/test_google_calendar_sync.cjs`.
+    - **Função/Componente/Seletor**: `RotinaService.obterBlocosDoDia`, `RotinaService.construirTecladoTimeline`, `enviarRotinaBot`, `construirTecladoHubRotina`, `tratarCallbackRotina`, `rotina-gcal-badge-status`.
+    - **Comportamento Esperado / Critério de Aceite**: Erradicação do botão/comando `[✏️ Ajustar Rotina]` e botões manuais de sincronização (`rotina:cal_sync`). Estabelecida a autoridade soberana do Google Calendar: alterações de horários feitas na Agenda Google prevalecem diretamente sobre dados locais, e eventos excluídos da Agenda Google são removidos da timeline sem serem ressuscitados do cache. Sincronização automática contínua com cache de alta responsividade (20s) e indicador visual `[🟢 Google Calendar]` no PWA. Menu Telegram reorganizado com pares harmônicos. Recibo oficial com 57/57 suítes aprovadas com 100% de estabilidade.
  
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

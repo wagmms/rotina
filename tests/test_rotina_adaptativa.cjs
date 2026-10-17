@@ -203,7 +203,8 @@ function runTests() {
   const teclado = RotinaService.construirTecladoTimeline(dataSegunda, resConcluir.blocos);
   assert(teclado.inline_keyboard.length >= 3, "Teclado deve ter no mínimo 3 linhas");
   const todosBotoes = teclado.inline_keyboard.flat();
-  assert(todosBotoes.some(b => b.callback_data === 'rotina:ajustar'), "Deve ter botão de ajustar");
+  assert(!todosBotoes.some(b => b.callback_data === 'rotina:ajustar'), "Teclado da timeline NÃO deve ter botão de ajustar manual");
+  assert(!todosBotoes.some(b => b.callback_data === 'rotina:cal_sync'), "Teclado da timeline NÃO deve ter botão de sincronizar manual (auto-sync)");
   assert(!todosBotoes.some(b => b.callback_data === 'rotina:descanso'), "Botão de modo descanso deve ser excluído da UI genérica");
   assert(todosBotoes.some(b => b.callback_data === 'rotina:reset'), "Deve ter botão de reset");
   console.log("✓ Teste 11: Teclado dinâmico da timeline validado");

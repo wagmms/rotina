@@ -420,15 +420,12 @@ var RotinaService = {
             if (matchGId || matchId || matchTit) {
               if (!b.googleEventId && svGIdPuro) b.googleEventId = svGIdPuro;
 
-              // Preserva status de override se existir
+              // Preserva status de override se existir (ex: concluido, pulado)
               if (sv.status && sv.status !== "pendente") {
                 b.status = sv.status;
               }
-              // Preserva horários de override caso tenha sido adiado ou alterado localmente
-              if (sv.status === "adiado" || (sv.inicio && sv.inicio !== b.inicio)) {
-                if (sv.inicio) b.inicio = sv.inicio;
-                if (sv.fim) b.fim = sv.fim;
-              }
+              // Ajustes de horários e rotina são feitos no Google Calendar (fonte soberana).
+              // b.inicio e b.fim vêm sempre atualizados do Google Calendar.
               if (sv.nota && sv.nota.indexOf("[Adiado") !== -1) {
                 b.nota = (b.nota && b.nota !== "Agenda Google" ? b.nota + " " : "") + sv.nota;
               } else if (sv.nota && (!b.nota || b.nota === "Agenda Google")) {
@@ -439,11 +436,12 @@ var RotinaService = {
             }
           }
         }
-        // Incorpora blocos de salvos que não vieram do Google Calendar
+        // Incorpora blocos de salvos que não vieram do Google Calendar (não ressuscita eventos excluídos da Agenda)
         for (var s = 0; s < salvos.length; s++) {
           var sv = salvos[s];
           var chaveSv = sv.id || sv.titulo;
-          if (!idsOuTitulosEncontrados[chaveSv]) {
+          var ehEventoGoogle = (sv.id && (sv.id.indexOf("google_") === 0 || sv.id.indexOf("gcal_") === 0)) || sv.googleEventId;
+          if (!idsOuTitulosEncontrados[chaveSv] && !ehEventoGoogle) {
             blocosAgenda.push(sv);
           }
         }
@@ -454,7 +452,14 @@ var RotinaService = {
       return blocosAgenda;
     }
 
-    if (salvos && salvos.length > 0) return salvos;
+    if (salvos && salvos.length > 0) {
+      // Se a agenda Google não retornou eventos (excluídos na agenda), preserva apenas blocos manuais locais
+      var salvosValidos = salvos.filter(function(sv) {
+        var ehGoogle = (sv.id && (sv.id.indexOf("google_") === 0 || sv.id.indexOf("gcal_") === 0)) || sv.googleEventId;
+        return !ehGoogle;
+      });
+      if (salvosValidos.length > 0) return salvosValidos;
+    }
 
     var stPl = typeof detectarPlantaoStatus === "function" ? detectarPlantaoStatus(ref) : { ehPlantaoHoje: false, ehPosPlantao: false };
     if (stPl && stPl.ehPosPlantao) {
@@ -773,9 +778,8 @@ var RotinaService = {
       teclado.push(botoesAcao);
     }
 
-    // Linha 2: Ações de flexibilidade e restauração
+    // Linha 2: Flexibilidade e restauração
     teclado.push([
-      { text: "✏️ Ajustar / Voz", callback_data: "rotina:ajustar" },
       { text: "🔄 Restaurar Padrão", callback_data: "rotina:reset" }
     ]);
 
@@ -785,18 +789,13 @@ var RotinaService = {
       { text: "⏩ Adiar (+1h)", callback_data: "rotina:adiar:60" }
     ]);
 
-    // Linha 4: Sincronização Google Calendar
-    teclado.push([
-      { text: "📆 Sincronizar Agenda", callback_data: "rotina:cal_sync" }
-    ]);
-
-    // Linha 5: Navegação Hoje / Amanhã / Placar
+    // Linha 4: Navegação Hoje / Amanhã / Placar
     teclado.push([
       { text: "📆 Ver Amanhã", callback_data: "rotina:ver_amanha" },
       { text: "📊 Aderência Semanal", callback_data: "rotina:aderencia" }
     ]);
 
-    // Linha 6: Retorno Contextual Padronizado Beira-Leito
+    // Linha 5: Retorno Contextual Padronizado Beira-Leito
     teclado.push([
       { text: "🔙 Central de Rotina", callback_data: "ux:hub:rotina" },
       { text: "🏠 Início", callback_data: "ux:hub:inicio" }
