@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-17 08:08:02
- * Checksum SHA256: 40dff651db2c54f4
+ * Gerado automaticamente via build_master.py em: 2026-10-17 08:21:34
+ * Checksum SHA256: 410964122b406403
  * ==============================================================================
  */
 
@@ -42786,32 +42786,39 @@ var IaLocalFallbackService = (function () {
   }
 
   /**
-   * Gera conduta médica de urgência geral pelo mnemônico sistemático ABCDE / MOV
-   * para pacientes com intercorrências que não se encaixam estritamente nos protocolos isolados.
+   * Fallback elegante quando a dúvida aberta não consta no motor determinístico local.
+   * Evita despejar aulas genéricas de ABCDE/MOV fora de contexto.
    */
   function gerarCondutaGeralEmergencia(dados) {
+    var msgLower = String(dados || '').toLowerCase();
+
+    // Verifica se o médico citou termos farmacológicos/posológicos ou calculadoras
+    var mencionaDrogaOuDose = /\b(mg|mcg|ml|ampola|dilui[cç][aã]o|infus[aã]o|vaz[aã]o|dose|peso|kg|noradrenalina|adrenalina|fentanil|midazolam|rocur[oô]nio|cetamina|etomi[dt]ato|amiodarona|dobutamina|vasopressina|sedac[aã]o|intuba[cç][aã]o|iot|rsi)\b/i.test(msgLower);
+
+    if (mencionaDrogaOuDose) {
+      return [
+        '⚡ *Conexão com a IA clínica oscilou neste instante.*',
+        '',
+        'Identifiquei que você busca um cálculo ou diluição medicamentosa. Nossas *calculadoras determinísticas locais estão 100% ativas*!',
+        '',
+        '👉 *Para resposta imediata offline, envie no formato direto:*',
+        '• *Droga + Peso* (ex: `nora 70kg`, `iot 80kg`, `fentanil 70kg`)',
+        '• Ou reenvie sua pergunta completa em alguns segundos.'
+      ].join('\n');
+    }
+
     return [
-      '🚨 *SISTEMATIZAÇÃO DETERMINÍSTICA DE EMERGÊNCIA (MÉTODO ABCDE / MOV)*',
+      '⚡ *Conexão com a IA clínica oscilou rapidamente.*',
       '',
-      '1. *ABORDAGEM PRIMÁRIA DIRIGIDA:*',
-      '• *A (Vias Aéreas e Coluna Cervical):* Avaliar perviedade, presença de secreções ou estridor; proteger via aérea se rebaixamento (ECG <= 8).',
-      '• *B (Respiração e Oxigenação):* Ausculta bilateral, oximetria contínua; ofertar oxigênio suplementar apenas se SatO2 < 90 a 92%.',
-      '• *C (Circulação e Perfusão):* Avaliar tempo de enchimento capilar (< 2s), pulsos, frequência cardíaca e PA; obter dois acessos calibrosos (jelco 16 ou 18); colher exames imediatos.',
-      '• *D (Neurológico):* Avaliar Escala de Coma de Glasgow, pupilas (simetria e fotorreatividade) e glicemia capilar imediata.',
-      '• *E (Exposição e Temperatura):* Exposição completa do paciente com controle térmico ativo prevenindo hipotermia.',
+      'Para não entregar uma conduta genérica ou descontextualizada para o seu caso, prefiro que você *reenvie a mensagem em alguns instantes*.',
       '',
-      '2. *MONITORIZAÇÃO MULTIPARAMÉTRICA (MOV):*',
-      '• Monitor cardíaco com ECG contínuo, Oximetria de pulso e Pressão arterial não invasiva seriada a cada 5 a 15 minutos.',
-      '',
-      '3. *ORIENTAÇÃO DE SEGURANÇA E CONDUTA:*',
-      '• Manter paciente em leito de monitorização / sala vermelha até estabilização.',
-      '• Reavaliação clínica a cada intervenção terapêutica antes da liberação para enfermaria ou transferência.'
+      '📌 *Atalho imediato (100% ativo offline):* se precisar de doses, diluições ou drogas de emergência agora, digite apenas a *droga + peso* (ex: `adrenalina 70kg`, `sedação 75kg`) ou o *protocolo direto* (ex: `/pcr`, `sepse`, `iam`).'
     ].join('\n');
   }
 
   /**
    * Motor Principal de Fallback Offline:
-   * Gera a resposta clínica estruturada com garantia de alta fidelidade e advertências explícitas.
+   * Gera a resposta clínica estruturada com garantia de alta fidelidade e comunicação transparente.
    */
   function gerarRespostaOfflineClinica(sistema, promptUsuario, opcoes) {
     opcoes = opcoes || {};
@@ -42821,23 +42828,25 @@ var IaLocalFallbackService = (function () {
     var corpoResposta = '';
     if (proto) {
       corpoResposta = proto.gerarConduta(promptUsuario);
-    } else {
-      corpoResposta = gerarCondutaGeralEmergencia(promptUsuario);
+      var cabecalhoContingencia = [
+        '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ALTA DISPONIBILIDADE CLÍNICA)*',
+        'A conexão com a IA oscilou neste instante. Acionando protocolo determinístico de segurança (' + proto.titulo + '):',
+        ''
+      ].join('\n');
+
+      var rodapeSeguranca = [
+        '',
+        '---',
+        '📌 *Conduta baseada em diretrizes clínicas oficiais (SBC, AMIB, FEBRASGO, PCDT/MS). As calculadoras locais seguem 100% ativas.*'
+      ].join('\n');
+
+      return cabecalhoContingencia + corpoResposta + rodapeSeguranca;
     }
 
-    var cabecalhoContingencia = [
-      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ALTA DISPONIBILIDADE CLÍNICA)*',
-      '⚠️ *Aviso do Sistema:* Redes em nuvem e daemon de IA indisponíveis no momento. O atendimento prossegue com o protocolo determinístico oficial de segurança do Ultra Rotina:',
-      ''
-    ].join('\n');
-
-    var rodapeSeguranca = [
-      '',
-      '---',
-      '📌 *Conduta baseada em diretrizes clínicas oficiais (SBC, AMIB, FEBRASGO, PCDT/MS). Reavalie os parâmetros do paciente continuamente.*'
-    ].join('\n');
-
-    return cabecalhoContingencia + corpoResposta + rodapeSeguranca;
+    return [
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA*',
+      gerarCondutaGeralEmergencia(promptUsuario)
+    ].join('\n\n');
   }
 
   /**
@@ -43047,15 +43056,15 @@ var IaLocalFallbackService = (function () {
                    ctxLow.indexOf('ferida') !== -1 || ctxLow.indexOf('npuap') !== -1;
 
     var cabecalhoContingencia = [
-      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (LAUDO DE IMAGEM FMRP-USP)*',
-      '⚠️ *Aviso do Sistema:* Provedor de IA em nuvem indisponível (timeout seguro de 15s / contingência ativa). A imagem não pôde ser examinada em seus pixels visuais no ambiente local. O atendimento prossegue com o roteiro determinístico oficial do Ultra Rotina:',
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (IMAGEM MÉDICA FMRP-USP)*',
+      'A leitura de imagens por IA oscilou temporariamente. Para sua segurança, confira o roteiro semiológico oficial ou reenvie a foto em instantes:',
       ''
     ].join('\n');
 
     var rodapeSeguranca = [
       '',
       '---',
-      '📌 *Conduta beira-leito baseada nas diretrizes FMRP-USP / SBC / CBR. A correlação clínica presencial é obrigatória pelo médico assistente.*'
+      '📌 *Roteiro de apoio beira-leito (FMRP-USP / CBR). Se preferir, digite a alteração suspeita para conduta imediata.*'
     ].join('\n');
 
     var corpo = [];
@@ -43243,11 +43252,16 @@ var IaLocalFallbackService = (function () {
     if (p.indexOf('[calendar]') !== -1 || p.indexOf('marcar') !== -1 || p.indexOf('agendar') !== -1 || p.indexOf('agenda') !== -1) {
       return [
         '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ÁUDIO / AGENDAMENTO)*',
-        '📅 [CALENDAR] Agendamento solicitado registrado em contingência offline.',
-        '⚠️ *Aviso:* O provedor de reconhecimento em nuvem atingiu o timeout de 15s. Confirme os horários diretamente no aplicativo de agenda.'
+        '📅 [CALENDAR] Agendamento registrado localmente.',
+        '💡 Por favor, confirme os detalhes diretamente no aplicativo de agenda.'
       ].join('\n');
     }
-    return gerarRespostaOfflineClinica(null, promptUsuario, opcoes);
+    return [
+      '⚡ *MODO OFFLINE DE CONTINGÊNCIA (ÁUDIO)*',
+      '🎙️ *Não consegui processar seu áudio agora (oscilação na rede de voz).*',
+      '',
+      'Se for urgente, digite em poucas palavras a *droga + peso* (ex: `nora 70kg`, `amiodarona ataque`) ou a *dúvida clínica*, ou reenvie o áudio em instantes.'
+    ].join('\n');
   }
 
   /**

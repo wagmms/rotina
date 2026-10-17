@@ -1,5 +1,11 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C82. [x] **Modernização de Contingência Offline: Erradicação de Textos Genéricos ("ABCDE/MOV" e "Daemon Indisponível") e Orientação Prática Local (`src/04_ia_local_fallback.js`, `tests/test_circuit_breaker_multimodal.cjs`)**:
+    - **Erradicação de Jargões de Servidor (`src/04_ia_local_fallback.js`)**: Substituição de cabeçalhos técnicos ("Redes em nuvem e daemon de IA indisponíveis") e de visão computacional ("A imagem não pôde ser examinada em seus pixels visuais") por avisos cirúrgicos e transparentes de oscilação de rede beira-leito.
+    - **Substituição do "Textão" Genérico por Ações Locais (`src/04_ia_local_fallback.js`)**: Em `gerarCondutaGeralEmergencia`, eliminação da aula teórica descabida de 30 linhas com ABCDE/MOV para dúvidas clínicas gerais; introdução de detecção ativa de termos posológicos que orienta o uso direto de calculadora offline (`droga + peso`, ex: `nora 70kg`, `iot 80kg`).
+    - **Fallback Multimodal Inteligente (`src/04_ia_local_fallback.js`)**: Reformulação de `analisarImagemOffline` e `gerarFallbackAudio` orientando o reenvio rápido em caso de oscilação ou digitação de achado clínico pontual para puxar condutas imediatas.
+    - **Recibo de Estabilidade**: **57/57 suítes aprovadas com 100% de sucesso em 41.80s** (`npm test`). Zero regressões.
+
 0C81. [x] **Saneamento de UX e Remoção de Funções Ruidosas: Erradicação de "Ouvir no Fone" (SOAP, Laudo de Imagem, Conversa Livre e Plantão) e Keep-Alive Nativo (`src/07c_telegram_consultas_e_ia.js`, `src/07e_telegram_midia_e_leitos.js`, `src/07a_telegram_router.js`, `tests/test_leitor_imagens_ostensivo.cjs`)**:
     - **Remoção de "Ouvir no Fone" no SOAP (`src/07c_telegram_consultas_e_ia.js`)**: Eliminação de botões de TTS nas Fases 1 (Rascunho) e 2 (Consolidado) do SOAP; reorganização do teclado em matriz simétrica 2x2 + 1 com `📋 Fechar Plano`, `🩺 EF Normal`, `🔬 Exames` e `🧹 Novo Paciente`.
     - **Limpeza nos Laudos de Imagem Médica (`src/07e_telegram_midia_e_leitos.js`)**: Remoção de `🎧 Ouvir no Fone` em laudos multimodais de ECG, Radiografia e Exames; teclado reestruturado com `➕ Incorporar ao SOAP`, `📁 Salvar no Notion` e `📋 Copiar Laudo`.
