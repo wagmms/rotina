@@ -112,6 +112,7 @@ def test_deploy_core_trata_cota_sem_rejeicao_falsa(autoloop_mod, monkeypatch, tm
 
     chamadas_rejection = []
     monkeypatch.setattr(autoloop_mod, "capture_rejection", lambda *a, **kw: chamadas_rejection.append(a))
+    monkeypatch.setattr(autoloop_mod, "enviar_relatorio_telegram", lambda *a, **kw: True)
 
     # Simula erro de cota
     monkeypatch.setattr(
