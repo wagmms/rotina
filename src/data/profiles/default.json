@@ -1,0 +1,80 @@
+{
+  "chat_id": "default",
+  "onboarding_concluido": true,
+  "atualizado_em": "2026-10-18T17:40:00.000Z",
+  "profissional": {
+    "prefixo": "Dr.",
+    "nome_chamada": "Wagner",
+    "nome_completo_carimbo": "Wagner Moraes",
+    "saudacao_formal": "Dr. Wagner",
+    "papel": "MEDICO_CRM",
+    "registro_conselho": "",
+    "uf_conselho": "SP",
+    "instituicao_vinculo": "Unidade de Saúde / SUS",
+    "modo_preceptoria": "DIRETO_OBJETIVO"
+  },
+  "localidade": {
+    "uf": "SP",
+    "municipio_nome": "São Paulo",
+    "municipio_slug": "sp_sao_paulo"
+  },
+  "unidade_assistencial": {
+    "nome_unidade": "Unidade de Saúde / SUS",
+    "cenario_id": "URGENCIA_UPA_24H",
+    "nivel_atencao": "URGENCIA_UPA_24H",
+    "sistema_regulacao": "SISREG",
+    "modulos_visiveis": {
+      "receituario_remume": true,
+      "prescricao_hospitalar": true,
+      "dva_sedacao_iot": true,
+      "protocolos_emergencia": true,
+      "calculadoras_escores": true,
+      "pediatria_mg_kg": true,
+      "obstetricia_prenatal_lactacao": false,
+      "cronicos_rastreio_aps": false,
+      "exames_ecg_gaso_imagem": true,
+      "evolucao_soap_atestados": true
+    }
+  },
+  "farmacopeia": {
+    "remume_id": "sp_sao_paulo",
+    "remume_nome_exibicao": "REMUME São Paulo - SP",
+    "selo_curto": "📍 [São Paulo]",
+    "fallback_rename_nacional": true
+  },
+  "regras_locais": {
+    "notas_ccih_fluxos": "",
+    "codigo_compartilhamento": ""
+  },
+  "prefixo_tratamento": "Dr.",
+  "nome_chamada": "Wagner",
+  "nome_chamada_configurado": true,
+  "nome_completo_carimbo": "Wagner Moraes",
+  "papel": "MEDICO_CRM",
+  "crm": "",
+  "municipio": "São Paulo",
+  "uf": "SP",
+  "unidade_saude": "Unidade de Saúde / SUS",
+  "cenario_assistencial": "URGENCIA_UPA_24H",
+  "sistema_regulacao": "SISREG",
+  "remume_slug": "sp_sao_paulo",
+  "notas_ccih": "",
+  "modulos_ativos": [
+    "receituario_remume",
+    "RECEITUARIO_ATESTADOS",
+    "prescricao_hospitalar",
+    "ENFERMARIA_LEITOS",
+    "dva_sedacao_iot",
+    "INTOXICACOES",
+    "protocolos_emergencia",
+    "SALA_VERMELHA",
+    "calculadoras_escores",
+    "CALCULADORAS_ESCORES",
+    "pediatria_mg_kg",
+    "PEDIATRIA_DOSES",
+    "exames_ecg_gaso_imagem",
+    "PRECEPTOR_EBM",
+    "evolucao_soap_atestados",
+    "SOAP_PEP"
+  ]
+}

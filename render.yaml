@@ -32,3 +32,14 @@ services:
         sync: false
       - key: PROVEDOR_TEXTO_PADRAO
         value: GEMINI
+      # Perfil Clínico Persistente do Médico Titular (garante integridade total pós-deploy):
+      - key: BOT_MEDICO_NOME
+        sync: false
+      - key: BOT_MEDICO_CIDADE
+        sync: false
+      - key: BOT_MEDICO_UF
+        sync: false
+      - key: BOT_MEDICO_SERVICO
+        sync: false
+      - key: BOT_MEDICO_CRM
+        sync: false

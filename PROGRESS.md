@@ -13,10 +13,10 @@
 
 ---
 
-- [x] **Motor de Descoberta Web Governamental (.gov.br), Crawler Municipal de REMUME e Painel do Desenvolvedor (`src/data/remumes/index.js`, `src/00_config.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`)**:
-    - **Arquivo/Módulo Alvo**: `src/data/remumes/index.js`, `src/00_config.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`, `tests/test_remume_pesquisa_e_solicitacoes_argon.cjs`.
-    - **Função/Componente/Seletor**: `CatalogoRemumeService._buscarUrlsCandidatasGovBr`, `_limparHtmlParaTexto`, `_extrairLinksPaginacaoEEscopos`, `_coletarTextoPaginadoEComplementar`, `extrairMedicamentosDeTextoBruto`, `_tentarBuscaOficialVerificada`.
-    - **Comportamento Esperado / Critério de Aceite**: Normalização atômica de linhas de tabelas HTML (`<tr>` preservado intacto com colunas unidas); detecção e navegação automática de paginação (`pagina=1..N`); ampliação de formas farmacêuticas para tabelas municipais de almoxarifado/saúde; extração completa de **192 itens farmacológicos** do portal oficial de Garrafão do Norte - PA com validação pelo Gatekeeper Clínico e auto-promoção para preset global permanente.
+- [x] **Revisão Completa do Bot, Desbloqueio de Roteamento Telegram, Blindagem Clínica de GO e Resolução de State Bleed no Sniper (`src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `server/whatsapp-bridge.js`, `src/data/remumes/index.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `server/whatsapp-bridge.js`, `src/data/remumes/index.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`.
+    - **Função/Componente/Seletor**: `TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_`, `despacharComandosGinecologiaObstetricia_`, `cockpitAutorizar_`, `filtrarPacoteWhatsAppZeroTrust`, `_ehUrlOficialConfiavel`, `obterConfigSniper`, setup/teardown em `tests/test_sniper_plantoes_rotina.cjs`.
+    - **Comportamento Esperado / Critério de Aceite**: Idempotência total e eliminação de state bleed no Sniper de Plantões; desbloqueio no Telegram de `/sniper`, `/vagas`, `/piso` e calculadoras clínicas (`/crcl`, `/pancreatite`, `/sca`) em produção; blindagem de GO (BCF, Rh negativo, dias em PEP, CTG categorias ACOG); proteção contra SSRF e TLS em domínios governamentais; 57/57 suítes aprovadas com 100% de sucesso.
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 

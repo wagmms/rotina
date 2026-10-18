@@ -4,6 +4,34 @@ Command failures, exceptions, and unexpected behaviors.
 
 ---
 
+## [ERR-20261018-001] sniper_plantoes_state_bleed_piso_flakiness
+
+**Logged**: 2026-10-18T18:00:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Summary
+`tests/test_sniper_plantoes_rotina.cjs` falhou com `AssertionError: 1600 !== 1400` devido a poluição de estado persistente (*State Bleed*) em `data/properties.json`. Uma chamada prévia com `/piso 1500` gravou `valorMinimo12h = 1500` no disco. Na rodada seguinte, sem setup de limpeza determinística, o callback `sniper:val_up` somou +100 sobre 1500 resultando em 1600 em vez do padrão esperado 1400 (1300 + 100).
+
+### Context
+- Arquivos: `tests/test_sniper_plantoes_rotina.cjs`, `src/14_sniper_plantoes.js`, `data/properties.json`
+- Comportamento errôneo: Falta de `PlantaoSniperService.redefinirConfigPadrao()` no início e no fim da suíte.
+
+### Suggested Fix
+Incluir setup determinístico chamando `redefinirConfigPadrao()`, `destravarTodaAgendaSniper()` e salvamento limpo de Allowlist no setup inicial, além de redefinição no teardown final.
+
+### Metadata
+- Reproducible: yes
+- Related Files: `tests/test_sniper_plantoes_rotina.cjs`, `src/14_sniper_plantoes.js`
+- See Also: LRN-20261018-001
+- Pattern-Key: tests.persistent_properties_state_bleed
+- Recurrence-Count: 1
+- First-Seen: 2026-10-18
+- Last-Seen: 2026-10-18
+
+---
+
 ## [ERR-20261017-002] google_calendar_silent_unauthenticated_sync
 
 **Logged**: 2026-10-17T14:45:00-03:00

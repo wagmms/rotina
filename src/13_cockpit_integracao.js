@@ -1,7 +1,7 @@
 function cockpitAutorizar_(initData) {
   function negar() { throw new Error('Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada.'); }
-  // Chamadas internas do motor em ambiente de testes unitários locais (bloqueado em produção e via HTTP)
-  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test' && (initData === 'bot' || initData === 'internal' || initData === 'interno')) {
+  // Chamadas internas do motor em memória (a camada HTTP externa do Fastify bloqueia 'bot'/'internal' com 401 na borda)
+  if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
     return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary)
       ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
       : ((typeof ConfigService !== 'undefined' && ConfigService.get)

@@ -40,6 +40,9 @@ var ConfigService = (function() {
 
   function resolverCaminho(caminhoRelativo) {
     if (!path) return caminhoRelativo;
+    if (caminhoRelativo && caminhoRelativo.indexOf("data/") === 0 && typeof process !== "undefined" && process && process.env && process.env.BOT_DATA_DIR) {
+      return path.resolve(process.env.BOT_DATA_DIR, caminhoRelativo.slice(5));
+    }
     return path.resolve(obterRaizProjeto(), caminhoRelativo);
   }
 
@@ -428,40 +431,86 @@ var ConfigService = (function() {
 
   function criarContextoPadrao(chatId) {
     var cid = sanitizarChatId(chatId);
-    var cenarioPadrao = DEFAULTS.CENARIO_PADRAO;
-    var modulosPadrao = clonarObjeto(MODULOS_POR_CENARIO[cenarioPadrao] || MODULOS_POR_CENARIO.URGENCIA_UPA_24H);
+    var p = carregarPropriedades();
+
+    // 1. Suporte a perfil clínico completo injetado em JSON via ambiente ou propriedades
+    var jsonRaw = p.BOT_CLINICAL_PROFILE_JSON || p.PERFIL_CLINICO_JSON;
+    if (jsonRaw) {
+      try {
+        var obj = JSON.parse(jsonRaw);
+        if (obj && typeof obj === "object") {
+          obj.chat_id = String(chatId || cid);
+          return obj;
+        }
+      } catch (_) {}
+    }
+
+    var cenarioConfigurado = String(p.BOT_MEDICO_SERVICO || p.BOT_SERVICO || p.BOT_CENARIO || p.CENARIO_ASSISTENCIAL || DEFAULTS.CENARIO_PADRAO).trim().toUpperCase();
+    if (!MODULOS_POR_CENARIO[cenarioConfigurado]) {
+      cenarioConfigurado = DEFAULTS.CENARIO_PADRAO;
+    }
+    var modulosPadrao = clonarObjeto(MODULOS_POR_CENARIO[cenarioConfigurado] || MODULOS_POR_CENARIO.URGENCIA_UPA_24H);
+
+    var nomeConfigurado = String(p.BOT_MEDICO_NOME || p.BOT_TITULAR_NAME || p.BOT_NOME || "").trim();
+    if (!nomeConfigurado && p.TELEGRAM_TITULAR_NAME && p.TELEGRAM_TITULAR_NAME !== DEFAULTS.TELEGRAM_TITULAR_NAME) {
+      nomeConfigurado = String(p.TELEGRAM_TITULAR_NAME).trim();
+    }
+    var prefixoConfigurado = String(p.BOT_MEDICO_PREFIXO || p.BOT_PREFIXO || "").trim();
+    if (/^dra\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Dra.";
+      nomeConfigurado = nomeConfigurado.replace(/^dra\.?\s+/i, "").trim();
+    } else if (/^dr\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Dr.";
+      nomeConfigurado = nomeConfigurado.replace(/^dr\.?\s+/i, "").trim();
+    } else if (/^acad\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Acad.";
+      nomeConfigurado = nomeConfigurado.replace(/^acad\.?\s+/i, "").trim();
+    }
+    if (!prefixoConfigurado) prefixoConfigurado = "Dr.";
+    var crmConfigurado = String(p.BOT_MEDICO_CRM || p.BOT_CRM || p.TELEGRAM_CRM || "").trim();
+    var municipioConfigurado = String(p.BOT_MEDICO_CIDADE || p.BOT_CIDADE || p.TELEGRAM_CIDADE || p.LOCALIDADE_MUNICIPIO || DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO).trim();
+    var ufConfigurada = String(p.BOT_MEDICO_UF || p.BOT_UF || p.TELEGRAM_UF || p.LOCALIDADE_UF || DEFAULTS.LOCALIDADE_UF_PADRAO).trim().toUpperCase();
+    var unidadeConfigurada = String(p.BOT_MEDICO_UNIDADE || p.BOT_UNIDADE || p.INSTITUICAO_VINCULO || DEFAULTS.INSTITUICAO_PADRAO).trim();
+    var papelConfigurado = String(p.BOT_MEDICO_PAPEL || p.BOT_PAPEL || "MEDICO_CRM").trim();
+
+    var slugMun = gerarSlugMunicipio(municipioConfigurado, ufConfigurada);
+    var nomeExibicaoRemume = (municipioConfigurado !== DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO)
+      ? ("REMUME " + municipioConfigurado + " - " + ufConfigurada)
+      : "RENAME Nacional (SUS)";
+
+    var onboarding = Boolean(nomeConfigurado && nomeConfigurado !== DEFAULTS.TELEGRAM_TITULAR_NAME);
 
     return {
       chat_id: String(chatId || cid),
-      onboarding_concluido: false,
+      onboarding_concluido: onboarding,
       atualizado_em: new Date().toISOString(),
       profissional: {
-        prefixo: "Dr.",
-        nome_chamada: "",
-        nome_completo_carimbo: "",
-        saudacao_formal: DEFAULTS.TELEGRAM_TITULAR_NAME,
-        papel: "MEDICO_CRM",
-        registro_conselho: "",
-        uf_conselho: DEFAULTS.LOCALIDADE_UF_PADRAO,
-        instituicao_vinculo: DEFAULTS.INSTITUICAO_PADRAO,
+        prefixo: prefixoConfigurado,
+        nome_chamada: nomeConfigurado,
+        nome_completo_carimbo: nomeConfigurado,
+        saudacao_formal: nomeConfigurado ? (prefixoConfigurado + " " + nomeConfigurado) : DEFAULTS.TELEGRAM_TITULAR_NAME,
+        papel: papelConfigurado,
+        registro_conselho: crmConfigurado,
+        uf_conselho: ufConfigurada,
+        instituicao_vinculo: unidadeConfigurada,
         modo_preceptoria: "DIRETO_OBJETIVO"
       },
       localidade: {
-        uf: DEFAULTS.LOCALIDADE_UF_PADRAO,
-        municipio_nome: DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO,
-        municipio_slug: DEFAULTS.LOCALIDADE_SLUG_PADRAO
+        uf: ufConfigurada,
+        municipio_nome: municipioConfigurado,
+        municipio_slug: slugMun
       },
       unidade_assistencial: {
-        nome_unidade: DEFAULTS.INSTITUICAO_PADRAO,
-        cenario_id: cenarioPadrao,
-        nivel_atencao: cenarioPadrao,
+        nome_unidade: unidadeConfigurada,
+        cenario_id: cenarioConfigurado,
+        nivel_atencao: cenarioConfigurado,
         sistema_regulacao: DEFAULTS.SISTEMA_REGULACAO_PADRAO,
         modulos_visiveis: modulosPadrao
       },
       farmacopeia: {
-        remume_id: DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO,
-        remume_nome_exibicao: "RENAME Nacional (SUS)",
-        selo_curto: "🟢 [RENAME/SUS]",
+        remume_id: slugMun,
+        remume_nome_exibicao: nomeExibicaoRemume,
+        selo_curto: (slugMun === "rename_nacional") ? "🟢 [RENAME/SUS]" : ("📍 [" + municipioConfigurado + "]"),
         fallback_rename_nacional: true
       },
       regras_locais: {
@@ -807,7 +856,7 @@ var ConfigService = (function() {
         return clonarObjeto(perfisCache[cid]);
       }
 
-      // 1. Tenta carregar do disco (data/profiles/<cid>.json)
+      // 1. Tenta carregar do disco de runtime (data/profiles/<cid>.json)
       var lidoDisco = lerJsonDisco("data/profiles/" + cid + ".json", null);
       if (lidoDisco && typeof lidoDisco === "object") {
         var normDisco = normalizarContextoClinico(lidoDisco, chatId || cid);
@@ -815,19 +864,39 @@ var ConfigService = (function() {
         return clonarObjeto(normDisco);
       }
 
-      // 2. Tenta carregar de PropertiesService (PERFIL_CLINICO_<cid>)
+      // 2. Tenta carregar de PropertiesService (PERFIL_CLINICO_<cid> ou CONTEXTO_CLINICO_<cid>)
       var p = carregarPropriedades();
       var propKey = "PERFIL_CLINICO_" + cid;
-      if (p[propKey]) {
+      var propKeyAlt = "CONTEXTO_CLINICO_" + cid;
+      var propVal = p[propKey] || p[propKeyAlt];
+      if (propVal) {
         try {
-          var parsedProp = JSON.parse(p[propKey]);
+          var parsedProp = JSON.parse(propVal);
           var normProp = normalizarContextoClinico(parsedProp, chatId || cid);
           perfisCache[cid] = normProp;
           return clonarObjeto(normProp);
         } catch (e) {}
       }
 
-      // 3. Retorna perfil padrão neutro (Brasil / RENAME / Médico(a) Assistente)
+      // 3. Tenta carregar dos perfis canônicos versionados no repositório (src/data/profiles/<cid>.json)
+      var lidoSrc = lerJsonDisco("src/data/profiles/" + cid + ".json", null);
+      if (!lidoSrc) {
+        var titularChat = (typeof this.getPrimary === "function") ? this.getPrimary("TELEGRAM_CHAT_ID") : "";
+        if (cid === titularChat || cid === "default" || !titularChat) {
+          lidoSrc = lerJsonDisco("src/data/profiles/default.json", null) ||
+                    (titularChat ? lerJsonDisco("src/data/profiles/" + titularChat + ".json", null) : null);
+        }
+      }
+      if (lidoSrc && typeof lidoSrc === "object") {
+        var normSrc = normalizarContextoClinico(lidoSrc, chatId || cid);
+        perfisCache[cid] = normSrc;
+        try { escreverJsonDisco("data/profiles/" + cid + ".json", normSrc); } catch (_) {}
+        salvarPropriedadeScript("PERFIL_CLINICO_" + cid, JSON.stringify(normSrc));
+        salvarPropriedadeScript("CONTEXTO_CLINICO_" + cid, JSON.stringify(normSrc));
+        return clonarObjeto(normSrc);
+      }
+
+      // 4. Retorna perfil padrão (enriquecido com variáveis de ambiente/defaults)
       var padrao = normalizarContextoClinico(criarContextoPadrao(chatId || cid), chatId || cid);
       perfisCache[cid] = padrao;
       return clonarObjeto(padrao);
@@ -971,6 +1040,7 @@ var ConfigService = (function() {
       perfisCache[cid] = normalizado;
       escreverJsonDisco("data/profiles/" + cid + ".json", normalizado);
       salvarPropriedadeScript("PERFIL_CLINICO_" + cid, JSON.stringify(normalizado));
+      salvarPropriedadeScript("CONTEXTO_CLINICO_" + cid, JSON.stringify(normalizado));
 
       return clonarObjeto(normalizado);
     },

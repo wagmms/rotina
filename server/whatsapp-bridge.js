@@ -306,10 +306,25 @@ function filtrarPacoteWhatsAppZeroTrust(pacoteBruto, whitelistGruposJids) {
     };
   }
 
-  const conjuntoWhitelist =
+  const listaBruta =
     whitelistGruposJids instanceof Set
+      ? Array.from(whitelistGruposJids)
+      : Array.isArray(whitelistGruposJids)
       ? whitelistGruposJids
-      : new Set(Array.isArray(whitelistGruposJids) ? whitelistGruposJids : []);
+      : [];
+
+  const conjuntoWhitelist = new Set(
+    listaBruta
+      .map((item) => {
+        if (typeof item === 'string') return item.trim();
+        if (item && typeof item === 'object' && item.jid) {
+          if (item.permitido === false || item.modoGrupo === 'BLOQUEADO') return null;
+          return String(item.jid).trim();
+        }
+        return null;
+      })
+      .filter(Boolean)
+  );
 
   if (!conjuntoWhitelist.has(remoteJid)) {
     return {
@@ -569,6 +584,7 @@ class WhatsAppConnectionManager extends EventEmitter {
       version,
       auth: state,
       printQRInTerminal: false,
+      markOnlineOnConnect: false, // Stealth: nunca exibe status 'Online' ao conectar
       browser: Browsers?.ubuntu ? Browsers.ubuntu('Chrome') : ['Ubuntu', 'Chrome', '20.0.04'],
       syncFullHistory: false
     });

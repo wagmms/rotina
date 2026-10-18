@@ -166,9 +166,15 @@ var PlantaoSniperService = (function () {
         cfg[k] = salvo[k];
       }
     }
-    if (Array.isArray(cfg.cidadesPermitidas) && cfg.cidadesPermitidas.length === 6 && cfg.cidadesPermitidas[0] === "São Paulo") {
-      cfg.cidadesPermitidas = [];
-      cfg.filtroCidadesAtivo = false;
+    if (!cfg.schemaVersion || cfg.schemaVersion < 2) {
+      if (
+        Array.isArray(cfg.cidadesPermitidas) &&
+        cfg.cidadesPermitidas.join(",") === "São Paulo,ABC,Santo André,São Bernardo,São Caetano,Osasco"
+      ) {
+        cfg.cidadesPermitidas = [];
+        cfg.filtroCidadesAtivo = false;
+      }
+      cfg.schemaVersion = 2;
       _salvarJsonProp(PROP_CONFIG_KEY, cfg);
     }
     if (!Array.isArray(cfg.setoresPermitidos)) {
@@ -2289,9 +2295,10 @@ function _construirPainelSniperTelegram() {
 }
 
 function _enviarOuEditarPainelSniper(chatId, msgId, token, texto, teclado) {
-  if (msgId && token && typeof executarPostTelegram === "function") {
+  var botToken = token || (typeof ConfigService !== "undefined" && ConfigService.get ? ConfigService.get("TELEGRAM_BOT_TOKEN", "") : "");
+  if (msgId && botToken && typeof executarPostTelegram === "function") {
     try {
-      var url = "https://api.telegram.org/bot" + token + "/editMessageText";
+      var url = "https://api.telegram.org/bot" + botToken + "/editMessageText";
       var res = executarPostTelegram(url, {
         chat_id: String(chatId),
         message_id: Number(msgId),

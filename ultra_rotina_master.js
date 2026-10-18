@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-18 16:53:20
- * Checksum SHA256: 09a13be882af8048
+ * Gerado automaticamente via build_master.py em: 2026-10-18 18:11:24
+ * Checksum SHA256: b6c10a580d476c0f
  * ==============================================================================
  */
 
@@ -56,6 +56,9 @@ var ConfigService = (function() {
 
   function resolverCaminho(caminhoRelativo) {
     if (!path) return caminhoRelativo;
+    if (caminhoRelativo && caminhoRelativo.indexOf("data/") === 0 && typeof process !== "undefined" && process && process.env && process.env.BOT_DATA_DIR) {
+      return path.resolve(process.env.BOT_DATA_DIR, caminhoRelativo.slice(5));
+    }
     return path.resolve(obterRaizProjeto(), caminhoRelativo);
   }
 
@@ -444,40 +447,86 @@ var ConfigService = (function() {
 
   function criarContextoPadrao(chatId) {
     var cid = sanitizarChatId(chatId);
-    var cenarioPadrao = DEFAULTS.CENARIO_PADRAO;
-    var modulosPadrao = clonarObjeto(MODULOS_POR_CENARIO[cenarioPadrao] || MODULOS_POR_CENARIO.URGENCIA_UPA_24H);
+    var p = carregarPropriedades();
+
+    // 1. Suporte a perfil clínico completo injetado em JSON via ambiente ou propriedades
+    var jsonRaw = p.BOT_CLINICAL_PROFILE_JSON || p.PERFIL_CLINICO_JSON;
+    if (jsonRaw) {
+      try {
+        var obj = JSON.parse(jsonRaw);
+        if (obj && typeof obj === "object") {
+          obj.chat_id = String(chatId || cid);
+          return obj;
+        }
+      } catch (_) {}
+    }
+
+    var cenarioConfigurado = String(p.BOT_MEDICO_SERVICO || p.BOT_SERVICO || p.BOT_CENARIO || p.CENARIO_ASSISTENCIAL || DEFAULTS.CENARIO_PADRAO).trim().toUpperCase();
+    if (!MODULOS_POR_CENARIO[cenarioConfigurado]) {
+      cenarioConfigurado = DEFAULTS.CENARIO_PADRAO;
+    }
+    var modulosPadrao = clonarObjeto(MODULOS_POR_CENARIO[cenarioConfigurado] || MODULOS_POR_CENARIO.URGENCIA_UPA_24H);
+
+    var nomeConfigurado = String(p.BOT_MEDICO_NOME || p.BOT_TITULAR_NAME || p.BOT_NOME || "").trim();
+    if (!nomeConfigurado && p.TELEGRAM_TITULAR_NAME && p.TELEGRAM_TITULAR_NAME !== DEFAULTS.TELEGRAM_TITULAR_NAME) {
+      nomeConfigurado = String(p.TELEGRAM_TITULAR_NAME).trim();
+    }
+    var prefixoConfigurado = String(p.BOT_MEDICO_PREFIXO || p.BOT_PREFIXO || "").trim();
+    if (/^dra\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Dra.";
+      nomeConfigurado = nomeConfigurado.replace(/^dra\.?\s+/i, "").trim();
+    } else if (/^dr\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Dr.";
+      nomeConfigurado = nomeConfigurado.replace(/^dr\.?\s+/i, "").trim();
+    } else if (/^acad\.?\s+/i.test(nomeConfigurado)) {
+      if (!prefixoConfigurado) prefixoConfigurado = "Acad.";
+      nomeConfigurado = nomeConfigurado.replace(/^acad\.?\s+/i, "").trim();
+    }
+    if (!prefixoConfigurado) prefixoConfigurado = "Dr.";
+    var crmConfigurado = String(p.BOT_MEDICO_CRM || p.BOT_CRM || p.TELEGRAM_CRM || "").trim();
+    var municipioConfigurado = String(p.BOT_MEDICO_CIDADE || p.BOT_CIDADE || p.TELEGRAM_CIDADE || p.LOCALIDADE_MUNICIPIO || DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO).trim();
+    var ufConfigurada = String(p.BOT_MEDICO_UF || p.BOT_UF || p.TELEGRAM_UF || p.LOCALIDADE_UF || DEFAULTS.LOCALIDADE_UF_PADRAO).trim().toUpperCase();
+    var unidadeConfigurada = String(p.BOT_MEDICO_UNIDADE || p.BOT_UNIDADE || p.INSTITUICAO_VINCULO || DEFAULTS.INSTITUICAO_PADRAO).trim();
+    var papelConfigurado = String(p.BOT_MEDICO_PAPEL || p.BOT_PAPEL || "MEDICO_CRM").trim();
+
+    var slugMun = gerarSlugMunicipio(municipioConfigurado, ufConfigurada);
+    var nomeExibicaoRemume = (municipioConfigurado !== DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO)
+      ? ("REMUME " + municipioConfigurado + " - " + ufConfigurada)
+      : "RENAME Nacional (SUS)";
+
+    var onboarding = Boolean(nomeConfigurado && nomeConfigurado !== DEFAULTS.TELEGRAM_TITULAR_NAME);
 
     return {
       chat_id: String(chatId || cid),
-      onboarding_concluido: false,
+      onboarding_concluido: onboarding,
       atualizado_em: new Date().toISOString(),
       profissional: {
-        prefixo: "Dr.",
-        nome_chamada: "",
-        nome_completo_carimbo: "",
-        saudacao_formal: DEFAULTS.TELEGRAM_TITULAR_NAME,
-        papel: "MEDICO_CRM",
-        registro_conselho: "",
-        uf_conselho: DEFAULTS.LOCALIDADE_UF_PADRAO,
-        instituicao_vinculo: DEFAULTS.INSTITUICAO_PADRAO,
+        prefixo: prefixoConfigurado,
+        nome_chamada: nomeConfigurado,
+        nome_completo_carimbo: nomeConfigurado,
+        saudacao_formal: nomeConfigurado ? (prefixoConfigurado + " " + nomeConfigurado) : DEFAULTS.TELEGRAM_TITULAR_NAME,
+        papel: papelConfigurado,
+        registro_conselho: crmConfigurado,
+        uf_conselho: ufConfigurada,
+        instituicao_vinculo: unidadeConfigurada,
         modo_preceptoria: "DIRETO_OBJETIVO"
       },
       localidade: {
-        uf: DEFAULTS.LOCALIDADE_UF_PADRAO,
-        municipio_nome: DEFAULTS.LOCALIDADE_MUNICIPIO_PADRAO,
-        municipio_slug: DEFAULTS.LOCALIDADE_SLUG_PADRAO
+        uf: ufConfigurada,
+        municipio_nome: municipioConfigurado,
+        municipio_slug: slugMun
       },
       unidade_assistencial: {
-        nome_unidade: DEFAULTS.INSTITUICAO_PADRAO,
-        cenario_id: cenarioPadrao,
-        nivel_atencao: cenarioPadrao,
+        nome_unidade: unidadeConfigurada,
+        cenario_id: cenarioConfigurado,
+        nivel_atencao: cenarioConfigurado,
         sistema_regulacao: DEFAULTS.SISTEMA_REGULACAO_PADRAO,
         modulos_visiveis: modulosPadrao
       },
       farmacopeia: {
-        remume_id: DEFAULTS.CATALOGO_FARMACEUTICO_PADRAO,
-        remume_nome_exibicao: "RENAME Nacional (SUS)",
-        selo_curto: "🟢 [RENAME/SUS]",
+        remume_id: slugMun,
+        remume_nome_exibicao: nomeExibicaoRemume,
+        selo_curto: (slugMun === "rename_nacional") ? "🟢 [RENAME/SUS]" : ("📍 [" + municipioConfigurado + "]"),
         fallback_rename_nacional: true
       },
       regras_locais: {
@@ -823,7 +872,7 @@ var ConfigService = (function() {
         return clonarObjeto(perfisCache[cid]);
       }
 
-      // 1. Tenta carregar do disco (data/profiles/<cid>.json)
+      // 1. Tenta carregar do disco de runtime (data/profiles/<cid>.json)
       var lidoDisco = lerJsonDisco("data/profiles/" + cid + ".json", null);
       if (lidoDisco && typeof lidoDisco === "object") {
         var normDisco = normalizarContextoClinico(lidoDisco, chatId || cid);
@@ -831,19 +880,39 @@ var ConfigService = (function() {
         return clonarObjeto(normDisco);
       }
 
-      // 2. Tenta carregar de PropertiesService (PERFIL_CLINICO_<cid>)
+      // 2. Tenta carregar de PropertiesService (PERFIL_CLINICO_<cid> ou CONTEXTO_CLINICO_<cid>)
       var p = carregarPropriedades();
       var propKey = "PERFIL_CLINICO_" + cid;
-      if (p[propKey]) {
+      var propKeyAlt = "CONTEXTO_CLINICO_" + cid;
+      var propVal = p[propKey] || p[propKeyAlt];
+      if (propVal) {
         try {
-          var parsedProp = JSON.parse(p[propKey]);
+          var parsedProp = JSON.parse(propVal);
           var normProp = normalizarContextoClinico(parsedProp, chatId || cid);
           perfisCache[cid] = normProp;
           return clonarObjeto(normProp);
         } catch (e) {}
       }
 
-      // 3. Retorna perfil padrão neutro (Brasil / RENAME / Médico(a) Assistente)
+      // 3. Tenta carregar dos perfis canônicos versionados no repositório (src/data/profiles/<cid>.json)
+      var lidoSrc = lerJsonDisco("src/data/profiles/" + cid + ".json", null);
+      if (!lidoSrc) {
+        var titularChat = (typeof this.getPrimary === "function") ? this.getPrimary("TELEGRAM_CHAT_ID") : "";
+        if (cid === titularChat || cid === "default" || !titularChat) {
+          lidoSrc = lerJsonDisco("src/data/profiles/default.json", null) ||
+                    (titularChat ? lerJsonDisco("src/data/profiles/" + titularChat + ".json", null) : null);
+        }
+      }
+      if (lidoSrc && typeof lidoSrc === "object") {
+        var normSrc = normalizarContextoClinico(lidoSrc, chatId || cid);
+        perfisCache[cid] = normSrc;
+        try { escreverJsonDisco("data/profiles/" + cid + ".json", normSrc); } catch (_) {}
+        salvarPropriedadeScript("PERFIL_CLINICO_" + cid, JSON.stringify(normSrc));
+        salvarPropriedadeScript("CONTEXTO_CLINICO_" + cid, JSON.stringify(normSrc));
+        return clonarObjeto(normSrc);
+      }
+
+      // 4. Retorna perfil padrão (enriquecido com variáveis de ambiente/defaults)
       var padrao = normalizarContextoClinico(criarContextoPadrao(chatId || cid), chatId || cid);
       perfisCache[cid] = padrao;
       return clonarObjeto(padrao);
@@ -987,6 +1056,7 @@ var ConfigService = (function() {
       perfisCache[cid] = normalizado;
       escreverJsonDisco("data/profiles/" + cid + ".json", normalizado);
       salvarPropriedadeScript("PERFIL_CLINICO_" + cid, JSON.stringify(normalizado));
+      salvarPropriedadeScript("CONTEXTO_CLINICO_" + cid, JSON.stringify(normalizado));
 
       return clonarObjeto(normalizado);
     },
@@ -55497,52 +55567,100 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     }) };
   }
 
+  // Helper seguro de cache com fallback para CacheService.getScriptCache()
+  var obterCacheSeguroGO_ = function() {
+    if (typeof uxCache === "function") {
+      try {
+        var c = uxCache();
+        if (c) return c;
+      } catch (_) {}
+    }
+    if (typeof CacheService !== "undefined" && CacheService.getScriptCache) {
+      try {
+        return CacheService.getScriptCache();
+      } catch (_) {}
+    }
+    return null;
+  };
+
   // 4a. Cardiotocografia Intraparto & Reanimação Intrauterina (/ctg, /cardiotocografia)
   if (comando === "/ctg" || comando === "/cardiotocografia") {
     var dadosCtg = texto.replace(/^\/(ctg|cardiotocografia)\s*/i, "").trim();
+    if (!dadosCtg) {
+      return {
+        executado: true,
+        resultado: enviarMensagemComTecladoParaChat(
+          chatId,
+          "📉 *CARDIOTOCOGRAFIA INTRAPARTO (ACOG / FEBRASGO)*\n\n" +
+          "Envie os achados do traçado (BCF basal, variabilidade, acelerações, desacelerações DIP I/II/III e dinâmica uterina):\n\n" +
+          "• `/ctg bcf 140 variabilidade moderada com aceleracoes` *(Categoria I)*\n" +
+          "• `/ctg bcf 165 dip 2 variabilidade minima taquissistolia` *(Categoria II — Reanimação Intrauterina)*\n" +
+          "• `/ctg bcf 95 variabilidade ausente dip 2 recorrente` *(Categoria III — Parto Imediato)*",
+          {
+            inline_keyboard: [
+              [{ text: "🟢 Cat I (Normal)", callback_data: "go_parto" }, { text: "🔴 Cat III (Emergência)", callback_data: "go_parto" }],
+              [{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          }
+        )
+      };
+    }
     if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Cardiotocografia indisponível temporariamente.") };
     }
 
     var paramsCtg = {};
-    if (dadosCtg.match(/cat\s*3|cat\s*iii|sinusoidal|grave|asfixia/i)) {
-      paramsCtg.variabilidade = 'sinusoidal';
-    } else if (dadosCtg.match(/dip\s*2|dip\s*ii|tardi/i)) {
-      paramsCtg.desaceleracoes = 'dip2_tardia';
-      paramsCtg.variabilidade = dadosCtg.match(/ausente/i) ? 'ausente' : 'minima';
-    } else if (dadosCtg.match(/dip\s*3|dip\s*iii|variavel/i)) {
-      paramsCtg.desaceleracoes = 'dip3_variavel_simples';
-    } else if (dadosCtg.match(/dip\s*1|dip\s*i|precoce/i)) {
-      paramsCtg.desaceleracoes = 'dip1_precoce';
+    if (/sinusoidal|cat\s*3|cat\s*iii|asfixia/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "sinusoidal";
+    } else if (/variabilidade\s*ausente|sem\s*variabilidade|lisa/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "ausente";
+    } else if (/variabilidade\s*m[ií]nima|reduzida/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "minima";
+    } else if (/variabilidade\s*aumentada|saltat[oó]ria/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "aumentada";
+    } else if (/variabilidade\s*(?:moderada|normal)/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "moderada";
     }
+
+    if (/dip\s*2|dip\s*ii|tardi/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip2_tardia";
+      if (!paramsCtg.variabilidade) paramsCtg.variabilidade = "minima";
+    } else if (/dip\s*3|dip\s*iii|vari[aá]vel|umbilical/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip3_variavel_simples";
+    } else if (/dip\s*1|dip\s*i|precoce|cef[aá]lica/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip1_precoce";
+    }
+
+    if (/sem\s*acelera/i.test(dadosCtg)) paramsCtg.aceleracoes = false;
+    else if (/acelera/i.test(dadosCtg)) paramsCtg.aceleracoes = true;
 
     var mBcfCtg = dadosCtg.match(/bcf\s*[:=]?\s*(\d+)/i) || dadosCtg.match(/(\d{2,3})\s*bpm/i);
     if (mBcfCtg) paramsCtg.bcfBasal = parseInt(mBcfCtg[1], 10);
-    if (dadosCtg.match(/taquissist|hiperdinam|\>5\s*contr/i)) paramsCtg.taquissistolia = true;
+    if (/taquissist|hiperdinam|>\s*5\s*contr/i.test(dadosCtg)) paramsCtg.taquissistolia = true;
 
     var resCtg = CentroObstetricoService.avaliarCardiotocografiaIntraparto(paramsCtg);
-    var linhasCtg = [
+    var txtCtg = [
       "📉 *" + resCtg.titulo + "*",
       "",
       "• *Fisiopatologia:* " + resCtg.fisiopatologia,
       "",
       "📋 *Conduta Imediata:*",
       resCtg.condutas.join("\n")
-    ];
-    var txtCtg = linhasCtg.join("\n");
+    ].join("\n");
+
     var ckCtg = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheCtg = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheCtg = obterCacheSeguroGO_();
     if (cacheCtg && typeof safePutCache === "function") safePutCache(cacheCtg, ckCtg, txtCtg, 21600);
 
-    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
-      inline_keyboard: [
-        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
-        [
-          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
-          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+    return {
+      executado: true,
+      resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
+          [{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
-      ]
-    }) };
+      })
+    };
   }
 
   // 4b. Distócia de Ombros (/distocia, /helperr)
@@ -55565,7 +55683,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtDist = linhasDist.join("\n");
     var ckDist = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheDist = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheDist = obterCacheSeguroGO_();
     if (cacheDist && typeof safePutCache === "function") safePutCache(cacheDist, ckDist, txtDist, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtDist, {
@@ -55597,11 +55715,20 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
       pSang.quadroClinico = 'ameaca_aborto';
     }
 
+    // Detecção segura de BCF e embrião vivo
+    if (/bcf\s*(?:presente|\+|positivo|\d{2,3})|embri[aã]o\s*vivo/i.test(dadosSang) && !/bcf\s*(?:ausente|negativo|-|0)/i.test(dadosSang)) {
+      pSang.bcfPresente = true;
+    }
+
     var mBeta = dadosSang.match(/beta\s*[:=]?\s*(\d+)/i) || dadosSang.match(/(\d+)\s*mui/i);
     if (mBeta) pSang.betaHcgQuantitativo = parseInt(mBeta[1], 10);
     var mMassa = dadosSang.match(/massa\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosSang.match(/(\d+(?:[.,]\d+)?)\s*cm/i);
     if (mMassa) pSang.massaAnexialCm = parseFloat(mMassa[1].replace(',', '.'));
-    if (dadosSang.match(/rh\s*neg|rh\s*-/i)) pSang.fatorRh = 'negativo';
+    
+    // Detecção abrangente de fator Rh negativo
+    if (/\brh\s*(?:negativo|neg|-)\b|\b(?:tipo|sangue|tipagem)\s*(?:a|b|ab|o)\s*(?:negativo|neg|-)\b/i.test(dadosSang)) {
+      pSang.fatorRh = 'negativo';
+    }
     if (dadosSang.match(/choque|instavel|peritonite|liquido\s*livre/i)) pSang.liquidoLivreAlemDaPelve = true;
 
     var resSang = CentroObstetricoService.avaliarSangramentoPrimeiraMetade(pSang);
@@ -55620,7 +55747,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtSang = linhasSang.join("\n");
     var ckSang = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheSang = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheSang = obterCacheSeguroGO_();
     if (cacheSang && typeof safePutCache === "function") safePutCache(cacheSang, ckSang, txtSang, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtSang, {
@@ -55641,8 +55768,14 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Violência Sexual indisponível temporariamente.") };
     }
     var pVio = {};
-    var mHoras = dadosVio.match(/(\d+)\s*h/i);
+    var mHoras = dadosVio.match(/(\d+)\s*h(?:oras?)?\b/i);
+    var mDias = dadosVio.match(/(\d+)\s*d(?:ias?)?\b/i);
     if (mHoras) pVio.horasAposExposicao = parseInt(mHoras[1], 10);
+    else if (mDias) pVio.horasAposExposicao = parseInt(mDias[1], 10) * 24;
+
+    var mPesoVio = dadosVio.match(/(\d{1,3}(?:[.,]\d+)?)\s*kg\b/i);
+    if (mPesoVio) pVio.pesoKg = parseFloat(mPesoVio[1].replace(",", "."));
+
     if (dadosVio.match(/gestant/i)) pVio.gestante = true;
     if (dadosVio.match(/vacina\s*hep\s*b|vacinada/i)) pVio.vacinadaHepatiteBCompleta = true;
 
@@ -55663,7 +55796,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtVio = linhasVio.join("\n");
     var ckVio = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheVio = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheVio = obterCacheSeguroGO_();
     if (cacheVio && typeof safePutCache === "function") safePutCache(cacheVio, ckVio, txtVio, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtVio, {
@@ -55683,7 +55816,13 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Urgências de Mama/Vulva indisponível temporariamente.") };
     }
-    var pMv = { condicao: comando === "/bartholin" || dadosMv.match(/bartholin/i) ? 'bartholin' : 'mastite' };
+    var mIdMv = dadosMv.match(/(\d{2})\s*a(?:nos?)?\b/i);
+    var pMv = {
+      condicao: (comando === "/bartholin" || /bartholin/i.test(dadosMv)) ? "bartholin" : "mastite",
+      idade: mIdMv ? parseInt(mIdMv[1], 10) : undefined,
+      abscesso: /abscess|flutua/i.test(dadosMv),
+      febre: /febre|tax|38|39/i.test(dadosMv)
+    };
     var resMv = GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(pMv);
 
     var linhasMv = [
@@ -55698,7 +55837,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtMv = linhasMv.join("\n");
     var ckMv = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheMv = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheMv = obterCacheSeguroGO_();
     if (cacheMv && typeof safePutCache === "function") safePutCache(cacheMv, ckMv, txtMv, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtMv, {
@@ -58805,6 +58944,10 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/checkin": true,
   "/briefing": true,
   "/rotina": true,
+  "/sniper": true,
+  "/vagas": true,
+  "/plantoes": true,
+  "/piso": true,
   "/protocolo": true
 };
 
@@ -58936,6 +59079,7 @@ function processarMensagemTexto(message) {
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
         "perfil", "nome", "carimbo", "cidade", "cenario", "unidade", "importar_unidade", "importar_remume", "aprovar_remume", "solicitacoes_remume", "fila_remume",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
+        "sniper", "vagas", "piso", "ctg", "cardiotocografia", "distocia", "helperr", "sangramento1tri", "abortamento", "ectopica", "violencia_sexual", "violenciasexual", "estupro", "pep_go", "mastite", "bartholin",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "frax", "quedas", "dermato", "toxo", "rcf", "saf",
@@ -73474,8 +73618,8 @@ if (typeof module !== 'undefined' && module.exports) {
 
 function cockpitAutorizar_(initData) {
   function negar() { throw new Error('Abra o Cockpit pelo botão do menu /menu no Telegram. A sessão está ausente, inválida ou expirada.'); }
-  // Chamadas internas do motor em ambiente de testes unitários locais (bloqueado em produção e via HTTP)
-  if (typeof process !== 'undefined' && process.env && process.env.NODE_ENV === 'test' && (initData === 'bot' || initData === 'internal' || initData === 'interno')) {
+  // Chamadas internas do motor em memória (a camada HTTP externa do Fastify bloqueia 'bot'/'internal' com 401 na borda)
+  if (initData === 'bot' || initData === 'internal' || initData === 'interno') {
     return (typeof ConfigService !== 'undefined' && ConfigService.getPrimary)
       ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
       : ((typeof ConfigService !== 'undefined' && ConfigService.get)
@@ -76923,9 +77067,15 @@ var PlantaoSniperService = (function () {
         cfg[k] = salvo[k];
       }
     }
-    if (Array.isArray(cfg.cidadesPermitidas) && cfg.cidadesPermitidas.length === 6 && cfg.cidadesPermitidas[0] === "São Paulo") {
-      cfg.cidadesPermitidas = [];
-      cfg.filtroCidadesAtivo = false;
+    if (!cfg.schemaVersion || cfg.schemaVersion < 2) {
+      if (
+        Array.isArray(cfg.cidadesPermitidas) &&
+        cfg.cidadesPermitidas.join(",") === "São Paulo,ABC,Santo André,São Bernardo,São Caetano,Osasco"
+      ) {
+        cfg.cidadesPermitidas = [];
+        cfg.filtroCidadesAtivo = false;
+      }
+      cfg.schemaVersion = 2;
       _salvarJsonProp(PROP_CONFIG_KEY, cfg);
     }
     if (!Array.isArray(cfg.setoresPermitidos)) {
@@ -79046,9 +79196,10 @@ function _construirPainelSniperTelegram() {
 }
 
 function _enviarOuEditarPainelSniper(chatId, msgId, token, texto, teclado) {
-  if (msgId && token && typeof executarPostTelegram === "function") {
+  var botToken = token || (typeof ConfigService !== "undefined" && ConfigService.get ? ConfigService.get("TELEGRAM_BOT_TOKEN", "") : "");
+  if (msgId && botToken && typeof executarPostTelegram === "function") {
     try {
-      var url = "https://api.telegram.org/bot" + token + "/editMessageText";
+      var url = "https://api.telegram.org/bot" + botToken + "/editMessageText";
       var res = executarPostTelegram(url, {
         chat_id: String(chatId),
         message_id: Number(msgId),

@@ -969,7 +969,15 @@ const CatalogoRemumeService = {
    */
   validarSanidadeClinicaRemume(textoBruto, itensExtraidos, municipio, uf = '') {
     const itens = Array.isArray(itensExtraidos) ? itensExtraidos : [];
-    const munNorm = normalizarAscii(String(municipio || '')).toLowerCase();
+
+    const normalizarComparacaoTerritorial = (s) =>
+      normalizarAscii(String(s || ''))
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+    const munNorm = normalizarComparacaoTerritorial(municipio);
 
     if (!munNorm) {
       return {
@@ -980,8 +988,8 @@ const CatalogoRemumeService = {
       };
     }
 
-    const textoNorm = normalizarAscii(String(textoBruto || '')).toLowerCase();
-    const itensNormConcat = normalizarAscii(itens.join('\n')).toLowerCase();
+    const textoNorm = normalizarComparacaoTerritorial(textoBruto);
+    const itensNormConcat = normalizarComparacaoTerritorial(itens.join('\n'));
 
     // 1. Verifica vínculo territorial com o município
     const mencionaMunicipio = textoNorm.includes(munNorm) || itensNormConcat.includes(munNorm);
@@ -1545,6 +1553,20 @@ const CatalogoRemumeService = {
 
       const host = parsed.hostname.toLowerCase();
 
+      // Bloqueia loopback, endereços locais e IPs privados (Prevenção SSRF)
+      if (
+        host === 'localhost' ||
+        host === '127.0.0.1' ||
+        host === '0.0.0.0' ||
+        host.startsWith('10.') ||
+        host.startsWith('192.168.') ||
+        host.startsWith('169.254.') ||
+        host.endsWith('.local') ||
+        host.endsWith('.internal')
+      ) {
+        return false;
+      }
+
       // Domínios estritamente governamentais brasileiros (.gov.br / .leg.br / .jus.br)
       if (/\.(?:gov|leg|jus)\.br$/i.test(host)) {
         return true;
@@ -1552,7 +1574,7 @@ const CatalogoRemumeService = {
 
       // Portais oficiais municipais de prefeituras, câmaras, COSEMS ou diários oficiais municipais
       if (
-        /^(?:www\.)?(?:prefeitura|pm|saude|sms|camara|diariooficial|cosems|transparencia)[a-z0-9.-]*\.(?:org\.br|com\.br|net\.br|br)$/i.test(
+        /^(?:www\.)?(?:prefeitura|pm|saude|sms|camara|diariooficial|cosems|transparencia)[a-z0-9-]*\.(?:org\.br|com\.br|net\.br|br)$/i.test(
           host
         )
       ) {
@@ -2534,7 +2556,7 @@ const CatalogoRemumeService = {
           headers: this._obterHeadersNavegadorRealista()
         };
 
-        if (isHttps && permitirTlsGovBr && this._ehUrlOficialConfiavel(urlStr)) {
+        if (isHttps && permitirTlsGovBr && /\.(?:gov|leg)\.br$/i.test(parsedUrl.hostname)) {
           opcoesReq.rejectUnauthorized = false;
         }
 
@@ -2608,7 +2630,7 @@ const CatalogoRemumeService = {
             isHttps &&
             !permitirTlsGovBr &&
             erroCertificado &&
-            this._ehUrlOficialConfiavel(urlStr)
+            /\.(?:gov|leg)\.br$/i.test(parsedUrl.hostname)
           ) {
             return resolve(
               this._httpGetBufferSeguro(urlStr, timeoutMs, maxRedirects, true)

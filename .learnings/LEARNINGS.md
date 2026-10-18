@@ -6,6 +6,35 @@ Corrections, insights, and knowledge gaps captured during development.
 **Areas**: frontend | backend | infra | tests | docs | config
 **Statuses**: pending | in_progress | resolved | wont_fix | promoted | promoted_to_skill
 
+## [LRN-20261018-001] best_practice
+
+**Logged**: 2026-10-18T18:05:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: backend
+
+### Summary
+Sincronização mandante entre tabela de comandos de roteamento do Telegram e módulos delegados (Módulo 07i), além de autorização interna de calculadoras clínicas sem bypass indevido.
+
+### Details
+1. Ao introduzir novos comandos slash ou em linguagem natural em submódulos (`/sniper`, `/vagas`, `/piso`, `/ctg`, `/distocia`), é mandatório registrar os identificadores na tabela principal de roteamento (`TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_` e `comandosSemBarra`), caso contrário o despachante rejeita na raiz com "Comando não reconhecido".
+2. Em testes e em execução do bot que persistem dados em disco (`PropertiesService` / `data/properties.json`), todo teste deve implementar setup determinístico (`redefinirConfigPadrao()` e `destravarTodaAgendaSniper()`) e limpeza no `teardown`, garantindo idempotência e prevenindo asserções quebradas por *state bleed*.
+3. O middleware `cockpitAutorizar_` em `src/13_cockpit_integracao.js` deve autorizar chamadas internas em memória do motor (`bot`, `internal`, `interno`) sem depender exclusivamente de `NODE_ENV === 'test'`, uma vez que a camada de borda HTTP do Fastify (`server/controllers/cockpit.controller.js`) já bloqueia e rejeita identificadores reservados de sistema com HTTP 401.
+
+### Suggested Action
+Sempre auditar comandos novos de ponta a ponta chamando `processarMensagemTexto` em vez de apenas o método isolado do módulo secundário.
+
+### Metadata
+- Source: project_evolution
+- Related Files: `src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`
+- Tags: routing, telegram, state-isolation, properties, cockpit-auth
+- Pattern-Key: backend.telegram_router_and_state_isolation
+- Recurrence-Count: 1
+- First-Seen: 2026-10-18
+- Last-Seen: 2026-10-18
+
+---
+
 ## [LRN-20261017-007] best_practice
 
 **Logged**: 2026-10-17T15:15:00-03:00

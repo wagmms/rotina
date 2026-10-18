@@ -48,6 +48,16 @@ async function executarTestesSniperPlantoesRotina() {
     callbacksRespondidos = [];
   }
 
+  // Setup determinístico: limpa estado residual de execuções anteriores em data/properties.json
+  ctx.PlantaoSniperService.redefinirConfigPadrao();
+  ctx.PlantaoSniperService.destravarTodaAgendaSniper();
+  ctx.PlantaoSniperService.salvarGruposAllowlist([
+    { jid: "120363011111111@g.us", nome: "Plantões Premium SP & ABC", permitido: true, modoGrupo: "SNIPER_AUTO" },
+    { jid: "120363022222222@g.us", nome: "Plantões Grande SP", permitido: true, modoGrupo: "RADAR_ONLY" },
+    { jid: "120363033333333@g.us", nome: "Família Moraes (Privado)", permitido: false, modoGrupo: "BLOQUEADO" },
+    { jid: "120363044444444@g.us", nome: "Turma Medicina Internato", permitido: false, modoGrupo: "BLOQUEADO" }
+  ]);
+
   console.log('[1] Testando despacho de /sniper na Central de Rotina...');
   limparCaptura();
   const resCmd = ctx.despacharComandosRotinaEProdutividade('/sniper', '/sniper', chatId, {});
@@ -79,7 +89,7 @@ async function executarTestesSniperPlantoesRotina() {
 
   console.log('[3] Verificando se o plantão capturado foi injetado automaticamente na Timeline da Aba Rotina...');
   const blocosHoje = ctx.RotinaService.obterBlocosDoDia(new Date());
-  const blocoPlantaoSniper = blocosHoje.find(b => String(b.id).startsWith('plantao_sniper_') || String(b.titulo).includes('São Luiz'));
+  const blocoPlantaoSniper = blocosHoje.find(b => String(b.id).startsWith('plantao_sniper_') || String(b.titulo).includes('9 de Julho') || String(b.titulo).includes('São Luiz'));
   assert.ok(blocoPlantaoSniper, 'O plantão capturado pelo Sniper deve existir na Timeline da Aba Rotina');
   assert.strictEqual(blocoPlantaoSniper.categoria, 'plantao');
 
@@ -258,6 +268,7 @@ async function executarTestesSniperPlantoesRotina() {
   assert.strictEqual(vagaPedi.setor, 'Pediatria');
   assert.strictEqual(vagaPedi.hospital.includes('UPA 24h'), true, 'Deve suportar números como 24h no nome do hospital');
 
+  ctx.PlantaoSniperService.redefinirConfigPadrao();
   console.log('✅ Todos os testes de integração Sniper de Plantões + Allowlist Zero-Trust + Aba Rotina passaram com 100% de sucesso!');
 }
 

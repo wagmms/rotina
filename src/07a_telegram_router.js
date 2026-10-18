@@ -2506,52 +2506,100 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     }) };
   }
 
+  // Helper seguro de cache com fallback para CacheService.getScriptCache()
+  var obterCacheSeguroGO_ = function() {
+    if (typeof uxCache === "function") {
+      try {
+        var c = uxCache();
+        if (c) return c;
+      } catch (_) {}
+    }
+    if (typeof CacheService !== "undefined" && CacheService.getScriptCache) {
+      try {
+        return CacheService.getScriptCache();
+      } catch (_) {}
+    }
+    return null;
+  };
+
   // 4a. Cardiotocografia Intraparto & Reanimação Intrauterina (/ctg, /cardiotocografia)
   if (comando === "/ctg" || comando === "/cardiotocografia") {
     var dadosCtg = texto.replace(/^\/(ctg|cardiotocografia)\s*/i, "").trim();
+    if (!dadosCtg) {
+      return {
+        executado: true,
+        resultado: enviarMensagemComTecladoParaChat(
+          chatId,
+          "📉 *CARDIOTOCOGRAFIA INTRAPARTO (ACOG / FEBRASGO)*\n\n" +
+          "Envie os achados do traçado (BCF basal, variabilidade, acelerações, desacelerações DIP I/II/III e dinâmica uterina):\n\n" +
+          "• `/ctg bcf 140 variabilidade moderada com aceleracoes` *(Categoria I)*\n" +
+          "• `/ctg bcf 165 dip 2 variabilidade minima taquissistolia` *(Categoria II — Reanimação Intrauterina)*\n" +
+          "• `/ctg bcf 95 variabilidade ausente dip 2 recorrente` *(Categoria III — Parto Imediato)*",
+          {
+            inline_keyboard: [
+              [{ text: "🟢 Cat I (Normal)", callback_data: "go_parto" }, { text: "🔴 Cat III (Emergência)", callback_data: "go_parto" }],
+              [{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+            ]
+          }
+        )
+      };
+    }
     if (typeof CentroObstetricoService === "undefined" || !CentroObstetricoService.avaliarCardiotocografiaIntraparto) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Cardiotocografia indisponível temporariamente.") };
     }
 
     var paramsCtg = {};
-    if (dadosCtg.match(/cat\s*3|cat\s*iii|sinusoidal|grave|asfixia/i)) {
-      paramsCtg.variabilidade = 'sinusoidal';
-    } else if (dadosCtg.match(/dip\s*2|dip\s*ii|tardi/i)) {
-      paramsCtg.desaceleracoes = 'dip2_tardia';
-      paramsCtg.variabilidade = dadosCtg.match(/ausente/i) ? 'ausente' : 'minima';
-    } else if (dadosCtg.match(/dip\s*3|dip\s*iii|variavel/i)) {
-      paramsCtg.desaceleracoes = 'dip3_variavel_simples';
-    } else if (dadosCtg.match(/dip\s*1|dip\s*i|precoce/i)) {
-      paramsCtg.desaceleracoes = 'dip1_precoce';
+    if (/sinusoidal|cat\s*3|cat\s*iii|asfixia/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "sinusoidal";
+    } else if (/variabilidade\s*ausente|sem\s*variabilidade|lisa/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "ausente";
+    } else if (/variabilidade\s*m[ií]nima|reduzida/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "minima";
+    } else if (/variabilidade\s*aumentada|saltat[oó]ria/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "aumentada";
+    } else if (/variabilidade\s*(?:moderada|normal)/i.test(dadosCtg)) {
+      paramsCtg.variabilidade = "moderada";
     }
+
+    if (/dip\s*2|dip\s*ii|tardi/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip2_tardia";
+      if (!paramsCtg.variabilidade) paramsCtg.variabilidade = "minima";
+    } else if (/dip\s*3|dip\s*iii|vari[aá]vel|umbilical/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip3_variavel_simples";
+    } else if (/dip\s*1|dip\s*i|precoce|cef[aá]lica/i.test(dadosCtg)) {
+      paramsCtg.desaceleracoes = "dip1_precoce";
+    }
+
+    if (/sem\s*acelera/i.test(dadosCtg)) paramsCtg.aceleracoes = false;
+    else if (/acelera/i.test(dadosCtg)) paramsCtg.aceleracoes = true;
 
     var mBcfCtg = dadosCtg.match(/bcf\s*[:=]?\s*(\d+)/i) || dadosCtg.match(/(\d{2,3})\s*bpm/i);
     if (mBcfCtg) paramsCtg.bcfBasal = parseInt(mBcfCtg[1], 10);
-    if (dadosCtg.match(/taquissist|hiperdinam|\>5\s*contr/i)) paramsCtg.taquissistolia = true;
+    if (/taquissist|hiperdinam|>\s*5\s*contr/i.test(dadosCtg)) paramsCtg.taquissistolia = true;
 
     var resCtg = CentroObstetricoService.avaliarCardiotocografiaIntraparto(paramsCtg);
-    var linhasCtg = [
+    var txtCtg = [
       "📉 *" + resCtg.titulo + "*",
       "",
       "• *Fisiopatologia:* " + resCtg.fisiopatologia,
       "",
       "📋 *Conduta Imediata:*",
       resCtg.condutas.join("\n")
-    ];
-    var txtCtg = linhasCtg.join("\n");
+    ].join("\n");
+
     var ckCtg = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheCtg = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheCtg = obterCacheSeguroGO_();
     if (cacheCtg && typeof safePutCache === "function") safePutCache(cacheCtg, ckCtg, txtCtg, 21600);
 
-    return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
-      inline_keyboard: [
-        [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
-        [
-          { text: "🔙 Hub G&O", callback_data: "ux:rotina:go" },
-          { text: "🏠 Início", callback_data: "ux:hub:inicio" }
+    return {
+      executado: true,
+      resultado: enviarMensagemComTecladoParaChat(chatId, txtCtg, {
+        inline_keyboard: [
+          [{ text: "📋 Copiar Conduta", callback_data: "ux:copiar:" + ckCtg }],
+          [{ text: "🔙 Hub G&O", callback_data: "ux:rotina:go" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
         ]
-      ]
-    }) };
+      })
+    };
   }
 
   // 4b. Distócia de Ombros (/distocia, /helperr)
@@ -2574,7 +2622,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtDist = linhasDist.join("\n");
     var ckDist = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheDist = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheDist = obterCacheSeguroGO_();
     if (cacheDist && typeof safePutCache === "function") safePutCache(cacheDist, ckDist, txtDist, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtDist, {
@@ -2606,11 +2654,20 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
       pSang.quadroClinico = 'ameaca_aborto';
     }
 
+    // Detecção segura de BCF e embrião vivo
+    if (/bcf\s*(?:presente|\+|positivo|\d{2,3})|embri[aã]o\s*vivo/i.test(dadosSang) && !/bcf\s*(?:ausente|negativo|-|0)/i.test(dadosSang)) {
+      pSang.bcfPresente = true;
+    }
+
     var mBeta = dadosSang.match(/beta\s*[:=]?\s*(\d+)/i) || dadosSang.match(/(\d+)\s*mui/i);
     if (mBeta) pSang.betaHcgQuantitativo = parseInt(mBeta[1], 10);
     var mMassa = dadosSang.match(/massa\s*[:=]?\s*(\d+(?:[.,]\d+)?)/i) || dadosSang.match(/(\d+(?:[.,]\d+)?)\s*cm/i);
     if (mMassa) pSang.massaAnexialCm = parseFloat(mMassa[1].replace(',', '.'));
-    if (dadosSang.match(/rh\s*neg|rh\s*-/i)) pSang.fatorRh = 'negativo';
+    
+    // Detecção abrangente de fator Rh negativo
+    if (/\brh\s*(?:negativo|neg|-)\b|\b(?:tipo|sangue|tipagem)\s*(?:a|b|ab|o)\s*(?:negativo|neg|-)\b/i.test(dadosSang)) {
+      pSang.fatorRh = 'negativo';
+    }
     if (dadosSang.match(/choque|instavel|peritonite|liquido\s*livre/i)) pSang.liquidoLivreAlemDaPelve = true;
 
     var resSang = CentroObstetricoService.avaliarSangramentoPrimeiraMetade(pSang);
@@ -2629,7 +2686,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtSang = linhasSang.join("\n");
     var ckSang = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheSang = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheSang = obterCacheSeguroGO_();
     if (cacheSang && typeof safePutCache === "function") safePutCache(cacheSang, ckSang, txtSang, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtSang, {
@@ -2650,8 +2707,14 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Protocolo de Violência Sexual indisponível temporariamente.") };
     }
     var pVio = {};
-    var mHoras = dadosVio.match(/(\d+)\s*h/i);
+    var mHoras = dadosVio.match(/(\d+)\s*h(?:oras?)?\b/i);
+    var mDias = dadosVio.match(/(\d+)\s*d(?:ias?)?\b/i);
     if (mHoras) pVio.horasAposExposicao = parseInt(mHoras[1], 10);
+    else if (mDias) pVio.horasAposExposicao = parseInt(mDias[1], 10) * 24;
+
+    var mPesoVio = dadosVio.match(/(\d{1,3}(?:[.,]\d+)?)\s*kg\b/i);
+    if (mPesoVio) pVio.pesoKg = parseFloat(mPesoVio[1].replace(",", "."));
+
     if (dadosVio.match(/gestant/i)) pVio.gestante = true;
     if (dadosVio.match(/vacina\s*hep\s*b|vacinada/i)) pVio.vacinadaHepatiteBCompleta = true;
 
@@ -2672,7 +2735,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtVio = linhasVio.join("\n");
     var ckVio = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheVio = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheVio = obterCacheSeguroGO_();
     if (cacheVio && typeof safePutCache === "function") safePutCache(cacheVio, ckVio, txtVio, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtVio, {
@@ -2692,7 +2755,13 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
     if (typeof GinecologiaAmbulatorialService === "undefined" || !GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva) {
       return { executado: true, resultado: enviarMensagemParaChat(chatId, "⚠️ Motor de Urgências de Mama/Vulva indisponível temporariamente.") };
     }
-    var pMv = { condicao: comando === "/bartholin" || dadosMv.match(/bartholin/i) ? 'bartholin' : 'mastite' };
+    var mIdMv = dadosMv.match(/(\d{2})\s*a(?:nos?)?\b/i);
+    var pMv = {
+      condicao: (comando === "/bartholin" || /bartholin/i.test(dadosMv)) ? "bartholin" : "mastite",
+      idade: mIdMv ? parseInt(mIdMv[1], 10) : undefined,
+      abscesso: /abscess|flutua/i.test(dadosMv),
+      febre: /febre|tax|38|39/i.test(dadosMv)
+    };
     var resMv = GinecologiaAmbulatorialService.manejarUrgenciaMamaVulva(pMv);
 
     var linhasMv = [
@@ -2707,7 +2776,7 @@ function despacharComandosGinecologiaObstetricia_(comando, texto, chatId) {
 
     var txtMv = linhasMv.join("\n");
     var ckMv = (typeof Utilities !== "undefined" && Utilities.getUuid) ? Utilities.getUuid().replace(/-/g, "") : String(Date.now());
-    var cacheMv = (typeof uxCache === "function") ? uxCache() : null;
+    var cacheMv = obterCacheSeguroGO_();
     if (cacheMv && typeof safePutCache === "function") safePutCache(cacheMv, ckMv, txtMv, 21600);
 
     return { executado: true, resultado: enviarMensagemComTecladoParaChat(chatId, txtMv, {
@@ -5814,6 +5883,10 @@ var TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_ = {
   "/checkin": true,
   "/briefing": true,
   "/rotina": true,
+  "/sniper": true,
+  "/vagas": true,
+  "/plantoes": true,
+  "/piso": true,
   "/protocolo": true
 };
 
@@ -5945,6 +6018,7 @@ function processarMensagemTexto(message) {
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
         "perfil", "nome", "carimbo", "cidade", "cenario", "unidade", "importar_unidade", "importar_remume", "aprovar_remume", "solicitacoes_remume", "fila_remume",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
+        "sniper", "vagas", "piso", "ctg", "cardiotocografia", "distocia", "helperr", "sangramento1tri", "abortamento", "ectopica", "violencia_sexual", "violenciasexual", "estupro", "pep_go", "mastite", "bartholin",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
         "asma", "dpoc", "icc", "frax", "quedas", "dermato", "toxo", "rcf", "saf",

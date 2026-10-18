@@ -31,9 +31,32 @@ const GUIA_PEDB_DATA_JSON_FILE = path.join(DATA_DIR, 'guia_pediatrico_pedb.json'
 const CONDUTAS_PEDB_SRC_JSON_FILE = path.join(SRC_DIR, 'data', 'condutas_pediatricas_pedb.json');
 const CONDUTAS_PEDB_DATA_JSON_FILE = path.join(DATA_DIR, 'condutas_pediatricas_pedb.json');
 
+const PROFILES_DATA_DIR = path.join(DATA_DIR, 'profiles');
+const PROFILES_SRC_DIR = path.join(SRC_DIR, 'data', 'profiles');
+
 // Garante que o diretório de dados persistentes exista
 if (!fs.existsSync(DATA_DIR)) {
   fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+if (!fs.existsSync(PROFILES_DATA_DIR)) {
+  fs.mkdirSync(PROFILES_DATA_DIR, { recursive: true });
+}
+
+// Sincroniza perfis canônicos para o diretório de execução se ainda não existirem
+if (fs.existsSync(PROFILES_SRC_DIR)) {
+  try {
+    const perfisSrc = fs.readdirSync(PROFILES_SRC_DIR);
+    for (const arq of perfisSrc) {
+      if (arq.endsWith('.json')) {
+        const dest = path.join(PROFILES_DATA_DIR, arq);
+        if (!fs.existsSync(dest)) {
+          fs.copyFileSync(path.join(PROFILES_SRC_DIR, arq), dest);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[Runtime] Falha ao sincronizar perfis canônicos de src/data/profiles:', e.message);
+  }
 }
 
 // 1. CARREGAMENTO INICIAL DE PROPRIEDADES (process.env > properties.json > .deploy_state.json)
@@ -96,7 +119,7 @@ const BOT_ENV_PREFIXES = [
   'BOT_', 'TELEGRAM_', 'GEMINI_', 'VERTEX_', 'GCP_', 'NOTION_', 'GROQ_', 'OPENROUTER_', 'ZAI_',
   'LOCAL_LLM_', 'OLLAMA_', 'LOCAL_', 'GOOGLE_', 'CALENDAR_',
   'SPREADSHEET_', 'WEBHOOK_', 'WEB_APP_', 'IA_', 'TIMEZONE', 'PORT', 'HOST',
-  'D1_', 'CF_', 'RENDER_', 'NODE_ENV'
+  'D1_', 'CF_', 'RENDER_', 'NODE_ENV', 'PERFIL_'
 ];
 
 function ehVariavelPermitida(chave) {
@@ -132,7 +155,7 @@ if (propsStore.TELEGRAM_BOT_TOKEN) {
 const PREFIXOS_ESTADO_PRESERVADOS = [
   'LEITO_', 'inbox_', 'outbox_', 'ctx_', 'modo_', 'ultima_', 'RECEITAS_',
   'duvidas_', 'habito_', 'rotina_', 'ROTINA_', 'bloco_', 'BLOCOS_',
-  'CONTEXTO_CLINICO_', 'SOLICITACOES_REMUME_', 'REMUME_CUSTOM_',
+  'CONTEXTO_CLINICO_', 'PERFIL_CLINICO_', 'PERFIL_', 'SOLICITACOES_REMUME_', 'REMUME_CUSTOM_',
   'GCAL_', 'SNIPER_PLANTOES_', 'PESO_ATUAL', 'atendimento_', 'soapview_',
   'PACIENTE_', 'PRONTUARIO_', 'PLANTAO_', 'PLANTÃO_'
 ];

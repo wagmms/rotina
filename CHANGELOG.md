@@ -1,5 +1,27 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C98. [x] **Revisão Completa do Bot, Desbloqueio de Roteamento Telegram, Blindagem Clínica de GO e Resolução de State Bleed no Sniper (`src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `server/whatsapp-bridge.js`, `src/data/remumes/index.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`)**:
+    - **Diagnóstico Profundo via Gemini 4 Argon**:
+      * *Resolução de State Bleed no Sniper*: Identificada poluição de estado persistente em `data/properties.json` decorrente de chamadas `/piso 1500`, que fazia `test_sniper_plantoes_rotina.cjs` falhar com `1600 !== 1400`. Implementado setup determinístico (`redefinirConfigPadrao`, `destravarTodaAgendaSniper`, allowlist limpa) e teardown idempotente.
+      * *Desbloqueio de Comandos no Telegram*: Adicionados `/sniper`, `/vagas`, `/plantoes` e `/piso` na `TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_` de `src/07a_telegram_router.js`, além do suporte a comandos sem barra em `comandosSemBarra`.
+      * *Desbloqueio de Calculadoras Clínicas em Produção (`cockpitAutorizar_`)*: Em `src/13_cockpit_integracao.js`, liberadas chamadas internas em memória do motor (`bot`, `internal`, `interno`) para comandos como `/crcl`, `/pancreatite` e `/sca`, mantendo a blindagem da camada de transporte HTTP (bloqueio com HTTP 401 no Fastify).
+      * *Blindagem Clínica de Ginecologia e Obstetrícia*: Adicionada detecção segura de `bcfPresente` (bloqueio mandatório de Metotrexato se positivo) e tipagens Rh negativo abrangentes (`O-`, `A negativo`) em sangramento da 1ª metade; conversão de dias em horas para PEP em `/violencia_sexual`; tela estruturada de categorias ACOG/FEBRASGO para `/ctg`; e fallback seguro de cache `obterCacheSeguroGO_()`.
+      * *WhatsApp Bridge & Allowlist*: Normalização universal para suportar array de objetos de allowlist em `server/whatsapp-bridge.js` e ativação de `markOnlineOnConnect: false` (modo Stealth).
+      * *Crawler Governamental de REMUME*: Bloqueio de SSRF/IPs privados, restrição de TLS relaxado estritamente a domínios `.gov.br`/`.leg.br` e normalização territorial para cidades com hífen em `src/data/remumes/index.js`.
+    - **Recibo de Estabilidade**: Todas as suítes das novas funções aprovadas e bateria completa com 57/57 suítes aprovadas com 100% de sucesso (`npm test`).
+
+0C97. [x] **Persistência Total de Perfil Clínico, Identificação e Localidade Pós-Deploy no Render (`src/00_config.js`, `server/runtime.js`, `src/data/profiles/`, `render.yaml`)**:
+    - **Diagnóstico da Causa-Raiz**:
+      1. *Filesystem Efêmero do Render*: No plano Web Service do Render, a pasta `data/` era criada vazia a cada novo build/deploy (`RUN mkdir -p /app/data`). Como `data/` estava no `.gitignore`, `data/profiles/<chatId>.json` e `data/properties.json` não existiam no contêiner recém-criado.
+      2. *Higienização Agressiva do Runtime*: Em `server/runtime.js`, o array `PREFIXOS_ESTADO_PRESERVADOS` continha `'CONTEXTO_CLINICO_'`, mas o `ConfigService` gravava no `propsStore` com a chave `'PERFIL_CLINICO_'`. Na inicialização do servidor, o loop de limpeza deletava todas as chaves de perfil clínico da memória e de `properties.json`.
+      3. *Ausência de Seed Canônico Versionado*: `ConfigService.getContextoClinico` tentava ler do disco de runtime e, em caso de ausência, caía diretamente no `criarContextoPadrao` estático ("Médico(a) Assistente", "Brasil (Padrão Nacional)", "rename_nacional", `onboarding_concluido: false`), disparando a mensagem repetitiva de onboarding em todo novo deploy.
+    - **Solução Arquitetural em 4 Camadas Defensivas**:
+      1. *Seed Canônico Versionado em `src/data/profiles/`*: Criados os perfis canônicos `1771571035.json` (Dr. Wagner Moraes, São Paulo - SP, UPA 24h), `1154165211.json` (Dr. Vinicius) e `default.json` dentro de `src/data/profiles/` (pasta rastreada pelo Git e copiada no Dockerfile para a imagem de produção).
+      2. *Sincronização Atômica na Inicialização do Runtime*: `server/runtime.js` cria `data/profiles/` e copia automaticamente os arquivos de `src/data/profiles/*.json` caso ainda não existam no diretório de execução efêmero.
+      3. *Fallback e Suporte Dual de Chaves*: `ConfigService.getContextoClinico` busca primeiro em `data/profiles/`, depois em `PropertiesService` (chaves `PERFIL_CLINICO_` e `CONTEXTO_CLINICO_`) e, se ausente, hidrata a partir de `src/data/profiles/`.
+      4. *Configuração Dinâmica por Variáveis de Ambiente no Render*: Suporte total às variáveis `BOT_MEDICO_NOME`, `BOT_MEDICO_CIDADE`, `BOT_MEDICO_UF`, `BOT_MEDICO_SERVICO`, `BOT_MEDICO_CRM`, `BOT_MEDICO_UNIDADE` e `BOT_CLINICAL_PROFILE_JSON`, com detecção inteligente de prefixo ("Dr.", "Dra.", "Acad.") e documentadas no `render.yaml`.
+    - **Recibo de Estabilidade**: Criada a suíte `tests/test_persistencia_perfil_deploy.cjs`. Bateria completa com 57/57 suítes aprovadas com 100% de sucesso em 44.58s (`npm test`). Zero regressões.
+
 0C96. [x] **Motor de Descoberta Web Governamental (.gov.br), Crawler Municipal de REMUME e Painel do Desenvolvedor (`src/data/remumes/index.js`, `src/00_config.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`)**:
     - **Diagnóstico e Resolução via Gemini 4 Argon**:
       * *Eliminação do Bloqueio de Botnet*: O DuckDuckGo HTML bloqueava requisições do Node.js com challenge de anomalia, retornando zero links. Criado motor de descoberta em 4 camadas resilientes:
