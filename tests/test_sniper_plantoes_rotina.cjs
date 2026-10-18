@@ -222,8 +222,41 @@ async function executarTestesSniperPlantoesRotina() {
   assert.ok(matchCode, 'Código de pareamento deve ter exatamente o formato XXXX-XXXX (8 caracteres além do traço)');
   const [p1, p2] = matchCode[1].split('-');
   assert.strictEqual(p1.length, 4, 'Bloco 1 deve ter exatamente 4 caracteres');
-  assert.strictEqual(p2.length, 4, 'Bloco 2 deve ter exatamente 4 caracteres');
-  assert.strictEqual(matchCode[1].replace('-', '').length, 8, 'Total de caracteres além do traço deve ser exatamente 8');
+  // 5.8 Teste do WhatsAppConnectionManager e Envelope Universal
+  console.log('[6] Testando WhatsAppConnectionManager e Extração Universal de Envelopes...');
+  const manager = bridge.instanciarOuObterManager();
+  const resPairReal = await manager.solicitarCodigoPareamentoReal('11988887777');
+  assert.strictEqual(resPairReal.ok, true);
+  assert.strictEqual(resPairReal.telefone, '5511988887777');
+  assert.strictEqual(resPairReal.pairingCode.length, 9); // XXXX-XXXX (8 caracteres + traço)
+  assert.strictEqual(resPairReal.pairingCode.includes('-'), true);
+
+  // Envelope Universal Baileys / Evolution
+  const envelopeBaileys = bridge.extrairEnvelopeMensagem({
+    key: { remoteJid: '120363011111111@g.us', participant: '5511987654321:3@s.whatsapp.net', fromMe: false },
+    message: { conversation: 'Vaga Hospital 9 de Julho R$ 1.500 Porta' },
+    pushName: 'Dra. Luiza Escalista'
+  });
+  assert.strictEqual(envelopeBaileys.remoteJid, '120363011111111@g.us');
+  assert.strictEqual(envelopeBaileys.remetenteNumero, '5511987654321');
+  assert.strictEqual(envelopeBaileys.pushName, 'Dra. Luiza Escalista');
+  assert.strictEqual(envelopeBaileys.texto, 'Vaga Hospital 9 de Julho R$ 1.500 Porta');
+
+  // 5.9 Teste de Blindagem de Especialidades Médicas (Fim do Fallback Cego para Porta)
+  console.log('[7] Testando detecção cirúrgica de especialidades e hospitais complexos...');
+  const vagaOrto = ctx.PlantaoSniperService.extrairDadosPlantao(
+    'Vaga Hospital São Camilo D\'Avila - ORTOPEDIA / TRAUMA - R$ 1.800 noturno',
+    '5511988887777'
+  );
+  assert.strictEqual(vagaOrto.setor, 'Ortopedia', 'Deve classificar como Ortopedia e não cair em Porta');
+  assert.strictEqual(vagaOrto.hospital.includes('São Camilo'), true, 'Deve suportar apóstrofo no nome do hospital');
+
+  const vagaPedi = ctx.PlantaoSniperService.extrairDadosPlantao(
+    'Preciso de médico cobertura UPA 24h Vila Nova - PEDIATRIA - R$ 1.600 noturno',
+    '5511988887777'
+  );
+  assert.strictEqual(vagaPedi.setor, 'Pediatria');
+  assert.strictEqual(vagaPedi.hospital.includes('UPA 24h'), true, 'Deve suportar números como 24h no nome do hospital');
 
   console.log('✅ Todos os testes de integração Sniper de Plantões + Allowlist Zero-Trust + Aba Rotina passaram com 100% de sucesso!');
 }

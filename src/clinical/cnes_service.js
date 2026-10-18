@@ -370,7 +370,45 @@ class CnesService {
           }
         }
 
-        sql += ' LIMIT ?';
+        // Ordenação assistencial universal para qualquer município do Brasil:
+        // Prioridade 1: Emergência, UPAs, Prontos-Socorros e Hospitais Gerais/Especializados
+        // Prioridade 2: Atenção Primária (UBS, USF, PSF, Postos, Centros de Saúde, Policlínicas, Unidades Mistas)
+        // Prioridade 3: Centros de Especialidades, CAPS, Maternidades, AME, CEO, CER, Reabilitação
+        // Prioridade 4: Clínicas médicas gerais
+        // Prioridade 5: Consultórios particulares isolados (tipo_codigo = 22)
+        sql += ` ORDER BY 
+          CASE 
+            WHEN e.tipo_codigo IN ('05', '07', '20', '21', '73', '5', '7') 
+                 OR e.tipo IN ('HOSPITAL', 'UPA') 
+                 OR e.nome_fantasia LIKE '%HOSPITAL%' 
+                 OR e.nome_fantasia LIKE '%PRONTO SOCORRO%' 
+                 OR e.nome_fantasia LIKE '%PRONTO ATENDIMENTO%' 
+                 OR e.nome_fantasia LIKE '%MATERNIDADE%' 
+                 OR e.nome_fantasia LIKE '%SANTA CASA%' THEN 1
+
+            WHEN e.tipo_codigo IN ('01', '02', '04', '15', '1', '2', '4') 
+                 OR e.tipo = 'UBS' 
+                 OR e.nome_fantasia LIKE '%CENTRO DE SAUDE%' 
+                 OR e.nome_fantasia LIKE '%POSTO DE SAUDE%' 
+                 OR e.nome_fantasia LIKE '%UNIDADE BASICA%' 
+                 OR e.nome_fantasia LIKE '%SAUDE DA FAMILIA%' 
+                 OR e.nome_fantasia LIKE '%CLINICA DA FAMILIA%' 
+                 OR e.nome_fantasia LIKE '%UBDS%' 
+                 OR e.nome_fantasia LIKE '%USF%' 
+                 OR e.nome_fantasia LIKE '%CSE%' THEN 2
+
+            WHEN e.tipo_codigo IN ('36', '62', '70') 
+                 OR e.nome_fantasia LIKE '%CAPS%' 
+                 OR e.nome_fantasia LIKE '%AME%' 
+                 OR e.nome_fantasia LIKE '%CEO%' 
+                 OR e.nome_fantasia LIKE '%CER%' 
+                 OR e.nome_fantasia LIKE '%ESPECIALID%' THEN 3
+
+            WHEN e.tipo = 'CLINICA' THEN 4
+            ELSE 5
+          END ASC,
+          e.nome_fantasia ASC
+          LIMIT ?`;
         params.push(maxLimit);
 
         const rows = this.sqliteDb.prepare(sql).all(...params);
@@ -391,6 +429,24 @@ class CnesService {
     }
 
     // Fallback em memória (para ambientes sem o arquivo de banco nacional)
+    const computeScoreAssistencial = (item) => {
+      const nome = (item.nome_fantasia || '').toUpperCase();
+      const tipo = (item.tipo || '').toUpperCase();
+      const tc = String(item.tipo_codigo || '');
+
+      if (['05', '07', '20', '21', '73', '5', '7'].includes(tc) || tipo === 'HOSPITAL' || tipo === 'UPA' || nome.includes('HOSPITAL') || nome.includes('PRONTO') || nome.includes('MATERNIDADE') || nome.includes('SANTA CASA')) {
+        return 1;
+      }
+      if (['01', '02', '04', '15', '1', '2', '4'].includes(tc) || tipo === 'UBS' || nome.includes('CENTRO DE SAUDE') || nome.includes('POSTO') || nome.includes('UNIDADE BASICA') || nome.includes('FAMILIA') || nome.includes('UBDS') || nome.includes('USF') || nome.includes('CSE')) {
+        return 2;
+      }
+      if (['36', '62', '70'].includes(tc) || nome.includes('CAPS') || nome.includes('AME') || nome.includes('CEO') || nome.includes('CER')) {
+        return 3;
+      }
+      if (tipo === 'CLINICA') return 4;
+      return 5;
+    };
+
     const all = [...this.customEstabelecimentos, ...this.estabelecimentosBase];
     const filtered = all.filter((item) => {
       if (ibge && !String(item.ibge).startsWith(String(ibge).slice(0, 6))) return false;
@@ -398,6 +454,13 @@ class CnesService {
       if (tipoNorm && item.tipo !== tipoNorm) return false;
       if (queryNorm && !item._search.includes(queryNorm)) return false;
       return true;
+    });
+
+    filtered.sort((a, b) => {
+      const scoreA = computeScoreAssistencial(a);
+      const scoreB = computeScoreAssistencial(b);
+      if (scoreA !== scoreB) return scoreA - scoreB;
+      return (a.nome_fantasia || '').localeCompare(b.nome_fantasia || '');
     });
 
     return filtered.slice(0, maxLimit).map(({ _search, _cidadeNorm, ...clean }) => clean);

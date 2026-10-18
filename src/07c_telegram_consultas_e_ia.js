@@ -609,13 +609,7 @@ function montarBotoesSoap_(chatId, cacheKey, strResultado, ehErro, linhaPrimaria
       { "text": "💊 Extrair Receita", "callback_data": "ux:soap:extrair_rx:" + cacheKey },
       { "text": "🔄 Refinar Conduta", "callback_data": "ux:soap:atualizar" }
     ]);
-    if (ehUsuarioTitular(chatId)) {
-      var linhaNotion = [{ "text": "📁 Salvar Caso", "callback_data": "salvarNotion_soap_" + cacheKey }];
-      if (/IG:|DUM:|DPP:|obstetrícia/i.test(strResultado)) {
-        linhaNotion.unshift({ "text": "🤰 Cartão Gestante", "callback_data": "salvarNotion_prenatal_" + cacheKey });
-      }
-      botoes.push(linhaNotion);
-    }
+
     botoes.push([
       { "text": "🧹 Novo Paciente", "callback_data": "ux:novo:soap" }
     ]);
@@ -662,8 +656,6 @@ function montarBotoesGeraisIA_(chatId, tipoCache, cacheKey, strResultado, ehErro
   var linhaSecundaria = [];
   if (elegivelPdfRx) {
     linhaSecundaria.push({ "text": "📄 Gerar PDF da Receita", "callback_data": "gerarPdfRx_" + cacheKey });
-  } else if (tipoCache !== "rx" && !ehErro && ehUsuarioTitular(chatId)) {
-    linhaSecundaria.push({ "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_" + tipoCache + "_" + cacheKey });
   }
 
   if (tipoCache === "plantao" && !ehErro) {

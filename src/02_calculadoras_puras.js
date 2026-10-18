@@ -3341,7 +3341,6 @@ var CalculadorasClinicas = (function () {
         titulo: '📄 EXPORTAÇÃO E REGISTRO',
         linhas: [
           'Para arquivar este resultado clínico estruturado com data e hora oficiais no seu prontuário pessoal:',
-          '• Utilize o botão <b>📁 Salvar no Notion Tasks</b> na mensagem de resumo.',
           '• Para gerar receituário oficial em PDF para medicamentos, utilize o comando <code>/rx</code>.'
         ],
         botoes: [[btn('🔙 Sala Vermelha', 'ux', 'sala'), btn('🏠 Início', 'ux', 'hub:inicio')]]

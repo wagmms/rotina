@@ -4885,10 +4885,15 @@ function enviarMenuPerfilClinico(chat, messageId) {
     '• *Cenário Assistencial:* ' + cenTxt + ' (`' + totalMod + '/10 módulos visíveis`)\n\n' +
     'Selecione abaixo o que deseja personalizar em 1 toque:';
 
+  var ehTitular = (typeof ehUsuarioTitular === 'function' && ehUsuarioTitular(chat));
+  var linhaRemume = ehTitular
+    ? [['📬 Solicitações REMUME', 'ux:remume:fila'], ['🏥 Unidade Hospitalar', 'ux:perfil:unidade']]
+    : [['📥 Solicitar Nova REMUME', 'ux:cidade:menu'], ['🏥 Unidade Hospitalar', 'ux:perfil:unidade']];
+
   var botoes = botoesBot([
     [['👨‍⚕️ Nome & Saudação (/nome)', 'ux:perfil:nome'], ['🎓 Papel: Médico / Interno', 'ux:perfil:papel']],
-    [['📍 Escolher Cidade / REMUME', 'ux:cidade:menu'], ['🏥 Cenário & Módulos (Checkboxes)', 'ux:cenario:menu']],
-    [['📥 Inserir REMUME da Minha Cidade', 'ux:remume:instrucoes'], ['🏥 Unidade / Hospital (/unidade)', 'ux:perfil:unidade']],
+    [['📍 Escolher Cidade / REMUME', 'ux:cidade:menu'], ['🏥 Cenários & Módulos', 'ux:cenario:menu']],
+    linhaRemume,
     [['🏠 Voltar ao Início', 'ux:hub:inicio']]
   ]);
   return enviarTelaBot(chat, texto, botoes, messageId);
@@ -5073,6 +5078,49 @@ function tratarCallbackCenarioModulos(chat, v, messageId) {
   return enviarMenuCenarioECheckboxes(chat, messageId);
 }
 
+function enviarPainelAdminRemume(chat, messageId) {
+  var lista = (typeof ConfigService !== 'undefined' && typeof ConfigService.listarSolicitacoesRemume === 'function')
+    ? ConfigService.listarSolicitacoesRemume()
+    : [];
+
+  var pendentes = lista.filter(function(item) { return item && item.status === 'PENDENTE'; });
+  var aprovadas = lista.filter(function(item) { return item && item.status === 'APROVADA'; });
+  var arquivadas = lista.filter(function(item) { return item && item.status === 'ARQUIVADA'; });
+
+  var texto = '📬 *CENTRAL DE SOLICITAÇÕES DE REMUME (PAINEL DO DESENVOLVEDOR)*\n\n' +
+    '📍 *Armazenamento:* `data/remume_requests.json` + `PersistenciaBot` + `ScriptProperties`\n' +
+    '• *Pendentes na fila:* `' + pendentes.length + '`\n' +
+    '• *Já homologadas:* `' + aprovadas.length + '`\n' +
+    '• *Arquivadas:* `' + arquivadas.length + '`\n\n';
+
+  var linhas = [];
+
+  if (pendentes.length === 0) {
+    texto += '✅ *Nenhuma solicitação de REMUME pendente no momento!*';
+  } else {
+    texto += '📋 *CIDADES PENDENTES SOLICITADAS:*\n\n';
+    pendentes.slice(0, 8).forEach(function(req, idx) {
+      var qtd = Array.isArray(req.solicitantes) ? req.solicitantes.length : 1;
+      var idsTxt = Array.isArray(req.solicitantes) ? req.solicitantes.join(', ') : '';
+      texto += (idx + 1) + '. 📍 *' + req.municipio + ' - ' + req.uf + '* (`' + req.slug + '`)\n' +
+        '   👥 Solicitantes: `' + qtd + '` (Chat IDs: `' + idsTxt + '`)\n';
+
+      var slugCurto = String(req.slug || '').slice(0, 32);
+      linhas.push([
+        ['✅ Homologar ' + req.municipio.slice(0, 14), 'ux:remume:prep:' + slugCurto],
+        ['🗑️ Arquivar', 'ux:remume:arq:' + slugCurto]
+      ]);
+    });
+    texto += '\n💡 *Para homologar e notificar automaticamente os médicos:*\n' +
+      'Envie: `/aprovar_remume Cidade - UF` na 1ª linha e cole os medicamentos nas linhas abaixo.';
+  }
+
+  linhas.push([['📍 Ver Presets Ativos', 'ux:cidade:menu'], ['⚙️ Perfil', 'ux:perfil:menu']]);
+  linhas.push([['🏠 Início', 'ux:hub:inicio']]);
+
+  return enviarTelaBot(chat, texto, botoesBot(linhas), messageId);
+}
+
 function tratarCallbackCidadeRemume(chat, v, messageId) {
   if (!v || v === 'menu') return enviarMenuCidadeERemume(chat, messageId);
   if (v.indexOf('set:') === 0) {
@@ -5086,7 +5134,10 @@ function tratarCallbackCidadeRemume(chat, v, messageId) {
         });
       }
     } else if (typeof CatalogoRemumeService !== 'undefined') {
-      var cat = CatalogoRemumeService.carregarPresetPorSlug(slug);
+      var cat = typeof CatalogoRemumeService.obterCatalogoAtivo === 'function'
+        ? CatalogoRemumeService.obterCatalogoAtivo(slug)
+        : (typeof CatalogoRemumeService.carregarPresetPorSlug === 'function' ? CatalogoRemumeService.carregarPresetPorSlug(slug) : null);
+
       if (cat && typeof ConfigService !== 'undefined' && typeof ConfigService.salvarContextoClinico === 'function') {
         ConfigService.salvarContextoClinico(chat, {
           municipio: cat.municipio || '',
@@ -5107,6 +5158,46 @@ function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
   if (v === 'instrucoes') {
     return enviarMenuCidadeERemume(chat, messageId);
   }
+  if (v === 'fila') {
+    return enviarPainelAdminRemume(chat, messageId);
+  }
+  if (v && v.indexOf('arq:') === 0) {
+    var slugArq = v.replace('arq:', '').trim();
+    if (typeof ConfigService !== 'undefined' && typeof ConfigService.rejeitarSolicitacaoRemume === 'function') {
+      ConfigService.rejeitarSolicitacaoRemume(slugArq);
+    }
+    return enviarPainelAdminRemume(chat, messageId);
+  }
+  if (v && v.indexOf('prep:') === 0) {
+    var slugPrep = v.replace('prep:', '').trim();
+    var listaReqs = (typeof ConfigService !== 'undefined' && typeof ConfigService.listarSolicitacoesRemume === 'function')
+      ? ConfigService.listarSolicitacoesRemume()
+      : [];
+    var reqAlvo = null;
+    for (var i = 0; i < listaReqs.length; i++) {
+      if (listaReqs[i].slug === slugPrep) {
+        reqAlvo = listaReqs[i];
+        break;
+      }
+    }
+    var munNome = reqAlvo ? reqAlvo.municipio : slugPrep;
+    var ufNome = reqAlvo ? reqAlvo.uf : 'BR';
+    var txtGuia = '🛠️ *HOMOLOGAÇÃO DE REMUME MUNICIPAL*\n\n' +
+      '• *Município:* `' + munNome + ' - ' + ufNome + '`\n' +
+      '• *Slug do Catálogo:* `' + slugPrep + '`\n\n' +
+      '📋 *Instruções de homologação em 1 passo:*\n' +
+      'Envie uma mensagem no chat iniciando exatamente com:\n\n' +
+      '`/aprovar_remume ' + munNome + ' - ' + ufNome + '`\n' +
+      'Dipirona Sódica 500mg\n' +
+      'Amoxicilina 500mg\n' +
+      'Losartana 50mg\n' +
+      '...\n\n' +
+      '_O bot cadastrará o preset oficial no sistema e notificará automaticamente todos os solicitantes da cidade!_';
+    var kbGuia = botoesBot([
+      [['🔙 Voltar à Fila', 'ux:remume:fila'], ['🏠 Início', 'ux:hub:inicio']]
+    ]);
+    return enviarTelaBot(chat, txtGuia, kbGuia, messageId);
+  }
   if (v && v.indexOf('solicitar:') === 0) {
     var resto = v.replace('solicitar:', '');
     var partes = resto.split(':');
@@ -5116,11 +5207,11 @@ function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
       ? ConfigService.registrarSolicitacaoRemume(mun, uf, chat)
       : { municipio: mun, uf: uf, solicitantes: [String(chat)] };
 
-    // Notifica o desenvolvedor (titular) no Telegram se não for o próprio titular testando
+    // Notifica o desenvolvedor (titular) no Telegram - sem trava de self-messaging
     var adminChat = (typeof ConfigService !== 'undefined' && typeof ConfigService.getPrimary === 'function')
       ? ConfigService.getPrimary('TELEGRAM_CHAT_ID')
       : '';
-    if (adminChat && String(adminChat) !== String(chat)) {
+    if (adminChat) {
       try {
         enviarMensagemParaChat(adminChat,
           '📩 *NOVA SOLICITAÇÃO DE REMUME MUNICIPAL*\n\n' +
@@ -5128,7 +5219,8 @@ function tratarCallbackSolicitarOuImportarRemume(chat, v, messageId) {
           '• *Solicitante Chat ID:* `' + chat + '`\n' +
           '• *Total de Pedidos desta Cidade:* ' + (registro.solicitantes ? registro.solicitantes.length : 1) + '\n\n' +
           '💡 Para aprovar e liberar nos presets globais, envie:\n' +
-          '`/aprovar_remume ' + registro.municipio + ' - ' + registro.uf + '` seguido da lista de medicamentos.'
+          '`/aprovar_remume ' + registro.municipio + ' - ' + registro.uf + '` seguido da lista de medicamentos.\n\n' +
+          'Ou consulte `/solicitacoes_remume` para gerenciar a fila.'
         );
       } catch (_) {}
     }
@@ -5247,6 +5339,7 @@ if (typeof module !== 'undefined' && module.exports) {
     enviarMenuPapelProfissional: enviarMenuPapelProfissional,
     enviarMenuCenarioECheckboxes: enviarMenuCenarioECheckboxes,
     enviarMenuCidadeERemume: enviarMenuCidadeERemume,
+    enviarPainelAdminRemume: enviarPainelAdminRemume,
     enviarTelaUnidadeSaude: enviarTelaUnidadeSaude,
     tratarCallbackPerfilClinico: tratarCallbackPerfilClinico,
     tratarCallbackCenarioModulos: tratarCallbackCenarioModulos,

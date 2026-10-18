@@ -685,25 +685,51 @@
     <div id="tab-remume" class="tab-pane hidden space-y-3">
       <!-- BANDEJA / PAINEL RETRÁTIL DE PRESCRIÇÃO RÁPIDA BEIRA-LEITO -->
       <div id="card-prescricao-rapida" class="glass-card rounded-xl border border-rose-500/30 p-3 sm:p-3.5 space-y-2.5 shadow-lg shadow-rose-950/20">
-        <div class="flex items-center justify-between">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <div class="flex items-center gap-2">
-            <div class="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs">
+            <div class="w-6 h-6 rounded-lg bg-rose-500/20 text-rose-400 flex items-center justify-center font-bold text-xs shrink-0">
               <i data-lucide="clipboard-list" class="w-3.5 h-3.5"></i>
             </div>
             <div>
               <h3 class="text-xs font-bold text-white flex items-center gap-1.5">
-                Prescrição Rápida do Plantão
+                Prescrição & Receituário
               </h3>
               <p class="text-[10px] text-slate-400" id="prescricao-itens-contagem">0 itens selecionados</p>
             </div>
           </div>
-          <div class="flex items-center gap-1.5">
-            <button onclick="copiarPrescricaoRapidaFormatada()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-md shadow-emerald-900/30 flex items-center gap-1 transition active:scale-[0.98]">
-              <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar Prescrição
+          <div class="flex items-center flex-wrap gap-1.5">
+            <button type="button" onclick="iniciarNovoAtendimentoCockpit(true)" title="Encerrar paciente atual e limpar receita + SOAP sem risco de erro" class="px-2.5 py-1.5 rounded-lg bg-rose-500/15 hover:bg-rose-500/25 border border-rose-500/40 text-rose-300 text-[11px] font-bold flex items-center gap-1 transition active:scale-[0.98]">
+              <span>🛡️ Novo Paciente</span>
+            </button>
+            <button id="btn-presc-pdf" onclick="gerarReceitaPDFCockpit()" title="Gerar PDF ou Imprimir documento" class="px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold shadow-md shadow-sky-900/30 flex items-center gap-1 transition active:scale-[0.98]">
+              <i data-lucide="printer" class="w-3.5 h-3.5"></i> <span id="btn-presc-pdf-label">Gerar PDF / Imprimir</span>
+            </button>
+            <button id="btn-presc-copiar" onclick="copiarPrescricaoRapidaFormatada()" class="px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-md shadow-emerald-900/30 flex items-center gap-1 transition active:scale-[0.98]">
+              <i data-lucide="copy" class="w-3.5 h-3.5"></i> <span id="btn-presc-copiar-label">Copiar</span>
             </button>
             <button onclick="limparPrescricaoRapida()" title="Limpar itens" class="p-1.5 rounded-lg text-slate-400 hover:text-rose-400 hover:bg-slate-800 transition active:scale-[0.98]">
               <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
             </button>
+          </div>
+        </div>
+
+        <!-- Barra de Contexto: Nome do Paciente + Tipo de Documento (Sem travar em Plantão) -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-1">
+          <div id="presc-paciente-container">
+            <label class="block text-[9.5px] uppercase tracking-wider font-semibold text-slate-400 mb-1">
+              👤 Paciente (Opcional p/ PDF):
+            </label>
+            <input type="text" id="prescricao-paciente-nome" oninput="sincronizarNomePacienteGlobal(this.value)" placeholder="Nome do paciente (ou em branco)" class="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-2.5 py-1 text-xs text-white placeholder-slate-500 focus:outline-none focus:border-rose-500 transition">
+          </div>
+          <div>
+            <label class="block text-[9.5px] uppercase tracking-wider font-semibold text-slate-400 mb-1">
+              📄 Tipo de Documento:
+            </label>
+            <select id="prescricao-tipo-doc" onchange="atualizarUiAdaptativaPrescricao()" class="w-full bg-slate-950/80 border border-slate-700/80 rounded-lg px-2 py-1 text-xs text-slate-200 focus:outline-none focus:border-rose-500 font-medium transition">
+              <option value="receita_simples">📄 Receituário Médico (Ambulatório / UBS / Consultório)</option>
+              <option value="receita_especial">🔒 Receituário de Controle Especial (2 Vias)</option>
+              <option value="prescricao_hospitalar">🏥 Prescrição Hospitalar / Plantão</option>
+            </select>
           </div>
         </div>
 
@@ -1797,10 +1823,15 @@
             </button>
             <div
               id="rotina-gcal-badge-status"
-              class="min-h-[34px] px-2.5 py-1.5 rounded-xl bg-slate-800/80 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5 shadow-sm"
-              title="Sincronização contínua e automática com seu Google Calendar (moraes.wagg@gmail.com)"
+              role="button"
+              tabindex="0"
+              class="min-h-[34px] px-2.5 py-1.5 rounded-xl bg-slate-800/80 hover:bg-slate-700/80 text-emerald-400 border border-emerald-500/30 text-[10px] font-bold flex items-center gap-1.5 shadow-sm cursor-pointer transition active:scale-95 select-none"
+              title="Toque para sincronizar imediatamente com Google Calendar (moraes.wagg@gmail.com)"
+              onclick="forcarSyncManualGCal(event)"
+              onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();forcarSyncManualGCal(event);}"
             >
-              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span> Google Calendar
+              <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" id="rotina-gcal-dot"></span>
+              <span id="rotina-gcal-texto">Google Calendar</span>
             </div>
           </div>
         </div>
@@ -2301,9 +2332,6 @@
             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-purple-400"></i> Copiloto Clínico · SOAP & Conversa
           </h3>
           <div class="flex items-center gap-1.5">
-            <button onclick="abrirModalAmbulatorioSOAP()" class="px-2 py-1 rounded-lg bg-teal-500/20 text-teal-300 hover:bg-teal-500/30 text-[10px] font-bold flex items-center gap-1 transition border border-teal-500/30 active:scale-95" title="Abrir Prontuário SOAP Ambulatorial Ágil">
-              <i data-lucide="clipboard-check" class="w-3 h-3"></i> Consultório APS
-            </button>
             <button onclick="copiarSOAPProntuario()" class="px-2.5 py-1 rounded-lg bg-purple-600 hover:bg-purple-500 text-white text-[10px] font-bold flex items-center gap-1 transition shadow-md shadow-purple-600/20 active:scale-95" title="Copiar SOAP para o prontuário eletrônico">
               <i data-lucide="copy" class="w-3 h-3"></i> Copiar PEP
             </button>
@@ -2334,8 +2362,8 @@
             <button data-soap-cat="amb pep" onclick="abrirModalSinteseDiaSOAP()" class="px-2.5 py-1.5 rounded-lg bg-indigo-500/20 text-indigo-300 border border-indigo-500/30 text-[11px] font-semibold hover:bg-indigo-500/30 flex items-center gap-1 transition">
               <i data-lucide="layers" class="w-3 h-3"></i> Síntese do Dia (SOAP)
             </button>
-            <button data-soap-cat="amb" onclick="abrirModalAmbulatorioSOAP()" class="px-2.5 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-semibold hover:bg-teal-500/30 flex items-center gap-1 transition">
-              <i data-lucide="clipboard-check" class="w-3 h-3"></i> SOAP Ambulatorial
+            <button data-soap-cat="amb" onclick="abrirModalAmbulatorioSOAP()" class="px-2.5 py-1.5 rounded-lg bg-teal-500/20 text-teal-300 border border-teal-500/30 text-[11px] font-semibold hover:bg-teal-500/30 flex items-center gap-1 transition" title="Abrir Prontuário SOAP Ambulatorial Ágil (APS & UBS)">
+              <i data-lucide="clipboard-check" class="w-3 h-3"></i> Prontuário SOAP (APS)
             </button>
             <button data-soap-cat="amb pep" onclick="abrirModalAtestadoCFM()" class="px-2.5 py-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30 text-[11px] font-semibold hover:bg-amber-500/30 flex items-center gap-1 transition">
               <i data-lucide="file-text" class="w-3 h-3"></i> Atestado CFM
@@ -2724,7 +2752,7 @@
             <div class="grid grid-cols-3 gap-2">
               <div>
                 <label class="text-[10px] text-slate-400 block mb-0.5">Idade</label>
-                <input type="number" id="soap-idade" min="0" max="130" placeholder="Anos" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
+                <input type="number" id="soap-idade" inputmode="numeric" min="0" max="130" placeholder="Anos" class="w-full bg-slate-900 border border-slate-700 rounded-lg px-2.5 py-1.5 text-xs text-white focus:outline-none focus:border-purple-500">
               </div>
               <div>
                 <label class="text-[10px] text-slate-400 block mb-0.5">Sexo</label>
@@ -3413,22 +3441,21 @@
   <div id="modal-ambulatorio-soap" class="fixed inset-0 z-50 flex items-center justify-center p-3.5 sm:p-4 bg-slate-950/80 backdrop-blur-sm hidden animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="titulo-amb-soap">
     <div class="relative w-full max-w-2xl max-h-[90vh] flex flex-col rounded-2xl border border-teal-500/40 bg-slate-900 shadow-2xl overflow-hidden">
       <!-- Header do Modal -->
-      <div class="flex items-center justify-between border-b border-slate-800 p-3.5 bg-slate-950/70">
-        <div class="flex items-center gap-2.5">
-          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/30">
+      <div class="flex items-center justify-between border-b border-slate-800 p-3 sm:p-3.5 bg-slate-950/70">
+        <div class="flex items-center gap-2 sm:gap-2.5 min-w-0">
+          <div class="flex h-8 w-8 items-center justify-center rounded-xl bg-teal-500/20 text-teal-400 ring-1 ring-teal-500/30 shrink-0">
             <i data-lucide="clipboard-check" class="w-4 h-4"></i>
           </div>
-          <div>
+          <div class="min-w-0">
             <div class="flex items-center gap-1.5">
-              <span class="text-[9.5px] font-extrabold uppercase tracking-wider text-teal-400">Consulta Rápida</span>
-              <span class="text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.2 rounded font-bold">APS & UBS</span>
+              <h4 id="titulo-amb-soap" class="text-xs sm:text-sm font-bold text-white truncate">
+                Prontuário SOAP Ambulatorial
+              </h4>
+              <span class="text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded font-bold shrink-0">APS &amp; UBS</span>
             </div>
-            <h4 id="titulo-amb-soap" class="text-xs sm:text-sm font-bold text-white">
-              SOAP Ambulatorial Ágil · Prontuário de Consultório
-            </h4>
           </div>
         </div>
-        <button onclick="fecharModalAmbulatorioSOAP()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800" aria-label="Fechar modal SOAP ambulatorial">
+        <button onclick="fecharModalAmbulatorioSOAP()" class="p-1.5 text-slate-400 hover:text-white rounded-lg transition hover:bg-slate-800 shrink-0" aria-label="Fechar modal SOAP ambulatorial">
           <i data-lucide="x" class="w-4 h-4"></i>
         </button>
       </div>
@@ -3438,8 +3465,8 @@
         <!-- Campos Rápidos -->
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
           <div>
-            <label for="amb-input-paciente" class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Paciente <span class="text-teal-400 font-normal lowercase">(ou "Ao Portador")</span></label>
-            <input id="amb-input-paciente" type="text" placeholder="Nome do paciente..." autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="next" class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-slate-100 text-xs focus:border-teal-500 focus:outline-none" />
+            <label for="amb-input-paciente" class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Paciente</label>
+            <input id="amb-input-paciente" type="text" placeholder="Nome do paciente ou 'Ao portador'..." autocomplete="off" autocapitalize="words" spellcheck="false" enterkeyhint="next" class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-slate-100 text-xs focus:border-teal-500 focus:outline-none" />
           </div>
           <div>
             <label for="amb-select-modelo-ef" class="block text-[10px] font-bold uppercase text-slate-400 mb-1">Modelo de Exame Físico</label>
@@ -3459,12 +3486,12 @@
         <div class="relative">
           <div class="flex items-center justify-between mb-1">
             <label for="amb-input-diagnostico" class="text-[10px] font-bold uppercase text-slate-400">
-              Diagnóstico / CID-10 &amp; CIAP-2 <span class="text-teal-400 font-normal lowercase">(busca inteligente)</span>
+              Hipótese Diagnóstica (CID-10 / CIAP-2)
             </label>
-            <span id="amb-cid-badge-selecionado" class="hidden text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.2 rounded font-mono font-bold"></span>
+            <span id="amb-cid-badge-selecionado" class="hidden text-[9px] bg-teal-500/20 text-teal-300 px-1.5 py-0.5 rounded font-mono font-bold"></span>
           </div>
           <div class="relative">
-            <input id="amb-input-diagnostico" type="text" placeholder="Buscar diagnóstico ou código (ex: HAS, DM2, lombalgia, refluxo, E11, I10)..." autocomplete="off" class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-slate-100 text-xs focus:border-teal-500 focus:outline-none" />
+            <input id="amb-input-diagnostico" type="text" placeholder="Buscar diagnóstico ou código (ex: HAS, DM2, lombalgia, I10)..." autocomplete="off" class="w-full rounded-lg bg-slate-950 border border-slate-800 px-2.5 py-1.5 text-slate-100 text-xs focus:border-teal-500 focus:outline-none" />
             <div id="amb-lista-sugestoes-cid" class="hidden absolute left-0 right-0 top-full mt-1 z-30 max-h-48 overflow-y-auto rounded-xl bg-slate-900 border border-teal-500/40 shadow-2xl p-1 text-xs space-y-0.5"></div>
           </div>
         </div>
@@ -3547,10 +3574,7 @@
             </div>
           </div>
 
-          <textarea id="amb-input-queixa" rows="2" placeholder="Descreva a queixa principal, tempo de início, sintomas associados, antecedentes e medicações em uso do paciente..." autocomplete="off" autocapitalize="sentences" spellcheck="true" class="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-slate-100 text-xs focus:border-teal-500 focus:outline-none"></textarea>
-          <div class="mt-1 text-[10px] text-slate-400">
-            💡 <strong class="text-slate-300">O que fazer:</strong> Digite o relato clínico do paciente ou selecione uma queixa frequente acima para estruturar anamnese, hipóteses diagnósticas e plano terapêutico.
-          </div>
+          <textarea id="amb-input-queixa" rows="2" placeholder="Queixa principal, tempo de início, sintomas associados, antecedentes e medicações em uso..." autocomplete="off" autocapitalize="sentences" spellcheck="true" class="w-full rounded-lg bg-slate-950 border border-slate-800 p-2 text-slate-100 text-xs focus:border-teal-500 focus:outline-none"></textarea>
         </div>
 
         <div class="grid grid-cols-2 sm:grid-cols-4 gap-2">
@@ -3972,11 +3996,11 @@
             <div class="grid grid-cols-1 sm:grid-cols-2 gap-2.5">
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Glicemia de Jejum (mg/dL):</label>
-                <input type="number" id="pn-soro-gj" placeholder="Ex: 94 (se ≥ 92: DMG no 1º tri)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                <input type="number" id="pn-soro-gj" inputmode="numeric" placeholder="Ex: 94 (se ≥ 92: DMG no 1º tri)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Idade Gestacional Atual (semanas):</label>
-                <input type="number" id="pn-soro-sem" placeholder="Ex: 12 (fundamental para avidez e Anti-D)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                <input type="number" id="pn-soro-sem" inputmode="numeric" placeholder="Ex: 12 (fundamental para avidez e Anti-D)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Toxoplasmose IgG / IgM:</label>
@@ -3995,7 +4019,7 @@
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Avidez de IgG (se IgG+ e IgM+ até 16s):</label>
-                <input type="number" id="pn-soro-avidez" placeholder="Ex: 65% (≥60% alta / &lt;50% baixa)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                <input type="number" id="pn-soro-avidez" inputmode="decimal" placeholder="Ex: 65% (≥60% alta / &lt;50% baixa)" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Sífilis / VDRL / Teste Rápido:</label>
@@ -4023,7 +4047,7 @@
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Hemoglobina (Hb em g/dL):</label>
-                <input type="number" id="pn-soro-hb" placeholder="Ex: 10.4 (se &lt; 11: anemia)" step="0.1" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
+                <input type="number" id="pn-soro-hb" inputmode="decimal" placeholder="Ex: 10.4 (se &lt; 11: anemia)" step="0.1" class="w-full bg-slate-900 border border-slate-700 focus:border-pink-500 rounded-lg p-2 text-xs text-white outline-none">
               </div>
               <div>
                 <label class="block text-[10.5px] font-semibold text-slate-300 mb-1">Fator Rh &amp; Coombs Indireto:</label>
@@ -4270,7 +4294,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Perda Estimada (mL)</label>
-              <input type="number" id="co-input-perda-ml" placeholder="Ex: 800" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-perda-ml" inputmode="numeric" placeholder="Ex: 800" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Tipo de Parto</label>
@@ -4281,11 +4305,11 @@
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">FC Materna (bpm)</label>
-              <input type="number" id="co-input-fc" placeholder="Ex: 110" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-fc" inputmode="numeric" placeholder="Ex: 110" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">PAS (mmHg)</label>
-              <input type="number" id="co-input-pas-hpp" placeholder="Ex: 90" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-pas-hpp" inputmode="numeric" placeholder="Ex: 90" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Histórico de Hipertensão / PE?</label>
@@ -4296,7 +4320,7 @@
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Tempo Desde o Parto (min)</label>
-              <input type="number" id="co-input-tempo-parto" placeholder="Ex: 30" value="30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-tempo-parto" inputmode="numeric" placeholder="Ex: 30" value="30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
           </div>
 
@@ -4339,11 +4363,11 @@
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Idade Gestacional (Semanas)</label>
-              <input type="number" id="co-input-prem-sem" placeholder="Ex: 30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-prem-sem" inputmode="numeric" placeholder="Ex: 30" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Bolsa Rota (Horas)</label>
-              <input type="number" id="co-input-gbs-rota-h" placeholder="Ex: 19" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
+              <input type="number" id="co-input-gbs-rota-h" inputmode="numeric" placeholder="Ex: 19" value="0" class="w-full bg-slate-950 border border-slate-800 rounded-lg p-2 text-white text-xs focus:border-rose-500">
             </div>
             <div>
               <label class="block text-[10px] text-slate-400 mb-0.5">Ameaça de Parto Iminente?</label>
@@ -4600,7 +4624,7 @@
           <div class="grid grid-cols-2 gap-2">
             <div>
               <label class="text-[10px] text-slate-400 font-semibold">pH Vaginal</label>
-              <input id="gin-input-leu-ph" type="number" step="0.1" value="" placeholder="Ex: 4.5" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none">
+              <input id="gin-input-leu-ph" type="number" inputmode="decimal" step="0.1" value="" placeholder="Ex: 4.5" class="w-full mt-0.5 px-2 py-1.5 rounded-lg bg-slate-800 border border-slate-700 text-white text-xs font-mono focus:ring-1 focus:ring-emerald-500 outline-none">
             </div>
             <div>
               <label class="text-[10px] text-slate-400 font-semibold">Whiff Test (KOH 10%)</label>
@@ -6503,21 +6527,67 @@
       filtrarRemume();
     }
 
+    function gerarReceitaPDFCockpit() {
+      if (!prescricaoItens.length) {
+        const confirmarVazio = confirm('Nenhum medicamento adicionado na prescrição. Deseja emitir o receituário em branco para preenchimento manual?');
+        if (!confirmarVazio) return;
+      }
+
+      const inputPaciente = document.getElementById('prescricao-paciente-nome');
+      const selectTipoDoc = document.getElementById('prescricao-tipo-doc');
+
+      const pacienteNome = (inputPaciente && inputPaciente.value.trim()) ? inputPaciente.value.trim() : 'Ao Portador';
+      const tipoDoc = (selectTipoDoc && selectTipoDoc.value) ? selectTipoDoc.value : 'receita_simples';
+
+      const controleEspecial = (tipoDoc === 'receita_especial');
+      let tituloDoc = 'RECEITUÁRIO MÉDICO';
+      if (tipoDoc === 'receita_especial') {
+        tituloDoc = 'RECEITUÁRIO DE CONTROLE ESPECIAL';
+      } else if (tipoDoc === 'prescricao_hospitalar') {
+        tituloDoc = 'PRESCRIÇÃO HOSPITALAR';
+      }
+
+      imprimirReceituarioPadraoPreto(controleEspecial, prescricaoItens, pacienteNome, tituloDoc);
+      if (typeof copiarToast === 'function') {
+        copiarToast('Receituário gerado! Selecione "Salvar como PDF" ou imprima.');
+      }
+    }
+
     function copiarPrescricaoRapidaFormatada() {
       if (!prescricaoItens.length) {
         copiarToast('Nenhum item na prescrição para copiar.');
         return;
       }
       const dataHora = new Date().toLocaleString('pt-BR');
+      const inputPaciente = document.getElementById('prescricao-paciente-nome');
+      const selectTipoDoc = document.getElementById('prescricao-tipo-doc');
+
+      const pacienteNome = (inputPaciente && inputPaciente.value.trim()) ? inputPaciente.value.trim() : '';
+      const tipoDoc = (selectTipoDoc && selectTipoDoc.value) ? selectTipoDoc.value : 'receita_simples';
+
+      let tituloCabecalho = '📋 PRESCRIÇÃO MÉDICA';
+      if (tipoDoc === 'receita_simples') {
+        tituloCabecalho = '📄 RECEITUÁRIO MÉDICO';
+      } else if (tipoDoc === 'receita_especial') {
+        tituloCabecalho = '🔒 RECEITUÁRIO DE CONTROLE ESPECIAL';
+      } else if (tipoDoc === 'prescricao_hospitalar') {
+        tituloCabecalho = '🏥 PRESCRIÇÃO HOSPITALAR BEIRA-LEITO';
+      }
+
       let cabecalho = `========================================\n` +
-                      `📋 PRESCRIÇÃO HOSPITALAR BEIRA-LEITO\n` +
+                      `${tituloCabecalho}\n` +
+                      (pacienteNome ? `Paciente: ${pacienteNome}\n` : '') +
                       `Data: ${dataHora}\n` +
                       `========================================\n\n`;
       let corpo = prescricaoItens.map((item, idx) => `${idx + 1}. ${item}`).join('\n\n');
-      let rodape = `\n\n----------------------------------------\n` +
-                   `• Cuidados: Sinais vitais 6/6h, glicemia se DM, cabeceira 30°.\n` +
-                   `• Comunicar: Sinais de alarme, hipotensão (PAS < 90), dor refratária.`;
-      copiarTextoClipboard(cabecalho + corpo + rodape, 'Prescrição copiada no padrão hospitalar!');
+      let rodape = tipoDoc === 'prescricao_hospitalar'
+        ? `\n\n----------------------------------------\n` +
+          `• Cuidados: Sinais vitais 6/6h, glicemia se DM, cabeceira 30°.\n` +
+          `• Comunicar: Sinais de alarme, hipotensão (PAS < 90), dor refratária.`
+        : `\n\n----------------------------------------\n` +
+          `• Uso conforme orientação médica. Em caso de dúvidas ou reações adversas, procure a unidade de saúde.`;
+
+      copiarTextoClipboard(cabecalho + corpo + rodape, 'Prescrição/Receituário copiado com sucesso!');
     }
 
     // Filtros e Gestão de Leitos
@@ -12244,7 +12314,7 @@
       }
 
       // Fecha dropdown de CID se clicar fora
-      if (!window._ambListenerClickForaCid) {
+      if (!window._ambListenerClickForaCid && typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
         document.addEventListener('click', (e) => {
           const lista = document.getElementById('amb-lista-sugestoes-cid');
           const input = document.getElementById('amb-input-diagnostico');
@@ -16748,7 +16818,7 @@
       });
 
       // Fechamento com tecla Escape para qualquer modal aberto
-      if (!window.__listenerEscapeModaisRegistrado) {
+      if (!window.__listenerEscapeModaisRegistrado && typeof document !== 'undefined' && typeof document.addEventListener === 'function') {
         window.__listenerEscapeModaisRegistrado = true;
         document.addEventListener('keydown', (e) => {
           if (e.key === 'Escape' || e.key === 'Esc') {
@@ -20688,11 +20758,16 @@
         }
       } catch (_) {}
 
-      // Fallback honesto (Zero Invenção) + Botão de Solicitar REMUME ao Desenvolvedor
+      // Fallback honesto (Zero Invenção) + Adota a Cidade do médico com RENAME Nacional (SUS)
+      window.cockpitContextoClinico.municipio = municipio;
+      window.cockpitContextoClinico.uf = uf;
+      window.cockpitContextoClinico.remume_slug = 'rename_nacional';
+      atualizarBadgeContextoClinicoUI();
+
       box.innerHTML = `
-        <p class="text-amber-300">⚠️ Não foi encontrado documento oficial atualizado e confiável para <b>${municipio}</b> na busca automática (nenhum dado foi inventado). Mantida a <b>RENAME Nacional (SUS)</b>.</p>
+        <p class="text-amber-300">📍 Cidade definida como <b>${municipio} (${uf})</b>. Como não há catálogo municipal próprio catalogado, o sistema adotou a <b>RENAME Nacional (SUS)</b> com cobertura completa.</p>
         <button type="button" onclick="solicitarRemumeAoDesenvolvedorCockpit('${municipio.replace(/'/g, '')}', '${uf.replace(/'/g, '')}')" class="w-full py-1.5 rounded bg-amber-500/20 border border-amber-500/50 text-amber-200 font-bold">
-          📩 Solicitar REMUME de ${municipio} ao Desenvolvedor
+          📩 Solicitar inserção de REMUME específica de ${municipio}
         </button>
       `;
     }
@@ -20772,15 +20847,32 @@
     /**
      * Emite janela de impressão de Receituário Médico 100% Preto (#000000) padronizado.
      * Quando papel === 'INTERNO_ACADEMICO', omite nome de médico e CRM para o preceptor carimbar.
+     * Suporta título customizado (Receituário Ambulatorial, Prescrição Hospitalar, etc) e 2 vias em Controle Especial.
      */
-    function imprimirReceituarioPadraoPreto(controleEspecial = false, itensCustom = null, pacienteCustom = 'Ao Portador') {
+    function imprimirReceituarioPadraoPreto(controleEspecial = false, itensCustom = null, pacienteCustom = 'Ao Portador', tituloCustom = '') {
       const ctx = window.cockpitContextoClinico || {};
       const ehInterno = ctx.papel === 'INTERNO_ACADEMICO';
       const unidade = ctx.unidade_saude || 'UNIDADE DE SAÚDE / SERVIÇO MÉDICO';
       const localData = `${ctx.municipio ? (ctx.municipio + (ctx.uf ? ' - ' + ctx.uf : '')) : 'Local'}, ${new Date().toLocaleDateString('pt-BR')}`;
-      const itens = Array.isArray(itensCustom) && itensCustom.length > 0 ? itensCustom : [
-        { nome: '1. Dipirona Sódica 500mg comprimido', qtd: '1 caixa', posologia: 'Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.' }
+      
+      const listaNormalizada = Array.isArray(itensCustom) && itensCustom.length > 0 ? itensCustom.map(it => {
+        if (typeof it === 'string') {
+          const partes = it.split(' — ');
+          return {
+            nome: partes[0] || it,
+            qtd: '',
+            posologia: partes.slice(1).join(' — ') || ''
+          };
+        }
+        return {
+          nome: it.nome || it.medicamento || 'Medicamento',
+          qtd: it.qtd || '',
+          posologia: it.posologia || it.orientacao || ''
+        };
+      }) : [
+        { nome: 'Dipirona Sódica 500mg comprimido', qtd: '1 caixa', posologia: 'Tomar 1 comprimido via oral de 6 em 6 horas se dor ou febre.' }
       ];
+
       const assinaturaHtml = ehInterno
         ? `<div class="assinatura"><div class="linha"></div><div>Assinatura e Carimbo do(a) Médico(a) Responsável (CRM)</div></div>`
         : `<div class="assinatura"><div class="linha"></div><div class="bold">${ctx.nome_completo_carimbo || 'Médico(a) Assistente'}</div><div>${ctx.crm || 'CRM'}</div></div>`;
@@ -20803,31 +20895,61 @@
         </div>
       ` : '';
 
-      const htmlDoc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>Receituário Médico</title>
+      const tituloDoc = controleEspecial 
+        ? 'RECEITUÁRIO DE CONTROLE ESPECIAL' 
+        : (tituloCustom || 'RECEITUÁRIO MÉDICO');
+
+      const renderizarVia = (subtituloVia = '') => `
+        <div class="pagina-receita">
+          <div class="cabecalho">
+            <div class="titulo">${tituloDoc}</div>
+            <div class="sub">${unidade}${subtituloVia ? ' — <span class="bold">' + subtituloVia + '</span>' : ''}</div>
+          </div>
+          <div class="paciente"><span class="bold">PACIENTE:</span> ${pacienteCustom || 'Ao Portador'}</div>
+          <div class="corpo-itens">
+            ${listaNormalizada.map((it, idx) => `
+              <div class="item">
+                <div class="bold">${idx + 1}. ${it.nome}${it.qtd ? ' — ' + it.qtd : ''}</div>
+                ${it.posologia ? `<div class="posologia-texto">${it.posologia}</div>` : ''}
+              </div>
+            `).join('')}
+          </div>
+          <div style="margin-top:20px;font-size:10pt;">Local e Data: ${localData}.</div>
+          ${assinaturaHtml}
+          ${quadrosControle}
+        </div>
+      `;
+
+      const htmlConteudo = controleEspecial
+        ? `${renderizarVia('1ª VIA - FARMÁCIA')}<div class="page-break"></div>${renderizarVia('2ª VIA - PACIENTE')}`
+        : renderizarVia('');
+
+      const htmlDoc = `<!DOCTYPE html><html lang="pt-BR"><head><meta charset="UTF-8"><title>${tituloDoc}</title>
         <style>
           * { color: #000000 !important; background: #FFFFFF !important; border-color: #000000 !important; font-family: Arial, Helvetica, sans-serif; box-sizing: border-box; }
-          body { margin: 20mm; font-size: 11pt; line-height: 1.45; }
+          @page { size: A4 portrait; margin: 15mm; }
+          body { margin: 15mm; font-size: 11pt; line-height: 1.45; }
+          .pagina-receita { max-width: 180mm; min-height: 250mm; margin: 0 auto; display: flex; flex-direction: column; justify-content: space-between; }
           .cabecalho { text-align: center; border-bottom: 1.5px solid #000000; padding-bottom: 8px; margin-bottom: 14px; }
-          .titulo { font-size: 14pt; font-weight: bold; text-transform: uppercase; }
+          .titulo { font-size: 14pt; font-weight: bold; text-transform: uppercase; letter-spacing: 0.5px; }
           .sub { font-size: 10pt; margin-top: 2px; }
           .paciente { border: 1px solid #000000; padding: 8px 10px; margin-bottom: 16px; }
-          .item { margin-bottom: 12px; }
+          .corpo-itens { flex: 1; min-height: 120mm; }
+          .item { margin-bottom: 14px; }
+          .posologia-texto { margin-top: 2px; padding-left: 14px; font-size: 10.5pt; }
           .bold { font-weight: bold; }
-          .assinatura { margin-top: 42px; text-align: center; }
+          .assinatura { margin-top: 36px; text-align: center; }
           .linha { width: 280px; border-top: 1px solid #000000; margin: 0 auto 6px auto; }
-          .quadros { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 24px; font-size: 8.5pt; }
+          .quadros { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 20px; font-size: 8.5pt; }
           .quadro { border: 1px solid #000000; padding: 6px; }
           .quadro-titulo { font-weight: bold; text-align: center; border-bottom: 1px solid #000000; margin-bottom: 6px; padding-bottom: 2px; }
+          .page-break { page-break-after: always; height: 0; margin: 20mm 0; }
+          @media print {
+            body { margin: 0; }
+            .page-break { page-break-after: always; margin: 0; }
+          }
         </style></head><body>
-        <div class="cabecalho">
-          <div class="titulo">${controleEspecial ? 'RECEITUÁRIO DE CONTROLE ESPECIAL' : 'RECEITUÁRIO MÉDICO'}</div>
-          <div class="sub">${unidade}</div>
-        </div>
-        <div class="paciente"><span class="bold">PACIENTE:</span> ${pacienteCustom}</div>
-        <div>${itens.map(it => `<div class="item"><div class="bold">${it.nome} — ${it.qtd || 'uso contínuo'}</div><div>${it.posologia}</div></div>`).join('')}</div>
-        <div style="margin-top:20px;">Local e Data: ${localData}.</div>
-        ${assinaturaHtml}
-        ${quadrosControle}
+        ${htmlConteudo}
       </body></html>`;
 
       const w = window.open('', '_blank');
@@ -20843,6 +20965,176 @@
     window.addEventListener('DOMContentLoaded', () => {
       sincronizarPerfilComBackend();
     });
+
+    // =========================================================================
+    // NÚCLEO ARQUITETURAL P0/P1 (GCAL PILL, UI ADAPTATIVA, SINCRONIA SOAP & RESET)
+    // =========================================================================
+    let ultimoSyncGCalTimestamp = Date.now();
+
+    function forcarSyncManualGCal(event) {
+      if (event) event.stopPropagation();
+      hapticFeedback('medium');
+      const badge = document.getElementById('rotina-gcal-badge-status');
+      const dot = document.getElementById('rotina-gcal-dot');
+      const texto = document.getElementById('rotina-gcal-texto');
+
+      if (texto) texto.textContent = 'Sincronizando...';
+      if (dot) dot.className = 'w-2 h-2 rounded-full bg-amber-400 animate-spin';
+
+      copiarToast('🔄 Sincronizando agenda com Google Calendar...');
+
+      const promessa = (window.RotinaTimeline && typeof window.RotinaTimeline.sincronizarAgendaGoogle === 'function')
+        ? window.RotinaTimeline.sincronizarAgendaGoogle(true)
+        : (window.RotinaTimeline && typeof window.RotinaTimeline.renderizar === 'function' ? Promise.resolve(window.RotinaTimeline.renderizar()) : Promise.resolve());
+
+      promessa.finally(() => {
+        ultimoSyncGCalTimestamp = Date.now();
+        setTimeout(() => {
+          if (texto) texto.textContent = 'Google Calendar';
+          if (dot) dot.className = 'w-2 h-2 rounded-full bg-emerald-400 animate-pulse';
+        }, 500);
+      });
+    }
+
+    // Auto-sync ao reabrir a tela do celular (visibilitychange > 3 min)
+    if (typeof document !== 'undefined' && typeof document.addEventListener === 'function') { document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') {
+        const agora = Date.now();
+        if ((agora - ultimoSyncGCalTimestamp) > 3 * 60 * 1000) {
+          if (window.RotinaTimeline && typeof window.RotinaTimeline.sincronizarAgendaGoogle === 'function') {
+            console.log('[GCal] Auto-sync por retorno de foco (>3 min)');
+            window.RotinaTimeline.sincronizarAgendaGoogle(false);
+            ultimoSyncGCalTimestamp = agora;
+          }
+        }
+      }
+    }); }
+
+    // Sincronização global do nome do paciente entre REMUME e SOAP
+    function sincronizarNomePacienteGlobal(nome) {
+      const nomeLimpo = (nome || '').trim();
+      const inputPresc = document.getElementById('prescricao-paciente-nome');
+      const inputAmb = document.getElementById('amb-input-paciente');
+      if (inputPresc && inputPresc.value !== nome) inputPresc.value = nome;
+      if (inputAmb && inputAmb.value !== nome) inputAmb.value = nome;
+    }
+
+    // UI Adaptativa: Hospitalar (foco em copiar texto MV/Tasy) vs. Ambulatorial (foco em PDF A4)
+    function atualizarUiAdaptativaPrescricao() {
+      const selectTipoDoc = document.getElementById('prescricao-tipo-doc');
+      const containerPaciente = document.getElementById('presc-paciente-container');
+      const btnPdf = document.getElementById('btn-presc-pdf');
+      const btnCopiar = document.getElementById('btn-presc-copiar');
+      const labelCopiar = document.getElementById('btn-presc-copiar-label');
+      const labelPdf = document.getElementById('btn-presc-pdf-label');
+
+      const tipo = (selectTipoDoc && selectTipoDoc.value) ? selectTipoDoc.value : 'receita_simples';
+
+      if (tipo === 'prescricao_hospitalar') {
+        // Modo Hospitalar: oculta campo nominal de paciente (vai direto no prontuário)
+        if (containerPaciente) containerPaciente.classList.add('hidden');
+        if (btnCopiar) {
+          btnCopiar.className = 'px-3 py-1.5 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-slate-950 text-[11px] font-black shadow-lg shadow-emerald-900/40 flex items-center gap-1 transition active:scale-[0.98] ring-2 ring-emerald-400/50';
+          if (labelCopiar) labelCopiar.textContent = 'Copiar p/ Prontuário (MV/Tasy)';
+        }
+        if (btnPdf) {
+          btnPdf.className = 'px-2 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 text-[10.5px] font-semibold flex items-center gap-1 transition active:scale-[0.98] border border-slate-700';
+          if (labelPdf) labelPdf.textContent = 'PDF Opcional';
+        }
+      } else {
+        // Modo Ambulatorial: exibe campo de paciente para cabeçalho da receita e destaca PDF A4
+        if (containerPaciente) containerPaciente.classList.remove('hidden');
+        if (btnCopiar) {
+          btnCopiar.className = 'px-2.5 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold shadow-md shadow-emerald-900/30 flex items-center gap-1 transition active:scale-[0.98]';
+          if (labelCopiar) labelCopiar.textContent = 'Copiar';
+        }
+        if (btnPdf) {
+          btnPdf.className = 'px-2.5 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500 text-white text-[11px] font-bold shadow-md shadow-sky-900/30 flex items-center gap-1 transition active:scale-[0.98] ring-2 ring-sky-400/30';
+          if (labelPdf) labelPdf.textContent = (tipo === 'receita_especial') ? 'Gerar PDF (2 Vias)' : 'Gerar PDF / Imprimir';
+        }
+      }
+    }
+
+    // Sincronia Automática: Prescrição REMUME -> Bloco de Plano (P) no SOAP
+    function sincronizarPrescricaoComSoapGlobal() {
+      const campoSoap = document.getElementById('soap-brain-dump');
+      const DELIM_INICIO = '--- [PRESCRIÇÃO VINCULADA REMUME] ---';
+      const DELIM_FIM    = '--- [/PRESCRIÇÃO VINCULADA REMUME] ---';
+
+      if (!campoSoap) return;
+      const textoAtual = campoSoap.value || '';
+      const regexBloco = new RegExp(`\\n?${escapeRegExpCockpit(DELIM_INICIO)}[\\s\\S]*?${escapeRegExpCockpit(DELIM_FIM)}`, 'g');
+
+      if (!prescricaoItens.length) {
+        if (regexBloco.test(textoAtual)) {
+          campoSoap.value = textoAtual.replace(regexBloco, '').trim();
+          campoSoap.dispatchEvent(new Event('input', { bubbles: true }));
+        }
+        return;
+      }
+
+      const itensFormatados = prescricaoItens.map((it, idx) => `${idx + 1}. ${it}`).join('\n');
+      const novoBloco = `${DELIM_INICIO}\n${itensFormatados}\n${DELIM_FIM}`;
+
+      if (regexBloco.test(textoAtual)) {
+        campoSoap.value = textoAtual.replace(regexBloco, `\n${novoBloco}`).trim();
+      } else {
+        const prefixo = textoAtual.trim() ? `${textoAtual.trim()}\n\n` : '';
+        campoSoap.value = `${prefixo}${novoBloco}`;
+      }
+      campoSoap.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function escapeRegExpCockpit(str) {
+      return str.replace(/[.*+?^${}()|[\]\\]/g, '\\    // Registro do PWA Service Worker (Cache-First 0ms Offline para plantão)');
+    }
+
+    // Reset Seguro: Novo Atendimento (limpa REMUME, SOAP e dados do paciente para segurança)
+    function iniciarNovoAtendimentoCockpit(exigirConfirmacao = true) {
+      const temItens = prescricaoItens.length > 0;
+      const paciente = document.getElementById('prescricao-paciente-nome')?.value.trim();
+      const ambSoap = document.getElementById('amb-input-diagnostico')?.value.trim();
+      const dumpSoap = document.getElementById('soap-brain-dump')?.value.trim();
+
+      if (exigirConfirmacao && (temItens || paciente || ambSoap || dumpSoap)) {
+        const ok = confirm('🛡️ SEGURANÇA DO PACIENTE — NOVO ATENDIMENTO\n\nDeseja iniciar um novo atendimento? Isso limpará a prescrição ativa, evolução SOAP e nome do paciente, evitando que dados do paciente anterior vazem.');
+        if (!ok) return;
+      }
+
+      // 1. Limpar prescrição REMUME
+      prescricaoItens = [];
+      salvarPrescricaoStorage();
+      renderizarPrescricaoItens();
+      filtrarRemume();
+
+      // 2. Limpar campos de paciente
+      sincronizarNomePacienteGlobal('');
+
+      // 3. Limpar formulário ambulatorial SOAP
+      if (typeof limparFormularioAmbulatorioSOAP === 'function') {
+        limparFormularioAmbulatorioSOAP();
+      }
+
+      // 4. Limpar campo brain-dump SOAP se existir
+      const dump = document.getElementById('soap-brain-dump');
+      if (dump) {
+        dump.value = '';
+        dump.dispatchEvent(new Event('input', { bubbles: true }));
+      }
+
+      hapticFeedback('medium');
+      copiarToast('🛡️ Cockpit limpo para novo atendimento seguro!');
+    }
+
+    // Hook no renderizarPrescricaoItens para disparar sincronia com SOAP e UI adaptativa
+    const renderizarPrescricaoItensOriginal = renderizarPrescricaoItens;
+    renderizarPrescricaoItens = function() {
+      renderizarPrescricaoItensOriginal();
+      sincronizarPrescricaoComSoapGlobal();
+      atualizarUiAdaptativaPrescricao();
+    };
+
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') { window.addEventListener('DOMContentLoaded', () => { atualizarUiAdaptativaPrescricao(); sincronizarPrescricaoComSoapGlobal(); }); }
 
     // Registro do PWA Service Worker (Cache-First 0ms Offline para plantão)
     if ('serviceWorker' in navigator && (window.location.protocol.startsWith('http') || window.location.protocol.startsWith('https'))) {

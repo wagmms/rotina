@@ -13,6 +13,7 @@
     "extrair:hsl": "node scripts/extrair_guia_hsl.js",
     "test:all": "node scripts/run_tests.cjs --all",
     "test:prime": "bash scripts/testador_prime.sh --mode all",
+    "test:prime:argon": "bash scripts/testador_prime_argon.sh --mode all",
     "test:prime:cockpit": "bash scripts/testador_prime.sh --mode cockpit",
     "test:prime:telegram": "bash scripts/testador_prime.sh --mode telegram"
   },

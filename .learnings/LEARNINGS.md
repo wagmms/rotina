@@ -6,6 +6,35 @@ Corrections, insights, and knowledge gaps captured during development.
 **Areas**: frontend | backend | infra | tests | docs | config
 **Statuses**: pending | in_progress | resolved | wont_fix | promoted | promoted_to_skill
 
+## [LRN-20261017-007] best_practice
+
+**Logged**: 2026-10-17T15:15:00-03:00
+**Priority**: high
+**Status**: resolved
+**Area**: tests
+
+### Summary
+Arquitetura híbrida de testes em saúde: Runner determinístico em milissegundos + Auditoria semântica pós-teste via LLM (Argon).
+
+### Details
+1. A execução de testes contínuos não deve depender de LLM direto para cada cálculo de dose ou checagem de HTTP/DOM: a dependência de inferência geraria minutos de espera, custo de tokens e falta de determinismo matemático estrito (`===`).
+2. O papel do modelo de fronteira (Gemini 4 Argon) brilha na auditoria pós-execução do relatório JSON: filtragem de falsos positivos de layout (diferenciar botões "Fechar" legítimos em modais locais vs botões repetidos desnecessários), avaliação de segurança clínica de prescrições e geração de código pronto para aplicar.
+3. Analisadores de DOM de formulários clínicos devem diferenciar rigorosamente `<input type="number">` (que exige `inputmode="decimal"`) de `<select>` (que abre pickers nativos sem teclado virtual) e campos de busca/texto livre.
+
+### Suggested Action
+Manter o padrão de pipeline em dois tempos: `npm run test:prime` para o ciclo ágil de desenvolvimento (< 35s, custo 0) e `npm run test:prime:argon` para release final e auditoria de preceptoria médica.
+
+### Metadata
+- Source: project_evolution
+- Related Files: `tooling/testador_prime/`, `scripts/testador_prime_argon.sh`, `cockpit_movel.html`
+- Tags: testing, llm-as-a-judge, argon, mobile-ux, inputmode
+- Pattern-Key: tests.hybrid_runner_and_cognitive_judge
+- Recurrence-Count: 1
+- First-Seen: 2026-10-17
+- Last-Seen: 2026-10-17
+
+---
+
 ## [LRN-20261017-006] insight
 
 **Logged**: 2026-10-17T14:45:00-03:00

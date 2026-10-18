@@ -1261,6 +1261,8 @@ var ConfigService = (function() {
         ufNorm = String(arg3 || "BR").trim().toUpperCase();
       }
       var slug = gerarSlugMunicipio(mun, ufNorm);
+      var ctxSolicitante = (typeof this.getContextoClinico === "function") ? this.getContextoClinico(cid) : null;
+      var nomeMed = (ctxSolicitante && ctxSolicitante.profissional && ctxSolicitante.profissional.saudacao_formal) || "Médico(a)";
 
       var lista = this.listarSolicitacoesRemume();
       var existente = null;
@@ -1279,6 +1281,13 @@ var ConfigService = (function() {
         if (cid && existente.solicitantes.indexOf(cid) === -1) {
           existente.solicitantes.push(cid);
         }
+        if (!Array.isArray(existente.detalhes_solicitantes)) {
+          existente.detalhes_solicitantes = [];
+        }
+        var jaTemDetalhe = existente.detalhes_solicitantes.some(function(d) { return String(d.chat_id) === String(cid); });
+        if (!jaTemDetalhe) {
+          existente.detalhes_solicitantes.push({ chat_id: cid, nome: nomeMed, data: agora });
+        }
         existente.atualizado_em = agora;
         if (existente.status !== "APROVADA") {
           existente.status = "PENDENTE";
@@ -1290,6 +1299,7 @@ var ConfigService = (function() {
           uf: ufNorm,
           status: "PENDENTE",
           solicitantes: cid ? [cid] : [],
+          detalhes_solicitantes: cid ? [{ chat_id: cid, nome: nomeMed, data: agora }] : [],
           criado_em: agora,
           atualizado_em: agora
         };
@@ -1299,6 +1309,9 @@ var ConfigService = (function() {
       solicitacoesCache = lista;
       escreverJsonDisco("data/remume_requests.json", lista);
       salvarPropriedadeScript("REMUME_REQUESTS_QUEUE", JSON.stringify(lista));
+      if (typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.salvar === "function") {
+        try { PersistenciaBot.salvar("remume_requests_queue", lista); } catch (eP) {}
+      }
 
       return clonarObjeto(existente);
     },
@@ -1306,9 +1319,18 @@ var ConfigService = (function() {
     listarSolicitacoesRemume: function() {
       if (solicitacoesCache) return clonarObjeto(solicitacoesCache);
       var lidoDisco = lerJsonDisco("data/remume_requests.json", null);
-      if (Array.isArray(lidoDisco)) {
+      if (Array.isArray(lidoDisco) && lidoDisco.length > 0) {
         solicitacoesCache = lidoDisco;
         return clonarObjeto(lidoDisco);
+      }
+      if (typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.ler === "function") {
+        try {
+          var lidoPersist = PersistenciaBot.ler("remume_requests_queue");
+          if (Array.isArray(lidoPersist) && lidoPersist.length > 0) {
+            solicitacoesCache = lidoPersist;
+            return clonarObjeto(lidoPersist);
+          }
+        } catch (eP) {}
       }
       var p = carregarPropriedades();
       if (p.REMUME_REQUESTS_QUEUE) {
@@ -1322,6 +1344,27 @@ var ConfigService = (function() {
       }
       solicitacoesCache = [];
       return [];
+    },
+
+    rejeitarSolicitacaoRemume: function(slugOuMunicipio, uf) {
+      var slug = uf ? gerarSlugMunicipio(slugOuMunicipio, uf) : String(slugOuMunicipio || "").trim().toLowerCase();
+      var lista = this.listarSolicitacoesRemume();
+      var encontrado = null;
+      for (var i = 0; i < lista.length; i++) {
+        if (lista[i].slug === slug || String(lista[i].municipio || "").toLowerCase() === slug) {
+          lista[i].status = "ARQUIVADA";
+          lista[i].atualizado_em = new Date().toISOString();
+          encontrado = lista[i];
+          break;
+        }
+      }
+      solicitacoesCache = lista;
+      escreverJsonDisco("data/remume_requests.json", lista);
+      salvarPropriedadeScript("REMUME_REQUESTS_QUEUE", JSON.stringify(lista));
+      if (typeof PersistenciaBot !== "undefined" && typeof PersistenciaBot.salvar === "function") {
+        try { PersistenciaBot.salvar("remume_requests_queue", lista); } catch (eP) {}
+      }
+      return clonarObjeto(encontrado);
     },
 
     aprovarSolicitacaoRemume: function(municipio, uf, itens, fonte) {

@@ -395,8 +395,7 @@ function processarMensagemFoto(message) {
       var tecladoSalvar = {
         "inline_keyboard": [
           [
-            { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey },
-            { "text": "📁 Salvar no Notion", "callback_data": "salvarNotion_imagem_" + cacheKey }
+            { "text": "➕ Incorporar ao SOAP", "callback_data": "incorporarSoap_" + cacheKey }
           ],
           [
             { "text": "📋 Copiar Laudo", "callback_data": "ux:copiar:" + cacheKey }

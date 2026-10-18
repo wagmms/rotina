@@ -102,6 +102,15 @@ class TelegramEnginePrime:
             ("Gestão de Plantão (/plantao)", [("text", "/plantao")]),
             ("Consulta REMUME / Prescrição", [("text", "/remume dipirona")]),
             ("Ajuda e Comandos (/ajuda)", [("text", "/ajuda")]),
+            # --- NOVAS FEATURES ADICIONADAS ---
+            ("Módulo GO / Ginecologia & Obstetrícia (/go)", [("text", "/go")]),
+            ("Cálculo Pré-Natal & Idade Gestacional (/prenatal)", [("text", "/prenatal 10/01/2026")]),
+            ("Protocolo Sulfato de Magnésio Zuspan (/mgso4)", [("text", "/mgso4 zuspan 65kg")]),
+            ("Personalização de Nome do Médico (/nome)", [("text", "/nome Dr. Wagner Moraes")]),
+            ("Consulta de Perfil do Usuário (/perfil)", [("text", "/perfil")]),
+            ("Configuração de Cidade Ativa (/cidade)", [("text", "/cidade São Paulo - SP")]),
+            ("Busca REMUME Local (/remume amoxicilina)", [("text", "/remume amoxicilina")]),
+            ("Central do Plantão Sniper (/sniper)", [("text", "/sniper")]),
         ]
 
         for flow_name, steps in flows:

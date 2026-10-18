@@ -1,5 +1,49 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C96. [x] **Motor de Descoberta Web Governamental (.gov.br), Crawler Municipal de REMUME e Painel do Desenvolvedor (`src/data/remumes/index.js`, `src/00_config.js`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`)**:
+    - **Diagnóstico e Resolução via Gemini 4 Argon**:
+      * *Eliminação do Bloqueio de Botnet*: O DuckDuckGo HTML bloqueava requisições do Node.js com challenge de anomalia, retornando zero links. Criado motor de descoberta em 4 camadas resilientes:
+        1. Gerador determinístico de domínios municipais `.gov.br` (`_gerarDominiosOficiaisMunicipio`) testando padrões oficiais de prefeituras (`www.<cidade>.<uf>.gov.br`, `prefeitura<cidade>.<uf>.gov.br`, etc.).
+        2. Crawler inteligente de 1 nível (`_rastrearPortalMunicipalGovBr` e `_extrairLinksInternosRelevantes`) varrendo subpáginas de saúde (`/remume`, `/saude`, `/medicamentos`, `/assistencia-farmaceutica`) e endpoints WordPress/CMS (`/wp-json/wp/v2/media?search=remume`).
+        3. Fallback multi-buscador (Brave Search, Yahoo Brasil, Bing, DDG Lite) com detector anti-captcha (`_ehPaginaBloqueioOuCaptcha`).
+        4. Headers realistas de navegador moderno (Chrome 124 pt-BR), descompressão nativa `gzip/deflate/br` via `zlib` e tratamento resiliente de cadeia de certificados ICP-Brasil para domínios `.gov.br`.
+      * *Validação Prática com Garrafão do Norte - PA*: O script executou a busca web oficial e o Gatekeeper Clínico aprovou com 10/10 âncoras do SUS e 91 medicamentos padronizados, promovendo automaticamente para preset global (`src/data/remumes/presets/pa_garrafao_do_norte.json`).
+      * *Busca Multi-Token Inteligente com Higienização Farmacológica*: Criado novo algoritmo em `consultarDisponibilidade` suportando múltiplos tokens ("amoxi clav", "losartana 50", "furosemida 40"), mapa de sinônimos frequentes de plantão (AAS, HCTZ, Plasil, Lasix, Buscopan, Benzetacil, etc.), expurgo de sais irrelevantes ("sódica", "potássica", "cloridrato") e tolerância mista a strings ou objetos.
+      * *Parser Universal de Cidade + UF*: Criada função `extrairMunicipioEUf` com suporte a formatos com ou sem hífen ("Ribeirão Preto SP", "Pariquera-Açu - SP", "Campinas/SP", "Belém (PA)").
+      * *Central de Curadoria e Painel do Desenvolvedor*: Implementados os comandos `/solicitacoes_remume` e `/fila_remume` e a tela `enviarPainelAdminRemume`, permitindo listar cidades pendentes, quantidade de pedidos, IDs dos médicos, orientações de homologação com 1 toque e opção de arquivamento.
+    - **Recibo de Estabilidade**: 3/3 suítes direcionadas aprovadas em 0.78s com código estável (`node scripts/run_tests.cjs tests/test_remume_pesquisa_e_solicitacoes_argon.cjs tests/test_remume_busca_gatekeeper_argon.cjs tests/test_importar_remume_ux.cjs`).
+
+0C95. [x] **Refatoração Integral do Plantão Sniper & Motor Multi-Device WhatsApp (`server/whatsapp-bridge.js`, `src/14_sniper_plantoes.js`, `server/index.js`, `tests/test_sniper_plantoes_rotina.cjs`)**:
+    - **Diagnóstico e Resolução via Gemini 4 Argon**:
+      * *Fim da Simulação Mock de Pareamento*: Eliminada a geração fictícia de códigos de pareamento aleatórios (`WGN...`), substituindo-a por `WhatsAppConnectionManager` em `server/whatsapp-bridge.js`, com suporte a Baileys nativo (`@whiskeysockets/baileys`), Gateway HTTP (Evolution API / WAHA via `WA_API_URL` e `WA_INSTANCE`) e Webhook Universal.
+      * *Geração de Pairing Code Oficial de 8 Dígitos*: Pareamento real com validação de telefone (DDI 55 + DDD + 8/9 dígitos), permitindo ao médico parear o WhatsApp diretamente do Telegram via comando `/sniper parear <telefone>` ou botão interativo.
+      * *Sincronização Real de Grupos (@g.us)*: Integração de `buscarGruposReaisWhatsApp` para puxar os grupos participantes reais via API ou socket, acabando com a passagem de array vazio `[]`.
+      * *Extrator Universal de Envelopes WhatsApp*: Normalização na borda compatível com Baileys (`messages.upsert`), Evolution API, WAHA, Z-API e payloads diretos, extraindo remetente real (`key.participant`), texto e grupo.
+    - **Correção dos 9 Bugs Críticos de Lógica e Segurança Médica**:
+      * *Catálogo Abrangente de Especialidades*: Mapeamento estrito de especialidades (Ortopedia, Pediatria, UTI, GO/Obstetrícia, Psiquiatria, Anestesia, etc.), eliminando o risco do fallback cego para "Porta" que capturava plantões cirúrgicos/especializados indevidamente.
+      * *Sanitização de Contato do Escalista*: Limpeza de JIDs (remoção de `:device` e `@s.whatsapp.net`), sem fallback para o número fake "5511999990000".
+      * *Regex de Valores Financeiros e Plantões 6h*: Suporte a valores pontuados (`1.500`, `1.450,00`) mesmo sem `R$`, e valores de 6h a partir de R$ 400.
+      * *Deduplicação Cross-Group sem Truncamento*: Hash DJB2 gerado sobre o texto normalizado completo (não apenas 90 chars), evitando colisão de vagas com cabeçalho longo de cooperativas.
+      * *Desambiguação de Hospitais e Datas*: Reconhecimento de nomes com números e apóstrofos ("Hospital 9 de Julho", "UPA 24h", "D'Ávila"), impedindo que "9 de Julho" fosse interpretado como a data do plantão.
+      * *Datas e Dias da Semana*: Reconhecimento de datas `DD/MM` e dias da semana (`segunda` a `domingo`), calculando a data ISO correta e evitando agendar no dia de hoje por engano.
+      * *Modo Semi-Auto Funcional*: Botão `sniper:claim:` registrando métricas de receita/captura e acionando o bridge para envio da mensagem stealth.
+    - **Recibo de Estabilidade**: Bateria completa de regressão com 57/57 suítes aprovadas com 100% de sucesso em 47.13s (`npm test`). Zero regressões.
+
+0C94. [x] **Bot Testador Prime 2.0 & Pipeline Híbrido com Gemini 4 Argon (`tooling/testador_prime/`, `scripts/testador_prime_argon.sh`, `scripts/testador_prime.sh`, `package.json`, `src/07a_telegram_router.js`, `src/12_experiencia_bot.js`, `cockpit_movel.html`, `gh_cockpit_deploy/index.html`)**:
+    - **Criação do Bot Testador Prime 2.0 (`tooling/testador_prime/`)**:
+      * Motor de alta performance em Node.js (`node_bridge_prime.cjs`) com injeção em memória via Fastify (`app.inject`) e Python 3 (`telegram_engine.py`, `cockpit_engine.py`, `ux_heuristics.py`).
+      * Simulação de 5 personas clínicas estocásticas (`emergencista`, `r1_clinico`, `rotina_gestor`, `caotico_fuzzer`, `estudante_socratico`) com geração de pacientes randômicos.
+      * Cobertura 100% de novas funcionalidades: Módulo GO, Personalização de Perfil/Cenário, REMUME/Escolha de Cidade e Sniper de Plantões.
+      * Detecção automática de vazamentos técnicos (`undefined`, `NaN`, `null`, stack traces) e conformidade de layout mobile de 360px.
+    - **Pipeline Híbrido com Auditoria Cognitiva (`npm run test:prime:argon`)**:
+      * Execução determinística em milissegundos (< 35s para bateria completa) com custo zero de tokens e asserções binárias rigorosas.
+      * Auditoria pós-teste com Gemini 4 Argon (`argon -f data/resultado_prime_2_0.json`), atuando como Junta Médica e Juiz de UX para filtrar falsos positivos de layout e emitir Certificação de Produção (GO-LIVE).
+    - **Correções de Usabilidade & Ergonomia Mobile**:
+      * *Telegram Router*: Encurtamento de botões inline com >28 caracteres em GO (`🌸 Vulvovaginites`, `🩺 Preventivo (PCCU)`) e Perfil (`🏥 Cenários & Módulos`, `📥 Inserir REMUME`, `🏥 Unidade Hospitalar`) para eliminar truncamento em 360px.
+      * *Cockpit PWA*: Adição de `inputmode="decimal"` e `inputmode="numeric"` em 100% dos campos de entrada clínica numérica em `cockpit_movel.html` e `gh_cockpit_deploy/index.html`.
+      * *Heurística Refinada*: Eliminação de falsos positivos em campos textuais de busca e tags `<select>`.
+    - **Recibo de Estabilidade**: 100% de sucesso nas 19 rotas RPC/REST, zero vazamentos de dados, 100% de conformidade de inputs e certificação oficial de produção emitida pelo Gemini 4 Argon.
+
 0C93. [x] **Aba Rotina & Telegram — Erradicação de 'Ajustar Rotina', Botões de Sincronização Manual e Implementação de Auto-Sync Soberano com Google Calendar (`src/06_rotina_agenda.js`, `src/12_experiencia_bot.js`, `src/07i_telegram_rotina_central.js`, `cockpit_movel.html`, `index.html`, `gh_cockpit_deploy/`, `server/google_calendar.js`, `tests/test_google_calendar_sync.cjs`, `tests/test_central_rotina_plantao_ux.cjs`, `tests/test_rotina_adaptativa.cjs`)**:
     - **Ajustes de Rotina Soberanos no Google Calendar**:
       * *Remoção de 'Ajustar Rotina'*: Erradicado o comando/botão `[✏️ Ajustar Rotina]` (`rotina:ajustar`) da Central de Rotina do Telegram e `[✏️ Ajustar / Voz]` da timeline. Como o médico gerencia e ajusta toda a sua rotina diretamente no Google Calendar, comandos manuais de ajuste deixam de poluir os menus.

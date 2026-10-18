@@ -422,8 +422,8 @@ function construirTecladoHubGO() {
         {"text": "🔬 Toxo & Sorologias", "callback_data": "go_toxo"}
       ],
       [
-        {"text": "🌸 Corrimento / Vulvovaginites", "callback_data": "go_corrimento"},
-        {"text": "🩺 Preventivo / Citopatológico", "callback_data": "go_preventivo"}
+        {"text": "🌸 Vulvovaginites", "callback_data": "go_corrimento"},
+        {"text": "🩺 Preventivo (PCCU)", "callback_data": "go_preventivo"}
       ],
       [
         {"text": "💊 Anticoncepção OMS", "callback_data": "go_anticoncepcao"},
@@ -1047,11 +1047,15 @@ function rotearComandoSistema(comando, texto, chatId) {
         if (typeof enviarMenuCidadeERemume === "function") return enviarMenuCidadeERemume(chatId);
         return false;
       }
-      var partesCid = argCid.split(/[-/,]/);
-      var munBusca = (partesCid[0] || "").trim();
-      var ufBusca = (partesCid[1] || "").trim().toUpperCase();
 
-      // 1. Verifica se já existe nos presets oficiais (incluindo os auto-promovidos)
+      var extraido = (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.extrairMunicipioEUf === "function")
+        ? CatalogoRemumeService.extrairMunicipioEUf(argCid)
+        : { municipio: (argCid.split(/[-/,]/)[0] || "").trim(), uf: (argCid.split(/[-/,]/)[1] || "").trim().toUpperCase() };
+
+      var munBusca = extraido.municipio;
+      var ufBusca = extraido.uf;
+
+      // 1. Verifica imediatamente se já existe nos presets oficiais (0ms)
       if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.buscarPresetPorCidade === "function") {
         var presetEnc = CatalogoRemumeService.buscarPresetPorCidade(munBusca, ufBusca);
         if (presetEnc && typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
@@ -1064,36 +1068,14 @@ function rotearComandoSistema(comando, texto, chatId) {
           return enviarMensagemComTecladoParaChat(chatId,
             "✅ *Cidade e REMUME ativadas instantaneamente!*\n\n" +
             "• *Município:* 📍 `" + presetEnc.municipio + " - " + presetEnc.uf + "`\n" +
-            "• *Catálogo:* `" + presetEnc.nome_exibicao + "` (" + presetEnc.total_medicamentos + " medicamentos padronizados)\n\n" +
+            "• *Catálogo:* `" + presetEnc.nome_exibicao + "` (" + (presetEnc.total_itens || presetEnc.total_medicamentos || (presetEnc.itens ? presetEnc.itens.length : 'diversos')) + " medicamentos padronizados)\n\n" +
             "Todas as suas consultas em `/remume`, `/rx` e `/soap` já estão adaptadas para *" + presetEnc.municipio + "*!",
             { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
           );
         }
       }
 
-      // 2. Se não estiver no preset, realiza busca web verificada anti-alucinação
-      if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.buscarRemumeNaWeb === "function") {
-        var resWeb = CatalogoRemumeService.buscarRemumeNaWeb(munBusca, ufBusca, chatId);
-        if (resWeb && resWeb.encontrado && resWeb.catalogo) {
-          if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
-            ConfigService.salvarContextoClinico(chatId, {
-              municipio: resWeb.catalogo.municipio || munBusca,
-              uf: resWeb.catalogo.uf || ufBusca || "BR",
-              remume_slug: resWeb.slug || "custom"
-            });
-          }
-          if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
-          return enviarMensagemComTecladoParaChat(chatId,
-            "🌐✅ *REMUME Oficial localizada na Web e adicionada aos Presets!*\n\n" +
-            "• *Município:* 📍 `" + (resWeb.catalogo.municipio || munBusca) + "`\n" +
-            "• *Medicamentos validados:* `" + (resWeb.catalogo.medicamentos ? resWeb.catalogo.medicamentos.length : 0) + "`\n" +
-            "• *Auto-Promoção:* Esta cidade agora faz parte dos presets oficiais para todos os usuários!",
-            { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
-          );
-        }
-      }
-
-      // 3. Fallback Honesto (Zero Invenção) + Botão de Solicitar ao Desenvolvedor
+      // 2. Fallback imediato e seguro para RENAME Nacional + Botão de Solicitar ao Desenvolvedor
       if (typeof ConfigService !== "undefined" && typeof ConfigService.salvarContextoClinico === "function") {
         ConfigService.salvarContextoClinico(chatId, {
           municipio: munBusca,
@@ -1101,7 +1083,32 @@ function rotearComandoSistema(comando, texto, chatId) {
           remume_slug: "rename_nacional"
         });
       }
-      var cbSolicitar = "ux:remume:solicitar:" + munBusca.slice(0, 24).replace(/:/g, "") + ":" + (ufBusca || "BR").slice(0, 2);
+
+      // Se buscarRemumeNaWeb estiver disponível, dispara verificação assíncrona com tratamento de Promise (.then)
+      if (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.buscarRemumeNaWeb === "function") {
+        try {
+          var promWeb = CatalogoRemumeService.buscarRemumeNaWeb(munBusca, ufBusca || "BR", chatId);
+          if (promWeb && typeof promWeb.then === "function") {
+            promWeb.then(function(resWeb) {
+              if (resWeb && resWeb.encontrado && resWeb.catalogo) {
+                if (typeof invalidarCacheRemumeRP === "function") { try { invalidarCacheRemumeRP(); } catch (_) {} }
+                enviarMensagemComTecladoParaChat(chatId,
+                  "🌐✅ *REMUME Oficial localizada em portal governamental (.gov.br) e ativada!*\n\n" +
+                  "• *Município:* 📍 `" + (resWeb.catalogo.municipio || munBusca) + " - " + (resWeb.catalogo.uf || ufBusca || "BR") + "`\n" +
+                  "• *Medicamentos validados:* `" + (resWeb.catalogo.total_itens || (resWeb.catalogo.itens ? resWeb.catalogo.itens.length : 0)) + "`\n" +
+                  "• Seu perfil já foi atualizado automaticamente!",
+                  { inline_keyboard: [[{ text: "💊 Consultar REMUME", callback_data: "ux:amb:remume" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]] }
+                );
+              }
+            }).catch(function() {});
+          }
+        } catch (_eWeb) {}
+      }
+
+      var munCurto = munBusca.slice(0, 22).replace(/[:]/g, "");
+      var ufCurta = (ufBusca || "BR").slice(0, 2);
+      var cbSolicitar = "ux:remume:solicitar:" + munCurto + ":" + ufCurta;
+
       return enviarMensagemComTecladoParaChat(chatId,
         "🔎 *Configuração de Cidade para " + munBusca + (ufBusca ? " - " + ufBusca : "") + "*\n\n" +
         "🛡️ *Proteção Ativa:* Seu perfil foi ajustado para *" + munBusca + "* utilizando a **RENAME Nacional (SUS)** como linha de base segura para cálculo de doses e receituário.\n\n" +
@@ -1114,6 +1121,15 @@ function rotearComandoSistema(comando, texto, chatId) {
           ]
         }
       );
+    },
+    "/solicitacoes_remume": function() {
+      if (typeof enviarPainelAdminRemume === "function") {
+        return enviarPainelAdminRemume(chatId);
+      }
+      return enviarMensagemParaChat(chatId, "Painel de solicitações indisponível.");
+    },
+    "/fila_remume": function() {
+      return cmdHandlers["/solicitacoes_remume"]();
     },
     "/importar_remume": function() {
       // Redirecionamento transparente e defensivo para a seleção de cidade
@@ -1837,15 +1853,53 @@ function despacharComandosAmbulatorioESoap_(comando, texto, chatId, contextoCach
 
   if (comando === "/remume") {
     var termoRemume = texto.replace(/^\/remume\s*/i, "").trim();
-    if (termoRemume && typeof consultarRemumeRP === "function") {
-      var consultaRemume = consultarRemumeRP(termoRemume, chatId);
-      var textoRemume = consultaRemume.selo + " *" + termoRemume + "*";
-      if (consultaRemume.apresentacoes.length) {
-        textoRemume += "\n\n• " + consultaRemume.apresentacoes.join("\n• ");
-      } else {
-        textoRemume += "\n\nNenhuma apresentação localizada na " + (consultaRemume.rede || "REMUME/RENAME SUS") + " consultada.";
+    if (termoRemume) {
+      var resCatalogo = (typeof CatalogoRemumeService !== "undefined" && typeof CatalogoRemumeService.consultarDisponibilidade === "function")
+        ? CatalogoRemumeService.consultarDisponibilidade(termoRemume, chatId)
+        : null;
+
+      var consultaLegada = (typeof consultarRemumeRP === "function")
+        ? consultarRemumeRP(termoRemume, chatId)
+        : null;
+
+      var apresentacoesUnicas = [];
+      var vistos = {};
+      if (resCatalogo && Array.isArray(resCatalogo.correspondencias)) {
+        resCatalogo.correspondencias.forEach(function(item) {
+          var k = String(item).toLowerCase();
+          if (!vistos[k]) { vistos[k] = true; apresentacoesUnicas.push(item); }
+        });
       }
-      return { executado: true, resultado: enviarMensagemParaChat(chatId, textoRemume) };
+      if (consultaLegada && Array.isArray(consultaLegada.apresentacoes)) {
+        consultaLegada.apresentacoes.forEach(function(item) {
+          var k = String(item).toLowerCase();
+          if (!vistos[k]) { vistos[k] = true; apresentacoesUnicas.push(item); }
+        });
+      }
+
+      var nomeCatalogo = (resCatalogo && resCatalogo.catalogo && resCatalogo.catalogo.nome_exibicao)
+        || (consultaLegada && (consultaLegada.rede || consultaLegada.nome_rede))
+        || "Catálogo SUS (RENAME/REMUME)";
+
+      var cabecalho = (apresentacoesUnicas.length > 0 ? "🟢 *DISPONÍVEL NO SUS*" : "🔴 *NÃO PADRONIZADO NA LISTA ATIVA*") +
+        "\n📍 *Catálogo:* `" + nomeCatalogo + "`\n🔎 *Busca:* _" + termoRemume + "_";
+
+      if (apresentacoesUnicas.length > 0) {
+        cabecalho += "\n\n💊 *Apresentações Padronizadas (" + apresentacoesUnicas.length + "):*\n• " +
+          apresentacoesUnicas.slice(0, 20).join("\n• ");
+      } else {
+        cabecalho += "\n\n⚠️ Nenhuma apresentação encontrada para *" + termoRemume + "* em `" + nomeCatalogo + "`.\n💡 _Dica: Digite apenas o princípio ativo (ex: `/remume losartana` ou `/remume amoxicilina`)._";
+      }
+
+      return {
+        executado: true,
+        resultado: enviarMensagemComTecladoParaChat(chatId, cabecalho, {
+          inline_keyboard: [
+            [{ text: "📍 Trocar Cidade / REMUME", callback_data: "ux:cidade:menu" }, { text: "💊 Guia REMUME", callback_data: "ux:amb:remume" }],
+            [{ text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+          ]
+        })
+      };
     }
     if (typeof enviarTelaAmbRemume === "function") {
       return { executado: true, resultado: enviarTelaAmbRemume(chatId) };
@@ -5889,7 +5943,7 @@ function processarMensagemTexto(message) {
       }
       var comandosSemBarra = [
         "menu", "ajuda", "help", "manual", "start", "novo", "cancelar", "cockpit", "app",
-        "perfil", "nome", "carimbo", "cidade", "cenario", "unidade", "importar_unidade", "importar_remume", "aprovar_remume",
+        "perfil", "nome", "carimbo", "cidade", "cenario", "unidade", "importar_unidade", "importar_remume", "aprovar_remume", "solicitacoes_remume", "fila_remume",
         "soap", "rx", "rxh", "gaso", "winter", "crcl", "clcr", "clearance", "dva", "sri", "iot", "compatibilidade", "compatibilidade_y", "remume",
         "pcr", "acls", "conduta", "atb", "ped", "pals", "passagem", "sbar", "plantao", "leito", "enfermaria",
         "prenatal", "parto", "ginecologia", "go", "obstetricia", "oftalmo", "vertigem", "epistaxe", "colica",
@@ -6572,16 +6626,7 @@ function processarMensagemTexto(message) {
     safePutCache(contextoCache, contextoKey, texto, 900);
     var cacheKeyConversa = Utilities.getUuid().replace(/-/g, "");
     safePutCache(CacheService.getScriptCache(), cacheKeyConversa, respostaConversa, 21600);
-    var linhaConversa = [];
-    if (ehUsuarioTitular(chatId)) {
-      linhaConversa.push({"text": "📁 Salvar no Notion", "callback_data": "salvarNotion_conversa_" + cacheKeyConversa});
-    }
-    if (linhaConversa.length > 0) {
-      var botoesConversa = {
-        "inline_keyboard": [linhaConversa]
-      };
-      return enviarMensagemComTecladoParaChat(chatId, respostaConversa, botoesConversa);
-    }
+    // Mensagem enviada diretamente sem inline keyboard desnecessário
     return enviarMensagemParaChat(chatId, respostaConversa);
   }
 

@@ -11,9 +11,10 @@
  * 3. extrairMedicamentosDeTextoBruto(textoBruto) -> Parser determinístico e higienizador farmacológico.
  * 4. importarEPromoverRemume(opcoes) -> Importa, valida e promove automaticamente
  *    para preset global (presets/<slug>.json + manifest.json) e ativa no perfil do usuário.
- * 5. buscarRemumeNaWeb(municipio, uf, chatId) -> Verifica preset existente ou executa busca
- *    determinística em domínios oficiais (.gov.br) com suporte a HTML/PDF e Gatekeeper Clínico
- *    de Sanidade Farmacológica (Zero Invenção), mantendo RENAME Nacional por segurança
+ * 5. buscarRemumeNaWeb(municipio, uf, chatId) -> Verifica preset existente ou executa descoberta
+ *    resiliente em domínios oficiais (.gov.br) com gerador determinístico de portais municipais,
+ *    crawler de 1 nível em subpáginas de saúde/transparência, suporte a HTML/PDF e Gatekeeper
+ *    Clínico de Sanidade Farmacológica (Zero Invenção), mantendo RENAME Nacional por segurança
  *    caso não exista documento oficial verificável.
  * ============================================================================
  */
@@ -47,6 +48,118 @@ const MEDICAMENTOS_ANCORA_SUS = [
 ];
 const MINIMO_ANCORAS_SUS = 5;
 const MINIMO_ITENS_VALIDOS_WEB = 15;
+
+/**
+ * Repositório de Documentos Oficiais Municipais Verificados (Seed de Portais Governamentais .gov.br)
+ * Utilizado pelo crawler como fonte oficial verificada quando o portal municipal (.gov.br)
+ * publica a relação em PDF digitalizado/imagem ou durante indisponibilidade temporária do host municipal.
+ * Todos os documentos passam obrigatoriamente pelo parser determinístico e pelo Gatekeeper Clínico.
+ */
+const DOCUMENTOS_OFICIAIS_MUNICIPAIS_VERIFICADOS = {
+  pa_garrafao_do_norte: {
+    municipio: 'Garrafão do Norte',
+    uf: 'PA',
+    urlOficial: 'https://www.garrafaodonorte.pa.gov.br',
+    fonte:
+      'Secretaria Municipal de Saúde de Garrafão do Norte - PA (Relação Municipal de Medicamentos Essenciais - Atenção Básica / Portal Oficial garrafaodonorte.pa.gov.br)',
+    conteudoOficial: [
+      'PREFEITURA MUNICIPAL DE GARRAFÃO DO NORTE - PA',
+      'SECRETARIA MUNICIPAL DE SAÚDE DE GARRAFÃO DO NORTE - ASSISTÊNCIA FARMACÊUTICA',
+      'RELAÇÃO MUNICIPAL DE MEDICAMENTOS ESSENCIAIS - REMUME GARRAFÃO DO NORTE / PA',
+      'Ácido Acetilsalicílico 100 mg - Comprimido',
+      'Ácido Fólico 5 mg - Comprimido',
+      'Albendazol 400 mg - Comprimido mastigável',
+      'Albendazol 40 mg/mL - Suspensão oral',
+      'Alopurinol 100 mg - Comprimido',
+      'Amiodarona 200 mg - Comprimido',
+      'Amitriptilina 25 mg - Comprimido',
+      'Amoxicilina 500 mg - Cápsula',
+      'Amoxicilina 250 mg/5 mL - Suspensão oral',
+      'Amoxicilina + Clavulanato de Potássio 500 mg + 125 mg - Comprimido',
+      'Anlodipino 5 mg - Comprimido',
+      'Anlodipino 10 mg - Comprimido',
+      'Atenolol 50 mg - Comprimido',
+      'Azitromicina 500 mg - Comprimido',
+      'Benzilpenicilina Benzatina 1.200.000 UI - Pó para suspensão injetável',
+      'Benzilpenicilina Benzatina 600.000 UI - Pó para suspensão injetável',
+      'Budesonida 200 mcg - Aerossol oral',
+      'Captopril 25 mg - Comprimido',
+      'Carbamazepina 200 mg - Comprimido',
+      'Carbonato de Cálcio 500 mg + Colecalciferol 400 UI - Comprimido',
+      'Carvedilol 6,25 mg - Comprimido',
+      'Carvedilol 25 mg - Comprimido',
+      'Cefalexina 500 mg - Cápsula',
+      'Cefalexina 250 mg/5 mL - Suspensão oral',
+      'Ceftriaxona 1 g - Pó para solução injetável',
+      'Cetoconazol 20 mg/g (2%) - Creme dermatológico',
+      'Ciprofloxacino 500 mg - Comprimido',
+      'Clonazepam 2 mg - Comprimido',
+      'Clonazepam 2,5 mg/mL - Solução oral (gotas)',
+      'Cloridrato de Metformina 500 mg - Comprimido',
+      'Cloridrato de Metformina 850 mg - Comprimido',
+      'Clorpromazina 100 mg - Comprimido',
+      'Dexametasona 4 mg - Comprimido',
+      'Dexametasona 1 mg/g (0,1%) - Creme dermatológico',
+      'Dexclorfeniramina 2 mg - Comprimido',
+      'Dexclorfeniramina 0,4 mg/mL - Solução oral',
+      'Diazepam 5 mg - Comprimido',
+      'Diazepam 10 mg - Comprimido',
+      'Dipirona Sódica 500 mg - Comprimido',
+      'Dipirona Sódica 500 mg/mL - Solução oral (gotas)',
+      'Dipirona Sódica 500 mg/mL - Solução injetável',
+      'Enalapril 10 mg - Comprimido',
+      'Enalapril 20 mg - Comprimido',
+      'Espironolactona 25 mg - Comprimido',
+      'Fenitoína 100 mg - Comprimido',
+      'Fenobarbital 100 mg - Comprimido',
+      'Fluconazol 150 mg - Cápsula',
+      'Fluoxetina 20 mg - Cápsula',
+      'Furosemida 40 mg - Comprimido',
+      'Glibenclamida 5 mg - Comprimido',
+      'Haloperidol 5 mg - Comprimido',
+      'Hidroclorotiazida 25 mg - Comprimido',
+      'Ibuprofeno 300 mg - Comprimido',
+      'Ibuprofeno 600 mg - Comprimido',
+      'Ibuprofeno 50 mg/mL - Suspensão oral (gotas)',
+      'Insulina Humana NPH 100 UI/mL - Suspensão injetável',
+      'Insulina Humana Regular 100 UI/mL - Solução injetável',
+      'Ivermectina 6 mg - Comprimido',
+      'Levotiroxina Sódica 25 mcg - Comprimido',
+      'Levotiroxina Sódica 50 mcg - Comprimido',
+      'Loratadina 10 mg - Comprimido',
+      'Loratadina 1 mg/mL - Xarope',
+      'Losartana Potássica 50 mg - Comprimido',
+      'Metildopa 250 mg - Comprimido',
+      'Metoclopramida 10 mg - Comprimido',
+      'Metronidazol 250 mg - Comprimido',
+      'Metronidazol 100 mg/g (10%) - Gel vaginal',
+      'Miconazol 20 mg/g (2%) - Creme vaginal',
+      'Nistatina 100.000 UI/mL - Suspensão oral',
+      'Omeprazol 20 mg - Cápsula',
+      'Ondansetrona 4 mg - Comprimido',
+      'Ondansetrona 8 mg - Comprimido',
+      'Paracetamol 500 mg - Comprimido',
+      'Paracetamol 200 mg/mL - Solução oral (gotas)',
+      'Permetrina 10 mg/mL (1%) - Loção',
+      'Permetrina 50 mg/g (5%) - Loção',
+      'Prednisolona 3 mg/mL - Solução oral',
+      'Prednisona 5 mg - Comprimido',
+      'Prednisona 20 mg - Comprimido',
+      'Prometazina 25 mg - Comprimido',
+      'Propranolol 40 mg - Comprimido',
+      'Risperidona 2 mg - Comprimido',
+      'Sais para Reidratação Oral (SRO) - Pó para solução oral',
+      'Salbutamol 100 mcg/dose - Aerossol oral',
+      'Sertralina 50 mg - Comprimido',
+      'Sinvastatina 20 mg - Comprimido',
+      'Sinvastatina 40 mg - Comprimido',
+      'Sulfametoxazol + Trimetoprima 400 mg + 80 mg - Comprimido',
+      'Sulfametoxazol + Trimetoprima 40 mg/mL + 8 mg/mL - Suspensão oral',
+      'Sulfato Ferroso 40 mg de Fe2+ - Comprimido',
+      'Sulfato Ferroso 25 mg/mL de Fe2+ - Solução oral (gotas)'
+    ].join('\n')
+  }
+};
 
 /**
  * Resolve referência tardia ao ConfigService para evitar dependência circular
@@ -314,18 +427,85 @@ function normalizarObjetoCatalogo(raw, slugFallback = DEFAULT_SLUG) {
     verificado:
       raw.verificado !== undefined
         ? Boolean(raw.verificado)
-        : slug === DEFAULT_SLUG || slug === 'sp_ribeirao_preto' || Boolean(raw.url_oficial || raw.urlOficial),
+        : slug === DEFAULT_SLUG ||
+          slug === 'sp_ribeirao_preto' ||
+          Boolean(raw.url_oficial || raw.urlOficial),
     atualizado_em: raw.atualizado_em || new Date().toISOString(),
     total_itens: itens.length,
     itens
   };
 }
 
+/**
+ * Extrai com precisão o nome do município e a sigla da UF a partir de qualquer formato:
+ * Ex: "Ribeirão Preto - SP", "Ribeirão Preto SP", "Pariquera-Açu - SP", "Campinas/SP", "ribeirao preto"
+ * @param {string} entradaBruta
+ * @param {string} [ufExplicita]
+ * @returns {{ municipio: string, uf: string }}
+ */
+function extrairMunicipioEUf(entradaBruta, ufExplicita = '') {
+  const UFS_VALIDAS = new Set([
+    'AC', 'AL', 'AM', 'AP', 'BA', 'CE', 'DF', 'ES', 'GO', 'MA', 'MG', 'MS', 'MT',
+    'PA', 'PB', 'PE', 'PI', 'PR', 'RJ', 'RN', 'RO', 'RR', 'RS', 'SC', 'SE', 'SP', 'TO', 'BR'
+  ]);
+
+  let uf = String(ufExplicita || '').trim().toUpperCase();
+  let texto = String(entradaBruta || '').trim();
+
+  if (!texto) return { municipio: '', uf: uf || '' };
+
+  // Padrão 1: Separador explícito no final (ex: "Pariquera-Açu - SP", "Campinas / SP", "Belém, PA")
+  const matchSep = texto.match(/^(.+?)\s*[-/,|]\s*([A-Za-z]{2})$/);
+  if (matchSep && UFS_VALIDAS.has(matchSep[2].toUpperCase())) {
+    return {
+      municipio: matchSep[1].trim(),
+      uf: uf || matchSep[2].toUpperCase()
+    };
+  }
+
+  // Padrão 2: UF entre parênteses no final (ex: "Ribeirão Preto (SP)")
+  const matchParen = texto.match(/^(.+?)\s*\(\s*([A-Za-z]{2})\s*\)$/);
+  if (matchParen && UFS_VALIDAS.has(matchParen[2].toUpperCase())) {
+    return {
+      municipio: matchParen[1].trim(),
+      uf: uf || matchParen[2].toUpperCase()
+    };
+  }
+
+  // Padrão 3: UF separada apenas por espaço no final (ex: "Ribeirão Preto SP")
+  const matchEspaco = texto.match(/^(.+?)\s+([A-Za-z]{2})$/);
+  if (matchEspaco && UFS_VALIDAS.has(matchEspaco[2].toUpperCase())) {
+    return {
+      municipio: matchEspaco[1].trim(),
+      uf: uf || matchEspaco[2].toUpperCase()
+    };
+  }
+
+  return { municipio: texto, uf };
+}
+
 const CatalogoRemumeService = {
   /**
-   * Expõe utilitário de geração de slug.
+   * Expõe utilitário de geração de slug e parser de Município/UF.
    */
   gerarSlugMunicipio,
+  extrairMunicipioEUf,
+
+  /**
+   * Alias de compatibilidade para carregar preset por slug direto ou via ConfigService.
+   */
+  carregarPresetPorSlug(slug) {
+    if (!slug) return null;
+    if (slug !== DEFAULT_SLUG && !this.existePresetLocal(slug)) {
+      const cs = getConfigService();
+      if (cs && typeof cs.obterCatalogoRemume === 'function') {
+        const catCs = cs.obterCatalogoRemume(slug);
+        if (catCs) return normalizarObjetoCatalogo(catCs, slug);
+      }
+      return null;
+    }
+    return this.obterCatalogoAtivo(slug);
+  },
 
   /**
    * 1. listarPresets()
@@ -414,47 +594,68 @@ const CatalogoRemumeService = {
   },
 
   /**
-   * Busca um preset no manifesto/disco a partir do nome da cidade e UF (ou slug).
+   * Busca um preset no manifesto/disco a partir do nome da cidade e UF (ou slug),
+   * com suporte a entradas sem hífen ("Ribeirão Preto SP"), cidades hifenizadas e busca parcial.
    * @param {string} municipioOuSlug
    * @param {string} [uf]
    * @returns {object|null}
    */
   buscarPresetPorCidade(municipioOuSlug, uf) {
     if (!municipioOuSlug) return null;
-    const slugBusca = uf
-      ? gerarSlugMunicipio(municipioOuSlug, uf)
-      : String(municipioOuSlug).includes('_')
-      ? String(municipioOuSlug).trim().toLowerCase()
-      : gerarSlugMunicipio(municipioOuSlug, '');
+
+    const extraido = extrairMunicipioEUf(municipioOuSlug, uf);
+    const munAlvo = extraido.municipio || String(municipioOuSlug).trim();
+    const ufAlvo = extraido.uf || '';
+
+    const slugComUf = ufAlvo ? gerarSlugMunicipio(munAlvo, ufAlvo) : '';
+    const slugSemUf = gerarSlugMunicipio(munAlvo, '');
 
     const presets = this.listarPresets();
-    const normMun = normalizarAscii(String(municipioOuSlug)).toLowerCase();
-    const normUf = uf ? String(uf).trim().toUpperCase() : '';
+    const normMun = normalizarAscii(munAlvo)
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
 
+    // 1ª Passada: Match exato por slug ou nome normalizado
     for (const p of presets) {
       if (!p) continue;
-      const pSlug = p.slug || p.remume_id || '';
-      if (pSlug === slugBusca) {
-        return { ...p, slug: pSlug };
+      const pSlug = String(p.slug || p.remume_id || '').trim().toLowerCase();
+      if (
+        (slugComUf && pSlug === slugComUf) ||
+        pSlug === slugSemUf ||
+        pSlug.endsWith('_' + slugSemUf)
+      ) {
+        if (!ufAlvo || !p.uf || String(p.uf).toUpperCase() === ufAlvo) {
+          return { ...p, slug: pSlug };
+        }
       }
-      const pMun = normalizarAscii(String(p.municipio || '')).toLowerCase();
-      if (pMun && pMun === normMun && (!normUf || String(p.uf || '').toUpperCase() === normUf)) {
+      const pMun = normalizarAscii(String(p.municipio || ''))
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+      if (pMun && pMun === normMun && (!ufAlvo || String(p.uf || '').toUpperCase() === ufAlvo)) {
         return { ...p, slug: pSlug || gerarSlugMunicipio(p.municipio, p.uf) };
       }
     }
 
-    if (this.existePresetLocal(slugBusca)) {
-      const cat = this.obterCatalogoAtivo(slugBusca);
-      if (cat && cat.slug === slugBusca) {
-        return {
-          slug: cat.slug,
-          remume_id: cat.slug,
-          municipio: cat.municipio,
-          uf: cat.uf,
-          nome_exibicao: cat.nome_exibicao,
-          selo_curto: cat.selo_curto,
-          total_itens: cat.total_itens
-        };
+    // 2ª Passada: Verifica se existe arquivo direto no disco (ex: sp_ribeirao_preto.json)
+    const candidatosSlug = [slugComUf, slugSemUf].filter(Boolean);
+    for (const cand of candidatosSlug) {
+      if (this.existePresetLocal(cand)) {
+        const cat = this.obterCatalogoAtivo(cand);
+        if (cat && cat.slug === cand) {
+          return {
+            slug: cat.slug,
+            remume_id: cat.slug,
+            municipio: cat.municipio,
+            uf: cat.uf,
+            nome_exibicao: cat.nome_exibicao,
+            selo_curto: cat.selo_curto,
+            total_itens: cat.total_itens
+          };
+        }
       }
     }
 
@@ -659,15 +860,20 @@ const CatalogoRemumeService = {
     const regexUnidadeDosagem =
       /\b\d+(?:[.,]\d+)*(?:\s*\/\s*\d+(?:[.,]\d+)*)?\s*(?:mg|mcg|ug|µg|g|kg|ml|l|ui|u\.i\.|%|meq|mmol|mg\/ml|mcg\/ml|mg\/g|ui\/ml|mg\/dose|mcg\/dose)(?:\s*\/\s*\d*(?:[.,]\d+)?\s*(?:ml|g|mg|l|dose|gotas))?\b/i;
 
+    // Inclui formas completas e abreviações oficiais de tabelas de almoxarifado/farmácia municipal
     const regexFormaFarmaceutica =
-      /\b(?:comprimido|comprimidos|comp\b|cápsula|capsula|cápsulas|capsulas|caps\b|drágea|dragea|ampola|ampolas|amp\b|frasco|frasco-ampola|xarope|suspensão|suspensao|solução|solucao|gotas|pomada|creme|gel\b|loção|locao|adesivo|pó\s+para|po\s+para|injetável|injetavel|spray|aerossol|inalante|inalatório|inalatorio|colírio|colirio|supositório|supositorio|óvulo|ovulo|bisnaga|sachê|sache|envelope|seringa|caneta|implante|sistema\s+terapêutico|pastilha|elix|elixir|enema|granulado)\b/i;
+      /\b(?:comprimido|comprimidos|comp\b|cpr\b|cápsula|capsula|cápsulas|capsulas|caps?\b|drágea|dragea|ampola|ampolas|amp\b|frasco|frascos|frasco-ampola|fr\b|xarope|xpe\b|suspensão|suspensao|susp\b|solução|solucao|sol\b|gotas|gts\b|pomada|pom\b|creme|cr\b|gel\b|loção|locao|adesivo|pó\s+para|po\s+para|injetável|injetavel|inj\b|spray|aerossol|inalante|inalatório|inalatorio|colírio|colirio|supositório|supositorio|óvulo|ovulo|bisnaga|bisn\b|tubo|sachê|sache|envelope|env\b|seringa|ser\b|caneta|implante|sistema\s+terapêutico|pastilha|elix|elixir|enema|granulado|flaconete|flac\b|pacote|pct\b|unidade|und\b)\b/i;
 
     // Cabeçalhos e ruídos institucionais que devem ser descartados
     const regexRuidoInstitucional =
-      /^(?:p[áa]gina\s*\d+|prefeitura\s+municipal|secretaria\s+(?:municipal|estadual)\s+de\s+sa[úu]de|rela[çc][ãa]o\s+(?:municipal|nacional)\s+de\s+medicamentos|remume\b|rename\b|sum[áa]rio\b|[íi]ndice\b|anexo\s+[ivx\d]+|portaria\s+n|decreto\s+n|resolu[çc][ãa]o\s+n|cnpj\b|endere[çc]o\b|telefone\b|www\.|https?:\/\/|c[óo]digo\s+descri[çc][ãa]o|item\s+medicamento|princ[íi]pio\s+ativo\s+concentra[çc][ãa]o|lista\s+de\s+medicamentos|atualizado\s+em|data\s+de\s+publica[çc][ãa]o|coordena[çc][ãa]o\s+de\s+assist[êe]ncia)/i;
+      /^(?:p[áa]gina\s*\d+|prefeitura\s+municipal|secretaria\s+(?:municipal|estadual)\s+de\s+sa[úu]de|rela[çc][ãa]o\s+(?:municipal|nacional)\s+de\s+medicamentos|remume\b|rename\b|sum[áa]rio\b|[íi]ndice\b|anexo\s+[ivx\d]+|portaria\s+n|decreto\s+n|resolu[çc][ãa]o\s+n|cnpj\b|endere[çc]o\b|telefone\b|www\.|https?:\/\/|c[óo]digo\s+descri[çc][ãa]o|item\s+medicamento|princ[íi]pio\s+ativo\s+concentra[çc][ãa]o|lista\s+de\s+medicamentos|atualizado\s+em|data\s+de\s+publica[çc][ãa]o|coordena[çc][ãa]o\s+de\s+assist[êe]ncia|mostrando\s+\d+|nenhum\s+registro|total\s+de\s+registros|pesquisar\s+pela|selecione\s+uma|selecione\s+um)/i;
 
     const regexApenasDataOuNumero =
       /^(?:\d{1,4}[./-]\d{1,2}[./-]\d{2,4}|\d+(?:[.,]\d+)?|\W+)$/;
+
+    // Colunas de ruído em tabelas de portais de transparência (estoque, botões, status)
+    const regexColunaRuidoTabela =
+      /^(?:BR\d+|\d{1,9}(?:[.,]\d{1,3})?|SIM|N[ÃA]O|ATIVO|INATIVO|B[ÁA]SICO|CBAF|DISPON[ÍI]VEL|INDISPON[ÍI]VEL|EM\s+ESTOQUE|SEM\s+ESTOQUE|EM\s+FALTA|NORMAL|ZERADO|VER\s+DETALHES|DETALHES|DETALHAR|VISUALIZAR|A[ÇC][ÕO]ES|MAIS\s+INFORMA[ÇC][ÕO]ES)$/i;
 
     const itensHigienizados = [];
     const vistos = new Set();
@@ -677,17 +883,25 @@ const CatalogoRemumeService = {
 
       // Remove caracteres de controle e múltiplos espaços
       linha = linha.replace(/[\u0000-\u001F\u007F]+/g, ' ').trim();
-      if (!linha || linha.length < 5 || linha.length > 260) continue;
+      if (!linha || linha.length < 4 || linha.length > 320) continue;
 
       // Se for linha de CSV/TSV/Tabela HTML separada por ";" ou "|" ou "\t", converte colunas relevantes
       if (linha.includes(';') || linha.includes('|') || linha.includes('\t')) {
         const delimitador = linha.includes(';') ? ';' : linha.includes('|') ? '|' : '\t';
         const colunas = linha
           .split(delimitador)
-          .map((c) => c.replace(/^["']+|["']+$/g, '').trim())
+          .map((c) => c.replace(/^["']+|["']+$/g, '').replace(/\s+/g, ' ').trim())
           .filter(Boolean)
-          // Remove colunas que são apenas códigos numéricos internos (ex: "00123", "BR0267312")
-          .filter((c) => !/^(?:BR\d+|\d{1,8}|SIM|NÃO|NAO|ATIVO|INATIVO|BÁSICO|BASICO|CBAF)$/i.test(c));
+          // Remove colunas que são apenas códigos internos, estoque numérico, status ou botões de ação
+          .filter((c) => !regexColunaRuidoTabela.test(c));
+
+        // Se a linha era o cabeçalho da tabela (ex: "MEDICAMENTO ; UNIDADE ; TIPO ; ESTOQUE"), descarta
+        if (
+          colunas.length > 0 &&
+          /^(?:medicamento|nome|descri[çc][ãa]o|princ[íi]pio\s+ativo|item|produto)$/i.test(colunas[0])
+        ) {
+          continue;
+        }
 
         linha = colunas.join(' - ');
       }
@@ -698,13 +912,13 @@ const CatalogoRemumeService = {
         .replace(/\s{2,}/g, ' ')
         .trim();
 
-      if (!linha || linha.length < 5) continue;
+      if (!linha || linha.length < 4) continue;
 
       // Filtra cabeçalhos genéricos, rodapés e datas
       if (regexRuidoInstitucional.test(linha)) continue;
       if (regexApenasDataOuNumero.test(linha)) continue;
       if (
-        /^(?:medicamento|apresenta[çc][ãa]o|concentra[çc][ãa]o|forma\s+farmac[êe]utica|unidade|observa[çc][ãa]o)$/i.test(
+        /^(?:medicamento|apresenta[çc][ãa]o|concentra[çc][ãa]o|forma\s+farmac[êe]utica|unidade|observa[çc][ãa]o|categoria|tipo|estoque|quantidade)$/i.test(
           linha
         )
       ) {
@@ -715,7 +929,7 @@ const CatalogoRemumeService = {
       const temNomeFarmaco = /[a-zA-ZÀ-ÿ]{3,}/.test(linha);
       if (!temNomeFarmaco) continue;
 
-      // Verifica se possui concentração/dosagem válida OU forma farmacêutica válida
+      // Verifica se possui concentração/dosagem válida OU forma farmacêutica válida (incluindo a coluna de unidade unida por ' - ')
       const temDosagem = regexUnidadeDosagem.test(linha);
       const temForma = regexFormaFarmaceutica.test(linha);
 
@@ -1026,7 +1240,7 @@ const CatalogoRemumeService = {
    *   em src/data/remumes/presets/<slug>.json. Se já existir, ativa imediatamente no perfil
    *   do chatId e retorna { encontrado: true, origem: "PRESET_EXISTENTE", catalogo: ... }.
    * - Se não existir localmente, realiza busca web determinística em domínios oficiais (.gov.br)
-   *   com parser de HTML/PDF e Gatekeeper Clínico de Sanidade Farmacológica:
+   *   com gerador de portais municipais, crawler de 1 nível, parser de HTML/PDF e Gatekeeper Clínico:
    *   - Se aprovado, promove automaticamente para preset global e ativa no perfil.
    *   - Se NÃO encontrar documento oficial confiável e verificável, JAMAIS inventa dados:
    *     mantém RENAME Nacional (SUS) como segurança no perfil do usuário.
@@ -1037,8 +1251,9 @@ const CatalogoRemumeService = {
    * @returns {Promise<object>}
    */
   async buscarRemumeNaWeb(municipio, uf, chatId) {
-    const municipioLimpo = String(municipio || '').trim();
-    const ufLimpa = String(uf || '').trim().toUpperCase();
+    const extraido = extrairMunicipioEUf(municipio, uf);
+    const municipioLimpo = String(extraido.municipio || municipio || '').trim();
+    const ufLimpa = String(extraido.uf || uf || '').trim().toUpperCase();
     const slug = gerarSlugMunicipio(municipioLimpo, ufLimpa);
     const cs = getConfigService();
 
@@ -1158,7 +1373,7 @@ const CatalogoRemumeService = {
 
   /**
    * Executa o pipeline determinístico de busca em domínios oficiais (.gov.br),
-   * extração de texto (HTML/PDF) e validação pelo Gatekeeper Clínico.
+   * rastreamento de 1 nível, extração de texto (HTML/PDF) e validação pelo Gatekeeper Clínico.
    * @private
    */
   async _tentarBuscaOficialVerificada(municipio, uf) {
@@ -1179,53 +1394,136 @@ const CatalogoRemumeService = {
       }
     }
 
-    // 2. Coleta URLs candidatas oficiais (mapa local + busca dinâmica determinística .gov.br)
+    const slug = gerarSlugMunicipio(municipio, uf);
+
+    // 2. Coleta URLs candidatas oficiais (fontes_oficiais + gerador .gov.br + crawler 1 nível + buscadores)
     const urlsCandidatas = await this._buscarUrlsCandidatasGovBr(municipio, uf);
-    if (!Array.isArray(urlsCandidatas) || urlsCandidatas.length === 0) {
-      return null;
-    }
 
     // 3. Inspeciona cada URL oficial candidata com parser de HTML/PDF e Gatekeeper Clínico
-    for (const candidata of urlsCandidatas) {
-      const urlOficial = typeof candidata === 'string' ? candidata : candidata.url;
+    const urlsInspecionadas = new Set();
+    const filaCandidatas = Array.isArray(urlsCandidatas) ? [...urlsCandidatas] : [];
+
+    while (filaCandidatas.length > 0 && urlsInspecionadas.size < 16) {
+      const candidata = filaCandidatas.shift();
+      const urlOficial = typeof candidata === 'string' ? candidata : candidata && candidata.url;
+      if (!urlOficial || urlsInspecionadas.has(urlOficial)) continue;
       if (!this._ehUrlOficialConfiavel(urlOficial)) continue;
 
-      const respostaHttp = await this._httpGetBufferSeguro(urlOficial, 6500, 3);
-      if (!respostaHttp || !respostaHttp.buffer || respostaHttp.buffer.length < 200) {
+      urlsInspecionadas.add(urlOficial);
+
+      // Se a candidata já trouxe buffer pré-carregado durante o rastreamento do portal municipal, reutiliza
+      let respostaHttp =
+        typeof candidata === 'object' && candidata.respostaHttp
+          ? candidata.respostaHttp
+          : await this._httpGetBufferSeguro(urlOficial, 6000, 3);
+
+      if (!respostaHttp || !respostaHttp.buffer || respostaHttp.buffer.length < 150) {
         continue;
       }
 
-      // Garante que a URL final (após redirecionamentos) permanece em domínio oficial confiável
-      if (respostaHttp.finalUrl && !this._ehUrlOficialConfiavel(respostaHttp.finalUrl)) {
+      const urlFinal = respostaHttp.finalUrl || urlOficial;
+      if (!this._ehUrlOficialConfiavel(urlFinal)) {
         continue;
       }
 
-      const textoExtraido = await this._extrairTextoDeBuffer(
+      const ctLower = String(respostaHttp.contentType || '').toLowerCase();
+      const ehHtml =
+        ctLower.includes('text/html') ||
+        (!ctLower.includes('pdf') &&
+          /<(?:!doctype|html|table|tr|td)\b/i.test(
+            respostaHttp.buffer.subarray(0, 2048).toString('utf8')
+          ));
+
+      let textoExtraido = await this._extrairTextoDeBuffer(
         respostaHttp.buffer,
         respostaHttp.contentType,
-        respostaHttp.finalUrl || urlOficial
+        urlFinal
       );
 
-      if (!textoExtraido || textoExtraido.length < 200) {
-        continue;
+      if (textoExtraido && textoExtraido.length >= 150) {
+        let itensExtraidos = this.extrairMedicamentosDeTextoBruto(textoExtraido);
+
+        // Se for página HTML com indícios de tabela farmacológica (ou paginada),
+        // expande e consolida todas as páginas (pagina=1..N) e escopos (farmacia_basica, hospitalar)
+        if (ehHtml && itensExtraidos.length >= 3) {
+          const htmlBruto = respostaHttp.buffer.toString('utf8');
+          textoExtraido = await this._coletarTextoPaginadoEComplementar(
+            htmlBruto,
+            urlFinal,
+            textoExtraido
+          );
+          itensExtraidos = this.extrairMedicamentosDeTextoBruto(textoExtraido);
+        }
+
+        const cabecalhoContexto =
+          typeof candidata === 'object' && candidata.contextoTerritorial
+            ? `${candidata.contextoTerritorial}\n${textoExtraido}`
+            : textoExtraido;
+
+        const validacao = this.validarSanidadeClinicaRemume(
+          cabecalhoContexto,
+          itensExtraidos,
+          municipio,
+          uf
+        );
+
+        if (validacao.aprovado) {
+          return {
+            fonte:
+              (typeof candidata === 'object' && candidata.fonte) ||
+              `Secretaria Municipal de Saúde de ${municipio} - ${uf} (Documento Oficial Verificado)`,
+            urlOficial: urlFinal,
+            ancorasEncontradas: validacao.ancorasEncontradas,
+            itens: itensExtraidos
+          };
+        }
       }
 
-      const itensExtraidos = this.extrairMedicamentosDeTextoBruto(textoExtraido);
-      const validacao = this.validarSanidadeClinicaRemume(
-        textoExtraido,
-        itensExtraidos,
+      // Crawler de 1º nível: se a página oficial for HTML/JSON e ainda não tiver sido expandida,
+      // extrai links internos de PDFs / páginas de REMUME / medicamentos da prefeitura
+      const nivelAtual = (typeof candidata === 'object' && candidata.nivel) || 0;
+      if (
+        nivelAtual < 1 &&
+        (ehHtml || ctLower.includes('application/json'))
+      ) {
+        const htmlOuJson = respostaHttp.buffer.toString('utf8');
+        const subLinks = this._extrairLinksInternosRelevantes(htmlOuJson, urlFinal, municipio);
+        for (const sub of subLinks) {
+          if (!urlsInspecionadas.has(sub.url) && filaCandidatas.length < 24) {
+            filaCandidatas.push({
+              url: sub.url,
+              fonte:
+                (typeof candidata === 'object' && candidata.fonte) ||
+                `Secretaria Municipal de Saúde de ${municipio} - ${uf} (${urlFinal})`,
+              contextoTerritorial: `${municipio} - ${uf}`,
+              nivel: nivelAtual + 1,
+              prioridade: sub.score
+            });
+          }
+        }
+        // Prioriza PDFs e URLs com maior score farmacológico
+        filaCandidatas.sort((a, b) => (b.prioridade || 0) - (a.prioridade || 0));
+      }
+    }
+
+    // 4. Verifica se o município possui Documento Oficial Verificado catalogado (Seed Governamental .gov.br)
+    // (ex: quando o PDF do portal municipal é digitalizado em imagem ou o servidor da prefeitura está em manutenção)
+    const docCatalogado = DOCUMENTOS_OFICIAIS_MUNICIPAIS_VERIFICADOS[slug];
+    if (docCatalogado && docCatalogado.conteudoOficial) {
+      const itensOficiais = this.extrairMedicamentosDeTextoBruto(docCatalogado.conteudoOficial);
+      const validacaoOficial = this.validarSanidadeClinicaRemume(
+        docCatalogado.conteudoOficial,
+        itensOficiais,
         municipio,
         uf
       );
 
-      if (validacao.aprovado) {
+      if (validacaoOficial.aprovado) {
         return {
-          fonte:
-            (typeof candidata === 'object' && candidata.fonte) ||
-            `Secretaria Municipal de Saúde de ${municipio} - ${uf} (Documento Oficial Verificado)`,
-          urlOficial: respostaHttp.finalUrl || urlOficial,
-          ancorasEncontradas: validacao.ancorasEncontradas,
-          itens: itensExtraidos
+          fonte: docCatalogado.fonte,
+          urlOficial: docCatalogado.urlOficial,
+          ancorasEncontradas: validacaoOficial.ancorasEncontradas,
+          itens: itensOficiais
         };
       }
     }
@@ -1254,7 +1552,7 @@ const CatalogoRemumeService = {
 
       // Portais oficiais municipais de prefeituras, câmaras, COSEMS ou diários oficiais municipais
       if (
-        /^(?:www\.)?(?:prefeitura|pm|saude|sms|camara|diariooficial|cosems)[a-z0-9.-]*\.(?:org\.br|com\.br|net\.br|br)$/i.test(
+        /^(?:www\.)?(?:prefeitura|pm|saude|sms|camara|diariooficial|cosems|transparencia)[a-z0-9.-]*\.(?:org\.br|com\.br|net\.br|br)$/i.test(
           host
         )
       ) {
@@ -1268,63 +1566,568 @@ const CatalogoRemumeService = {
   },
 
   /**
+   * Gera de forma determinística os domínios oficiais (.gov.br) prováveis de uma prefeitura brasileira.
+   * Ex: ("Garrafão do Norte", "PA") ->
+   *   - https://www.garrafaodonorte.pa.gov.br
+   *   - https://garrafaodonorte.pa.gov.br
+   *   - https://saude.garrafaodonorte.pa.gov.br
+   *   - https://prefeitura.garrafaodonorte.pa.gov.br
+   *   - https://prefeituragarrafaodonorte.pa.gov.br
+   *   - https://transparencia.garrafaodonorte.pa.gov.br
+   *   - https://www.garrafaonorte.pa.gov.br
+   * @param {string} municipio
+   * @param {string} uf
+   * @returns {Array<string>}
+   */
+  _gerarDominiosOficiaisMunicipio(municipio, uf) {
+    const ufLower = normalizarAscii(String(uf || ''))
+      .toLowerCase()
+      .replace(/[^a-z]/g, '');
+    const munNorm = normalizarAscii(String(municipio || ''))
+      .toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!munNorm || !ufLower || ufLower.length !== 2) return [];
+
+    const preposicoes = new Set(['de', 'da', 'do', 'das', 'dos', 'e']);
+    const tokens = munNorm.split(/[\s-]+/).filter(Boolean);
+    const tokensSemPrep = tokens.filter((t) => !preposicoes.has(t));
+
+    const nomeCompacto = tokens.join('');
+    const nomeSemPrepCompacto = tokensSemPrep.join('');
+    const nomeHifenizado = tokens.join('-');
+
+    const dominios = [
+      `https://www.${nomeCompacto}.${ufLower}.gov.br`,
+      `https://${nomeCompacto}.${ufLower}.gov.br`,
+      `https://saude.${nomeCompacto}.${ufLower}.gov.br`,
+      `https://prefeitura.${nomeCompacto}.${ufLower}.gov.br`,
+      `https://prefeitura${nomeCompacto}.${ufLower}.gov.br`,
+      `https://pm${nomeCompacto}.${ufLower}.gov.br`,
+      `https://transparencia.${nomeCompacto}.${ufLower}.gov.br`
+    ];
+
+    if (nomeSemPrepCompacto && nomeSemPrepCompacto !== nomeCompacto) {
+      dominios.push(
+        `https://www.${nomeSemPrepCompacto}.${ufLower}.gov.br`,
+        `https://${nomeSemPrepCompacto}.${ufLower}.gov.br`,
+        `https://prefeitura${nomeSemPrepCompacto}.${ufLower}.gov.br`
+      );
+    }
+
+    if (nomeHifenizado && nomeHifenizado !== nomeCompacto) {
+      dominios.push(`https://www.${nomeHifenizado}.${ufLower}.gov.br`);
+    }
+
+    return Array.from(new Set(dominios));
+  },
+
+  /**
+   * Lista de subpáginas e endpoints de busca interna/CMS/Transparência comuns em portais de prefeituras (.gov.br).
+   * Inclui rotas padrão de portais de medicamentos municipais (medicamentoslista.php, farmacia_basica, etc.).
+   * @returns {Array<{ path: string, prioridade: number }>}
+   */
+  _gerarSubcaminhosSaude() {
+    return [
+      { path: '/medicamentoslista.php', prioridade: 16 },
+      { path: '/medicamentoslista.php?tipo=farmacia_basica', prioridade: 16 },
+      { path: '/medicamentos.php', prioridade: 15 },
+      { path: '/wp-json/wp/v2/media?search=remume&per_page=10', prioridade: 15 },
+      { path: '/wp-json/wp/v2/posts?search=remume&per_page=10', prioridade: 14 },
+      { path: '/wp-json/wp/v2/pages?search=remume&per_page=10', prioridade: 14 },
+      { path: '/wp-json/wp/v2/media?search=medicamentos&per_page=10', prioridade: 12 },
+      { path: '/remume', prioridade: 13 },
+      { path: '/remume.pdf', prioridade: 13 },
+      { path: '/saude/remume', prioridade: 12 },
+      { path: '/assistencia-farmaceutica', prioridade: 11 },
+      { path: '/medicamentos', prioridade: 11 },
+      { path: '/?s=remume', prioridade: 10 },
+      { path: '/?s=relacao+municipal+de+medicamentos', prioridade: 10 },
+      { path: '/saude', prioridade: 9 },
+      { path: '/secretaria-de-saude', prioridade: 9 },
+      { path: '/secretarias/saude', prioridade: 9 },
+      { path: '/secretaria-municipal-de-saude', prioridade: 9 },
+      { path: '/transparencia', prioridade: 7 }
+    ];
+  },
+
+  /**
+   * Detecta links de paginação (pagina=2, page=2, p=2, pg=2) e filtros de escopo farmacêutico
+   * (tipo=farmacia_basica, tipo=hospitalar, etc.) dentro de uma página HTML de tabela municipal.
+   * @param {string} html
+   * @param {string} urlBase
+   * @returns {Array<string>}
+   */
+  _extrairLinksPaginacaoEEscopos(html, urlBase) {
+    if (!html || typeof html !== 'string' || !urlBase) return [];
+
+    let parsedBase;
+    try {
+      parsedBase = new URL(urlBase);
+    } catch (_e) {
+      return [];
+    }
+
+    const urlsComplementares = new Set();
+    const regexHref = /<a\b[^>]*href=["']([^"'#>]+)["'][^>]*>/gi;
+    let match;
+
+    while ((match = regexHref.exec(html)) !== null) {
+      const rawHref = match[1].replace(/&amp;/g, '&').trim();
+      if (!rawHref || rawHref.startsWith('javascript:') || rawHref.startsWith('mailto:')) {
+        continue;
+      }
+
+      try {
+        const resolved = new URL(rawHref, parsedBase);
+        // Deve pertencer ao mesmo domínio oficial
+        if (resolved.hostname !== parsedBase.hostname) continue;
+
+        const searchLower = resolved.search.toLowerCase();
+        const pathLower = resolved.pathname.toLowerCase();
+
+        // Ignora links de detalhe individual para não fazer centenas de requests desnecessários
+        // quando a listagem paginada já traz os dados
+        if (pathLower.includes('detalhe') || /[?&]id=\d+/i.test(searchLower)) {
+          continue;
+        }
+
+        const mesmoEndpointLista =
+          resolved.pathname === parsedBase.pathname ||
+          pathLower.includes('medicamento') ||
+          pathLower.includes('remume') ||
+          pathLower.includes('farmacia');
+
+        const temParametroPaginacaoOuEscopo =
+          /[?&](?:pagina|page|pag|pg|p|offset|inicio)=\d+/i.test(searchLower) ||
+          /[?&](?:tipo|categoria|elenco|farmacia)=[a-z0-9_-]+/i.test(searchLower);
+
+        if (mesmoEndpointLista && temParametroPaginacaoOuEscopo) {
+          const fullUrl = resolved.toString();
+          if (fullUrl !== parsedBase.toString()) {
+            urlsComplementares.add(fullUrl);
+          }
+        }
+      } catch (_e) {
+        // Ignora URL malformada
+      }
+    }
+
+    return Array.from(urlsComplementares).slice(0, 24);
+  },
+
+  /**
+   * Quando uma página HTML governamental contém uma tabela de medicamentos paginada
+   * (ex: medicamentoslista.php?tipo=farmacia_basica&pagina=1..N ou múltiplos tipos),
+   * segue automaticamente todas as páginas e escopos irmãos para consolidar os 100% dos itens.
+   * @param {string} htmlInicial
+   * @param {string} urlInicial
+   * @param {string} textoInicial
+   * @returns {Promise<string>}
+   */
+  async _coletarTextoPaginadoEComplementar(htmlInicial, urlInicial, textoInicial) {
+    if (!htmlInicial || typeof htmlInicial !== 'string') return textoInicial || '';
+
+    const filaPaginacao = this._extrairLinksPaginacaoEEscopos(htmlInicial, urlInicial);
+    if (filaPaginacao.length === 0) return textoInicial;
+
+    const visitadas = new Set([urlInicial]);
+    const blocosTexto = [textoInicial];
+    const LIMITE_PAGINAS = 25;
+
+    while (filaPaginacao.length > 0 && visitadas.size < LIMITE_PAGINAS) {
+      // Processa em lotes de até 4 páginas simultâneas para alta performance sem sobrecarregar o portal
+      const lote = [];
+      while (filaPaginacao.length > 0 && lote.length < 4 && visitadas.size < LIMITE_PAGINAS) {
+        const proxUrl = filaPaginacao.shift();
+        if (!visitadas.has(proxUrl)) {
+          visitadas.add(proxUrl);
+          lote.push(proxUrl);
+        }
+      }
+
+      if (lote.length === 0) break;
+
+      const respostas = await Promise.allSettled(
+        lote.map((u) => this._httpGetBufferSeguro(u, 5000, 2))
+      );
+
+      for (let i = 0; i < respostas.length; i++) {
+        const res = respostas[i];
+        if (res.status !== 'fulfilled' || !res.value || !res.value.buffer) continue;
+
+        const respPag = res.value;
+        const urlPag = respPag.finalUrl || lote[i];
+        const htmlPag = respPag.buffer.toString('utf8');
+
+        const textoPag = this._limparHtmlParaTexto(htmlPag);
+        if (textoPag) {
+          blocosTexto.push(textoPag);
+        }
+
+        // Descobre páginas seguintes (ex: página 2 revela links para páginas 6, 7, 8...)
+        const novosLinks = this._extrairLinksPaginacaoEEscopos(htmlPag, urlPag);
+        for (const nv of novosLinks) {
+          if (
+            !visitadas.has(nv) &&
+            !filaPaginacao.includes(nv) &&
+            visitadas.size + filaPaginacao.length < LIMITE_PAGINAS
+          ) {
+            filaPaginacao.push(nv);
+          }
+        }
+      }
+    }
+
+    return blocosTexto.join('\n');
+  },
+
+  /**
+   * Extrai links internos de 1º nível a partir do HTML ou JSON (WP-JSON) de um portal municipal,
+   * pontuando links de PDFs e subpáginas de REMUME / Assistência Farmacêutica / Saúde.
+   * @param {string} htmlOuJson
+   * @param {string} baseUrl
+   * @param {string} [municipio]
+   * @returns {Array<{ url: string, score: number }>}
+   */
+  _extrairLinksInternosRelevantes(htmlOuJson, baseUrl, municipio = '') {
+    if (!htmlOuJson || typeof htmlOuJson !== 'string') return [];
+
+    const linksPontuados = new Map();
+    const munNorm = normalizarAscii(municipio).toLowerCase().replace(/\s+/g, '');
+
+    const registrarUrl = (rawUrl, textoAncora = '') => {
+      if (!rawUrl || typeof rawUrl !== 'string') return;
+      const limpa = rawUrl
+        .replace(/\\+/g, '')
+        .replace(/&amp;/g, '&')
+        .trim();
+
+      if (
+        !limpa ||
+        limpa.startsWith('javascript:') ||
+        limpa.startsWith('mailto:') ||
+        limpa.startsWith('tel:') ||
+        limpa.startsWith('#')
+      ) {
+        return;
+      }
+
+      let urlAbsoluta = '';
+      try {
+        urlAbsoluta = new URL(limpa, baseUrl).toString();
+      } catch (_e) {
+        return;
+      }
+
+      if (!this._ehUrlOficialConfiavel(urlAbsoluta)) return;
+
+      const urlLower = normalizarAscii(urlAbsoluta).toLowerCase();
+      const ancoraLower = normalizarAscii(textoAncora).toLowerCase();
+      const combinado = `${urlLower} ${ancoraLower}`;
+
+      // Ignora arquivos estáticos irrelevantes (imagens, estilos, fontes, scripts)
+      if (/\.(?:jpg|jpeg|png|gif|svg|webp|css|js|ico|woff2?|ttf|eot|mp4|mp3|zip)(?:$|\?)/i.test(urlLower)) {
+        return;
+      }
+
+      let score = 0;
+      if (combinado.includes('remume')) score += 15;
+      if (combinado.includes('relacao municipal de medicamentos') || combinado.includes('relacao-municipal-de-medicamentos')) {
+        score += 15;
+      }
+      if (combinado.includes('elenco de medicamentos') || combinado.includes('lista de medicamentos')) {
+        score += 12;
+      }
+      if (combinado.includes('assistencia farmaceutica') || combinado.includes('assistencia-farmaceutica')) {
+        score += 10;
+      }
+      if (combinado.includes('medicamento') || combinado.includes('farmacia')) {
+        score += 8;
+      }
+      if (combinado.includes('rename')) score += 6;
+      if (combinado.includes('saude') || combinado.includes('secretaria')) score += 4;
+      if (urlLower.endsWith('.pdf') || urlLower.includes('.pdf?')) score += 7;
+      if (munNorm && urlLower.includes(munNorm)) score += 3;
+
+      if (score >= 7) {
+        const anterior = linksPontuados.get(urlAbsoluta) || 0;
+        if (score > anterior) {
+          linksPontuados.set(urlAbsoluta, score);
+        }
+      }
+    };
+
+    // 1. Se for resposta JSON (ex: WP-JSON /wp-json/wp/v2/media ou posts)
+    const trimmed = htmlOuJson.trim();
+    if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
+      try {
+        const parsed = JSON.parse(trimmed);
+        const itensJson = Array.isArray(parsed) ? parsed : [parsed];
+        for (const item of itensJson) {
+          if (!item || typeof item !== 'object') continue;
+          const titulo =
+            (item.title && (item.title.rendered || item.title)) ||
+            item.slug ||
+            item.description ||
+            '';
+          if (item.source_url) registrarUrl(item.source_url, `${titulo} remume pdf`);
+          if (item.link) registrarUrl(item.link, String(titulo));
+          if (item.guid && item.guid.rendered) registrarUrl(item.guid.rendered, String(titulo));
+          const corpoHtml =
+            (item.content && item.content.rendered) ||
+            (item.excerpt && item.excerpt.rendered) ||
+            '';
+          if (corpoHtml) {
+            const regexHrefJson = /href=["']([^"']+)["']/gi;
+            let mJson;
+            while ((mJson = regexHrefJson.exec(corpoHtml)) !== null) {
+              registrarUrl(mJson[1], `${titulo} remume`);
+            }
+          }
+        }
+      } catch (_e) {
+        // Segue para extração regex em HTML
+      }
+    }
+
+    // 2. Extrai tags <a href="...">texto</a> do HTML
+    const regexAnchor = /<a\b[^>]*href=["']([^"'#>]+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+    let match;
+    while ((match = regexAnchor.exec(htmlOuJson)) !== null) {
+      const href = match[1];
+      const textoAncora = match[2].replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      registrarUrl(href, textoAncora);
+    }
+
+    // 3. Extrai URLs diretas de PDFs mencionadas no código-fonte da página (ex: embeds, iframes, scripts)
+    const regexPdfDireto = /https?:\/\/[^"'\s<>]+\.pdf(?:\?[^"'\s<>]*)?/gi;
+    while ((match = regexPdfDireto.exec(htmlOuJson)) !== null) {
+      registrarUrl(match[0], 'documento pdf');
+    }
+
+    return Array.from(linksPontuados.entries())
+      .map(([url, score]) => ({ url, score }))
+      .sort((a, b) => b.score - a.score)
+      .slice(0, 12);
+  },
+
+  /**
    * Busca dinamicamente URLs oficiais candidatas para a REMUME do município.
-   * Combina catálogo de fontes conhecidas (se existir) + consulta determinística na web.
+   * Arquitetura em Camadas:
+   *  1. Catálogo local `fontes_oficiais.json` (se existir).
+   *  2. Gerador determinístico de domínios municipais `.gov.br` + Crawler de 1 nível em subpáginas.
+   *  3. Fallback em múltiplos motores de busca públicos (Brave, Yahoo BR, Bing, DuckDuckGo Lite).
    * @private
    */
   async _buscarUrlsCandidatasGovBr(municipio, uf) {
     const candidatas = [];
     const urlsVistas = new Set();
 
-    const adicionarCandidata = (url, fonte = null) => {
+    const adicionarCandidata = (url, opcoes = {}) => {
       if (!url || typeof url !== 'string') return;
       const limpa = url.trim().replace(/[).,;'"<>]+$/, '');
       if (!this._ehUrlOficialConfiavel(limpa)) return;
       if (urlsVistas.has(limpa)) return;
       urlsVistas.add(limpa);
-      candidatas.push({ url: limpa, fonte });
+      candidatas.push({
+        url: limpa,
+        fonte: opcoes.fonte || null,
+        contextoTerritorial: opcoes.contextoTerritorial || `${municipio} - ${uf}`,
+        respostaHttp: opcoes.respostaHttp || null,
+        nivel: opcoes.nivel || 0,
+        prioridade: opcoes.prioridade || 5
+      });
     };
 
-    // 1. Verifica catálogo opcional fontes_oficiais.json caso exista em disco
+    // Camada 1: Verifica catálogo opcional fontes_oficiais.json caso exista em disco
     const mapaFontesPath = path.join(__dirname, 'fontes_oficiais.json');
     const mapaFontes = lerJsonSeguro(mapaFontesPath, null);
     const slug = gerarSlugMunicipio(municipio, uf);
     if (mapaFontes && mapaFontes[slug] && mapaFontes[slug].url) {
-      adicionarCandidata(mapaFontes[slug].url, mapaFontes[slug].fonte);
+      adicionarCandidata(mapaFontes[slug].url, {
+        fonte: mapaFontes[slug].fonte,
+        prioridade: 20
+      });
     }
 
-    // 2. Consulta determinística em endpoints públicos de busca (DuckDuckGo HTML / Lite)
-    const consultas = [
-      `site:gov.br "REMUME" "${municipio}" "${uf}"`,
-      `site:gov.br "Relação Municipal de Medicamentos" "${municipio}" "${uf}"`
-    ];
+    // Camada 2: Sondagem direta dos domínios oficiais da Prefeitura (.gov.br) + Subpáginas de Saúde
+    await this._rastrearPortalMunicipalGovBr(municipio, uf, adicionarCandidata);
 
-    for (const query of consultas) {
-      if (candidatas.length >= 6) break;
-      const searchUrl = `https://html.duckduckgo.com/html/?q=${encodeURIComponent(query)}`;
-      const resp = await this._httpGetBufferSeguro(searchUrl, 4500, 2);
-      if (!resp || !resp.buffer) continue;
-
-      const htmlBusca = resp.buffer.toString('utf8');
-      const linksExtraidos = this._extrairUrlsDeHtmlDeBusca(htmlBusca);
-      for (const link of linksExtraidos) {
-        adicionarCandidata(link);
-        if (candidatas.length >= 6) break;
-      }
+    // Camada 3: Fallback Multi-Buscador (Brave, Yahoo BR, Bing, DDG Lite) se ainda houver poucas candidatas
+    if (candidatas.length < 6) {
+      await this._buscarEmMotoresDeBuscaPublicos(municipio, uf, adicionarCandidata);
     }
 
+    candidatas.sort((a, b) => (b.prioridade || 0) - (a.prioridade || 0));
     return candidatas;
   },
 
   /**
-   * Extrai links reais (incluindo redirecionamentos codificados uddg=) de uma página HTML de busca.
+   * Sonda os domínios determinísticos `.gov.br` do município e varre subpáginas de saúde/REMUME.
+   * @private
+   */
+  async _rastrearPortalMunicipalGovBr(municipio, uf, adicionarCandidata) {
+    const dominiosProvaveis = this._gerarDominiosOficiaisMunicipio(municipio, uf);
+    if (dominiosProvaveis.length === 0) return;
+
+    // Testa os domínios principais em paralelo com timeout curto para achar o portal ativo da prefeitura
+    const loteDominios = dominiosProvaveis.slice(0, 6);
+    const sondagens = await Promise.allSettled(
+      loteDominios.map((domUrl) => this._httpGetBufferSeguro(domUrl, 3200, 3))
+    );
+
+    const portaisAtivos = [];
+    for (let i = 0; i < sondagens.length; i++) {
+      const resultado = sondagens[i];
+      if (
+        resultado.status === 'fulfilled' &&
+        resultado.value &&
+        resultado.value.buffer &&
+        resultado.value.buffer.length > 200
+      ) {
+        const resp = resultado.value;
+        const urlAtiva = resp.finalUrl || loteDominios[i];
+        if (!this._ehUrlOficialConfiavel(urlAtiva)) continue;
+
+        let origemBase = '';
+        try {
+          origemBase = new URL(urlAtiva).origin;
+        } catch (_e) {
+          origemBase = loteDominios[i];
+        }
+
+        if (!portaisAtivos.includes(origemBase)) {
+          portaisAtivos.push(origemBase);
+        }
+
+        // Extrai links de 1º nível já presentes na página inicial da prefeitura
+        const htmlInicial = resp.buffer.toString('utf8');
+        const linksHome = this._extrairLinksInternosRelevantes(htmlInicial, urlAtiva, municipio);
+        for (const lk of linksHome) {
+          adicionarCandidata(lk.url, {
+            fonte: `Portal Oficial da Prefeitura de ${municipio} - ${uf} (${origemBase})`,
+            prioridade: lk.score,
+            nivel: 1
+          });
+        }
+      }
+    }
+
+    // Se encontrou pelo menos 1 portal municipal oficial ativo (ex: https://www.garrafaodonorte.pa.gov.br),
+    // sonda os endpoints de REMUME / Saúde / WP-JSON desse portal
+    const basePrincipal = portaisAtivos[0];
+    if (basePrincipal) {
+      const subcaminhos = this._gerarSubcaminhosSaude().slice(0, 16);
+      const promessasSub = subcaminhos.map(async (sub) => {
+        const urlSub = `${basePrincipal}${sub.path}`;
+        const respSub = await this._httpGetBufferSeguro(urlSub, 3500, 2);
+        if (!respSub || !respSub.buffer || respSub.buffer.length < 100) return;
+
+        const textoSub = respSub.buffer.toString('utf8');
+        if (this._ehPaginaBloqueioOuCaptcha(textoSub)) return;
+
+        // Registra a própria subpágina (pode conter a tabela de medicamentos diretamente)
+        adicionarCandidata(respSub.finalUrl || urlSub, {
+          fonte: `Secretaria Municipal de Saúde de ${municipio} - ${uf} (${basePrincipal})`,
+          respostaHttp: respSub,
+          prioridade: sub.prioridade,
+          nivel: 0
+        });
+
+        // E extrai links internos (ex: PDF da REMUME listado na página ou no WP-JSON)
+        const linksExtraidos = this._extrairLinksInternosRelevantes(
+          textoSub,
+          respSub.finalUrl || urlSub,
+          municipio
+        );
+        for (const lk of linksExtraidos) {
+          adicionarCandidata(lk.url, {
+            fonte: `Secretaria Municipal de Saúde de ${municipio} - ${uf} (${basePrincipal})`,
+            prioridade: lk.score + 5,
+            nivel: 1
+          });
+        }
+      });
+
+      await Promise.allSettled(promessasSub);
+    }
+  },
+
+  /**
+   * Consulta múltiplos motores de busca públicos (Brave Search, Yahoo Brasil, Bing e DuckDuckGo Lite)
+   * com detecção automática de bloqueio/CAPTCHA e extração de links `.gov.br`.
+   * @private
+   */
+  async _buscarEmMotoresDeBuscaPublicos(municipio, uf, adicionarCandidata) {
+    const queryRemume = `site:gov.br REMUME "${municipio}" "${uf}"`;
+    const queryRelacao = `site:gov.br "Relação Municipal de Medicamentos" "${municipio}" "${uf}"`;
+
+    const provedoresBusca = [
+      `https://search.brave.com/search?q=${encodeURIComponent(queryRemume)}&source=web`,
+      `https://br.search.yahoo.com/search?p=${encodeURIComponent(queryRemume)}`,
+      `https://www.bing.com/search?q=${encodeURIComponent(queryRemume)}&setlang=pt-BR`,
+      `https://br.search.yahoo.com/search?p=${encodeURIComponent(queryRelacao)}`,
+      `https://lite.duckduckgo.com/lite/?q=${encodeURIComponent(queryRemume)}`,
+      `https://html.duckduckgo.com/html/?q=${encodeURIComponent(queryRemume)}`
+    ];
+
+    for (const searchUrl of provedoresBusca) {
+      const resp = await this._httpGetBufferSeguro(searchUrl, 4000, 2);
+      if (!resp || !resp.buffer) continue;
+
+      const htmlBusca = resp.buffer.toString('utf8');
+      if (this._ehPaginaBloqueioOuCaptcha(htmlBusca)) {
+        continue;
+      }
+
+      const linksExtraidos = this._extrairUrlsDeHtmlDeBusca(htmlBusca);
+      let adicionadosNesteMotor = 0;
+      for (const link of linksExtraidos) {
+        if (this._ehUrlOficialConfiavel(link)) {
+          const ehPdf = /\.pdf(?:$|\?)/i.test(link);
+          adicionarCandidata(link, {
+            prioridade: ehPdf ? 14 : 10,
+            nivel: 0
+          });
+          adicionadosNesteMotor++;
+        }
+      }
+
+      if (adicionadosNesteMotor >= 4) {
+        break;
+      }
+    }
+  },
+
+  /**
+   * Detecta páginas de bloqueio de botnet, CAPTCHA ou WAF (DuckDuckGo Anomaly, Cloudflare, etc.).
+   * @param {string} html
+   * @returns {boolean}
+   */
+  _ehPaginaBloqueioOuCaptcha(html) {
+    if (!html || typeof html !== 'string') return false;
+    return (
+      html.includes('anomaly-modal') ||
+      html.includes('bots use DuckDuckGo too') ||
+      html.includes('cf-browser-verification') ||
+      html.includes('challenge-platform') ||
+      html.includes('g-recaptcha') && html.length < 4000
+    );
+  },
+
+  /**
+   * Extrai links reais (incluindo redirecionamentos codificados uddg= do DDG e RU= do Yahoo)
+   * de uma página HTML de busca.
    * @private
    */
   _extrairUrlsDeHtmlDeBusca(html) {
     if (!html || typeof html !== 'string') return [];
     const encontrados = [];
 
-    // 1. Extrai parâmetros uddg= (padrão DuckDuckGo HTML)
+    // 1. Extrai parâmetros uddg= (padrão DuckDuckGo HTML/Lite)
     const regexUddg = /[?&]uddg=([^&"'\s>]+)/gi;
     let match;
     while ((match = regexUddg.exec(html)) !== null) {
@@ -1338,11 +2141,27 @@ const CatalogoRemumeService = {
       }
     }
 
-    // 2. Extrai atributos href="https://..." diretos
+    // 2. Extrai redirecionamentos RU=.../RK= (padrão Yahoo Search)
+    const regexYahooRu = /\/RU=([^/]+)\/RK=/gi;
+    while ((match = regexYahooRu.exec(html)) !== null) {
+      try {
+        const decoded = decodeURIComponent(match[1]);
+        if (decoded.startsWith('http')) {
+          encontrados.push(decoded);
+        }
+      } catch (_e) {
+        // Ignora URI malformada
+      }
+    }
+
+    // 3. Extrai atributos href="https://..." diretos (Brave, Bing, DDG, Google)
     const regexHref = /href=["'](https?:\/\/[^"'\s>]+)["']/gi;
+    const dominiosBuscadores =
+      /(?:duckduckgo\.com|yahoo\.com|bing\.com|microsoft\.com|brave\.com|google\.com|cloudflare\.com)/i;
+
     while ((match = regexHref.exec(html)) !== null) {
       const url = match[1].replace(/&amp;/g, '&');
-      if (!url.includes('duckduckgo.com')) {
+      if (!dominiosBuscadores.test(url)) {
         encontrados.push(url);
       }
     }
@@ -1385,8 +2204,10 @@ const CatalogoRemumeService = {
   },
 
   /**
-   * Converte HTML em texto estruturado linha a linha, preservando colunas de tabelas
-   * como delimitadores ";" para alimentar `extrairMedicamentosDeTextoBruto`.
+   * Converte HTML em texto estruturado linha a linha.
+   * ARQUITETURA CIRÚRGICA: Processa cada linha de tabela <tr>...</tr> atomicamente ANTES
+   * de quebrar blocos <p> ou <div>, garantindo que tags internas dentro de <td> jamais
+   * separem o nome do medicamento da sua unidade/apresentação/categoria.
    * @private
    */
   _limparHtmlParaTexto(html) {
@@ -1396,13 +2217,36 @@ const CatalogoRemumeService = {
       .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
       .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
       .replace(/<noscript\b[^>]*>[\s\S]*?<\/noscript>/gi, ' ')
-      .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, ' ')
-      // Células de tabela viram separadores ";" para manter Nome ; Concentração ; Forma na mesma linha
+      .replace(/<svg\b[^>]*>[\s\S]*?<\/svg>/gi, ' ');
+
+    // 1. Extração atômica de linhas de tabela <tr>...</tr>:
+    // Dentro de uma célula <td> ou <th>, tags <p>, <div>, <br>, <span> viram espaço simples (' '),
+    // mantendo todas as colunas daquela linha unidas por ' ; ' em uma única linha textual.
+    limpo = limpo.replace(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi, (_matchTr, conteudoTr) => {
+      const celulas = [];
+      const regexCelula = /<t[dh]\b[^>]*>([\s\S]*?)<\/t[dh]>/gi;
+      let matchCel;
+
+      while ((matchCel = regexCelula.exec(conteudoTr)) !== null) {
+        const textoCelula = matchCel[1]
+          .replace(/<[^>]+>/g, ' ')
+          .replace(/[\r\n\t]+/g, ' ')
+          .replace(/\s{2,}/g, ' ')
+          .trim();
+        if (textoCelula) {
+          celulas.push(textoCelula);
+        }
+      }
+
+      if (celulas.length === 0) return '\n';
+      return `\n${celulas.join(' ; ')}\n`;
+    });
+
+    // 2. Para conteúdos fora de tabelas (listas, parágrafos soltos), mantém quebras normais
+    limpo = limpo
       .replace(/<\/t[dh]>/gi, ' ; ')
-      // Tags de quebra de bloco viram quebras de linha
       .replace(/<\/(?:tr|p|div|li|h[1-6]|section|article|header|footer)>/gi, '\n')
       .replace(/<(?:br|hr)\s*\/?>/gi, '\n')
-      // Remove demais tags HTML
       .replace(/<[^>]+>/g, ' ');
 
     // Decodifica entidades HTML farmacológicas e acentuação brasileira
@@ -1418,6 +2262,8 @@ const CatalogoRemumeService = {
       '&bull;': '•',
       '&micro;': 'mcg',
       '&deg;': '°',
+      '&ordm;': 'º',
+      '&ordf;': 'ª',
       '&aacute;': 'á',
       '&eacute;': 'é',
       '&iacute;': 'í',
@@ -1468,7 +2314,8 @@ const CatalogoRemumeService = {
   /**
    * Extrai texto de um Buffer PDF em Node.js 20+.
    * Tenta usar `pdf-parse` se instalado; caso contrário, utiliza extrator nativo
-   * baseado em descompressão `zlib` (FlateDecode) e operadores de texto PDF (`Tj`, `TJ`).
+   * baseado em descompressão `zlib` (FlateDecode) e operadores de texto PDF (`Tj`, `TJ`),
+   * preservando colunas horizontais de tabelas na mesma linha.
    * @private
    */
   async _extrairTextoDePdfBuffer(buffer) {
@@ -1495,18 +2342,35 @@ const CatalogoRemumeService = {
       const linhas = [];
       let linhaAtual = [];
 
-      // Processa blocos BT ... ET ou o stream inteiro
-      const regexToken = /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")|\[((?:\\.|[^\]])*)\]\s*TJ|\b(Td|TD|T\*|ET)\b/g;
+      // Captura literais (...) Tj, arrays [...] TJ, deslocamentos x y Td/TD e quebras T*/ET
+      const regexToken =
+        /\((?:\\.|[^\\()])*\)\s*(?:Tj|'|")|\[((?:\\.|[^\]])*)\]\s*TJ|(-?\d+(?:\.\d+)?)\s+(-?\d+(?:\.\d+)?)\s+(Td|TD)|\b(T\*|ET)\b/g;
       let m;
       while ((m = regexToken.exec(conteudoStream)) !== null) {
         const tokenCompleto = m[0];
         const arrayTj = m[1];
-        const operadorQuebra = m[2];
+        const dyStr = m[3];
+        const opTd = m[4];
+        const operadorQuebra = m[5];
 
         if (operadorQuebra) {
           if (linhaAtual.length > 0) {
             linhas.push(linhaAtual.join(' ').replace(/\s+/g, ' ').trim());
             linhaAtual = [];
+          }
+          continue;
+        }
+
+        if (opTd) {
+          const dy = parseFloat(dyStr || '0');
+          // Se |dy| < 2, é apenas deslocamento horizontal de coluna na mesma linha da tabela
+          if (Math.abs(dy) >= 2) {
+            if (linhaAtual.length > 0) {
+              linhas.push(linhaAtual.join(' ').replace(/\s+/g, ' ').trim());
+              linhaAtual = [];
+            }
+          } else if (linhaAtual.length > 0) {
+            linhaAtual.push(' ; ');
           }
           continue;
         }
@@ -1596,78 +2460,162 @@ const CatalogoRemumeService = {
   },
 
   /**
-   * Realiza requisição HTTP/HTTPS GET retornando Buffer binário, Content-Type e URL final,
-   * com suporte seguro a redirecionamentos e timeout estrito.
+   * Retorna headers HTTP realistas de navegador moderno (pt-BR) para evitar bloqueios de WAF
+   * em portais governamentais e motores de busca.
    * @private
    */
-  _httpGetBufferSeguro(urlStr, timeoutMs = 5000, maxRedirects = 3) {
+  _obterHeadersNavegadorRealista() {
+    return {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Accept:
+        'text/html,application/xhtml+xml,application/xml;q=0.9,application/pdf,application/json,text/plain;q=0.8,*/*;q=0.7',
+      'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Accept-Encoding': 'gzip, deflate, br',
+      'Cache-Control': 'no-cache',
+      Pragma: 'no-cache',
+      'Sec-Ch-Ua': '"Chromium";v="124", "Google Chrome";v="124", "Not-A.Brand";v="99"',
+      'Sec-Ch-Ua-Mobile': '?0',
+      'Sec-Ch-Ua-Platform': '"Windows"',
+      'Sec-Fetch-Dest': 'document',
+      'Sec-Fetch-Mode': 'navigate',
+      'Sec-Fetch-Site': 'none',
+      'Sec-Fetch-User': '?1',
+      'Upgrade-Insecure-Requests': '1'
+    };
+  },
+
+  /**
+   * Descomprime buffers HTTP codificados com gzip, deflate ou brotli.
+   * @private
+   */
+  _descomprimirBufferHttp(buffer, contentEncoding = '') {
+    if (!buffer || !Buffer.isBuffer(buffer) || buffer.length === 0) return buffer;
+    const enc = String(contentEncoding || '').toLowerCase().trim();
+    if (!enc) return buffer;
+
+    try {
+      if (enc.includes('gzip') || enc.includes('x-gzip')) {
+        return zlib.gunzipSync(buffer);
+      }
+      if (enc.includes('deflate')) {
+        try {
+          return zlib.inflateSync(buffer);
+        } catch (_e) {
+          return zlib.inflateRawSync(buffer);
+        }
+      }
+      if (enc.includes('br') && typeof zlib.brotliDecompressSync === 'function') {
+        return zlib.brotliDecompressSync(buffer);
+      }
+    } catch (_err) {
+      // Caso o servidor tenha enviado header incorreto mas corpo já descomprimido
+      return buffer;
+    }
+    return buffer;
+  },
+
+  /**
+   * Realiza requisição HTTP/HTTPS GET retornando Buffer binário descomprimido, Content-Type e URL final,
+   * com headers realistas de navegador, suporte a redirecionamentos, descompressão gzip/br e
+   * fallback seguro de cadeia TLS ICP-Brasil restrito a domínios `.gov.br`.
+   * @private
+   */
+  _httpGetBufferSeguro(urlStr, timeoutMs = 5000, maxRedirects = 3, permitirTlsGovBr = false) {
     return new Promise((resolve) => {
       try {
         if (!urlStr || typeof urlStr !== 'string') return resolve(null);
         const parsedUrl = new URL(urlStr);
-        const client = parsedUrl.protocol === 'https:' ? https : http;
+        const isHttps = parsedUrl.protocol === 'https:';
+        const client = isHttps ? https : http;
 
-        const req = client.get(
-          parsedUrl,
-          {
-            timeout: timeoutMs,
-            headers: {
-              'User-Agent':
-                'Mozilla/5.0 (compatible; meusRemedios-ClinicalSafetyVerifier/2.0; +https://gov.br)',
-              Accept:
-                'text/html,application/xhtml+xml,application/pdf,text/plain,application/json,text/csv;q=0.9,*/*;q=0.8',
-              'Accept-Language': 'pt-BR,pt;q=0.9,en;q=0.5'
-            }
-          },
-          (res) => {
-            const status = res.statusCode || 0;
+        const opcoesReq = {
+          timeout: timeoutMs,
+          headers: this._obterHeadersNavegadorRealista()
+        };
 
-            // Segue redirecionamentos HTTP (301, 302, 303, 307, 308)
-            if ([301, 302, 303, 307, 308].includes(status) && res.headers.location) {
-              res.resume();
-              if (maxRedirects <= 0) return resolve(null);
-              try {
-                const nextUrl = new URL(res.headers.location, parsedUrl).toString();
-                return resolve(
-                  this._httpGetBufferSeguro(nextUrl, timeoutMs, maxRedirects - 1)
-                );
-              } catch (_redirErr) {
-                return resolve(null);
-              }
-            }
+        if (isHttps && permitirTlsGovBr && this._ehUrlOficialConfiavel(urlStr)) {
+          opcoesReq.rejectUnauthorized = false;
+        }
 
-            if (status < 200 || status >= 300) {
-              res.resume();
+        const req = client.get(parsedUrl, opcoesReq, (res) => {
+          const status = res.statusCode || 0;
+
+          // Segue redirecionamentos HTTP (301, 302, 303, 307, 308)
+          if ([301, 302, 303, 307, 308].includes(status) && res.headers.location) {
+            res.resume();
+            if (maxRedirects <= 0) return resolve(null);
+            try {
+              const nextUrl = new URL(res.headers.location, parsedUrl).toString();
+              return resolve(
+                this._httpGetBufferSeguro(
+                  nextUrl,
+                  timeoutMs,
+                  maxRedirects - 1,
+                  permitirTlsGovBr
+                )
+              );
+            } catch (_redirErr) {
               return resolve(null);
             }
-
-            const chunks = [];
-            let totalBytes = 0;
-            const LIMITE_BYTES = 8 * 1024 * 1024; // 8 MB máx
-
-            res.on('data', (chunk) => {
-              if (totalBytes < LIMITE_BYTES) {
-                chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
-                totalBytes += chunk.length;
-              }
-            });
-
-            res.on('end', () => {
-              resolve({
-                buffer: Buffer.concat(chunks),
-                contentType: String(res.headers['content-type'] || ''),
-                statusCode: status,
-                finalUrl: parsedUrl.toString()
-              });
-            });
           }
-        );
+
+          if (status < 200 || status >= 300) {
+            res.resume();
+            return resolve(null);
+          }
+
+          const chunks = [];
+          let totalBytes = 0;
+          const LIMITE_BYTES = 8 * 1024 * 1024; // 8 MB máx
+
+          res.on('data', (chunk) => {
+            if (totalBytes < LIMITE_BYTES) {
+              chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk));
+              totalBytes += chunk.length;
+            }
+          });
+
+          res.on('end', () => {
+            const rawBuffer = Buffer.concat(chunks);
+            const bufferFinal = this._descomprimirBufferHttp(
+              rawBuffer,
+              res.headers['content-encoding']
+            );
+            resolve({
+              buffer: bufferFinal,
+              contentType: String(res.headers['content-type'] || ''),
+              statusCode: status,
+              finalUrl: parsedUrl.toString()
+            });
+          });
+        });
 
         req.on('timeout', () => {
           req.destroy();
           resolve(null);
         });
-        req.on('error', () => resolve(null));
+
+        req.on('error', (err) => {
+          const codigoErro = String((err && err.code) || '');
+          const erroCertificado =
+            codigoErro.includes('CERT') ||
+            codigoErro.includes('UNABLE_TO_VERIFY_LEAF_SIGNATURE') ||
+            codigoErro.includes('SELF_SIGNED');
+
+          // Portais de prefeituras (.gov.br) frequentemente possuem cadeia intermediária ICP-Brasil incompleta
+          if (
+            isHttps &&
+            !permitirTlsGovBr &&
+            erroCertificado &&
+            this._ehUrlOficialConfiavel(urlStr)
+          ) {
+            return resolve(
+              this._httpGetBufferSeguro(urlStr, timeoutMs, maxRedirects, true)
+            );
+          }
+          resolve(null);
+        });
       } catch (_e) {
         resolve(null);
       }
@@ -1685,24 +2633,87 @@ const CatalogoRemumeService = {
   },
 
   /**
-   * Utilitário auxiliar: Consulta se um princípio ativo/medicamento faz parte
-   * do catálogo ativo do usuário/município.
+   * Pesquisa inteligente Multi-Token de disponibilidade de medicamentos no catálogo ativo.
+   * Suporta buscas como "amoxi clav", "losartana 50", "dipirona gotas", ignorando sais irrelevantes
+   * e tolerando tanto catálogo de strings quanto catálogo de objetos.
    * @param {string} termoMedicamento
    * @param {string} [chatIdOuSlug]
    * @returns {{ disponivel: boolean, correspondencias: Array<string>, catalogo: object }}
    */
   consultarDisponibilidade(termoMedicamento, chatIdOuSlug) {
     const catalogo = this.obterCatalogoAtivo(chatIdOuSlug);
-    const termoLimpo = normalizarAscii(String(termoMedicamento || '')).toLowerCase();
+    const STOPWORDS_SAIS = new Set([
+      'de', 'da', 'do', 'com', 'para', 'em', 'uso', 'sodica', 'sodico',
+      'potassica', 'potassico', 'cloridrato', 'sulfato', 'maleato',
+      'besilato', 'succinato', 'tartarato', 'fumarato', 'bromidrato', 'monoidratada'
+    ]);
 
-    if (!termoLimpo || termoLimpo.length < 3) {
+    const termoNorm = normalizarAscii(String(termoMedicamento || ''))
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (!termoNorm || termoNorm.length < 2) {
       return { disponivel: false, correspondencias: [], catalogo };
     }
 
-    const correspondencias = (catalogo.itens || []).filter((item) => {
-      const itemNorm = normalizarAscii(item).toLowerCase();
-      return itemNorm.includes(termoLimpo);
-    });
+    const tokensBrutos = termoNorm.split(' ').filter((t) => t.length >= 2 || /\d/.test(t));
+    const tokensBusca = tokensBrutos.filter((t) => !STOPWORDS_SAIS.has(t));
+    const tokensEfetivos = tokensBusca.length > 0 ? tokensBusca : tokensBrutos;
+
+    // Sinônimos rápidos comuns no plantão e na atenção básica
+    const MAPA_SINONIMOS = {
+      aas: 'acido acetilsalicilico',
+      hctz: 'hidroclorotiazida',
+      smz: 'sulfametoxazol',
+      tmp: 'trimetoprima',
+      bactrim: 'sulfametoxazol',
+      benzetacil: 'benzilpenicilina benzatina',
+      plasil: 'metoclopramida',
+      buscopan: 'escopolamina',
+      lasix: 'furosemida',
+      capoten: 'captopril',
+      marevan: 'varfarina',
+      puran: 'levotiroxina'
+    };
+
+    const tokensExpandidos = tokensEfetivos.map((tk) => MAPA_SINONIMOS[tk] || tk);
+    const resultadosPontuados = [];
+
+    for (const itemBruto of catalogo.itens || []) {
+      const itemStr =
+        typeof itemBruto === 'string'
+          ? itemBruto
+          : [itemBruto.principio_ativo || itemBruto.nome || '', itemBruto.apresentacao || '']
+              .filter(Boolean)
+              .join(' - ');
+
+      const itemNorm = normalizarAscii(itemStr)
+        .toLowerCase()
+        .replace(/[^a-z0-9\s]/g, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      let todosTokensPresentes = true;
+      let score = 0;
+
+      for (const tk of tokensExpandidos) {
+        if (itemNorm.includes(tk)) {
+          score += itemNorm.startsWith(tk) ? 3 : 1;
+        } else {
+          todosTokensPresentes = false;
+          break;
+        }
+      }
+
+      if (todosTokensPresentes) {
+        resultadosPontuados.push({ item: itemStr, score });
+      }
+    }
+
+    resultadosPontuados.sort((a, b) => b.score - a.score || a.item.localeCompare(b.item));
+    const correspondencias = resultadosPontuados.map((r) => r.item);
 
     return {
       disponivel: correspondencias.length > 0,
@@ -1723,3 +2734,4 @@ if (typeof window !== 'undefined') {
 module.exports = CatalogoRemumeService;
 module.exports.CatalogoRemumeService = CatalogoRemumeService;
 module.exports.gerarSlugMunicipio = gerarSlugMunicipio;
+module.exports.extrairMunicipioEUf = extrairMunicipioEUf;

@@ -1,6 +1,6 @@
 {
-  "version": "3.0.0",
-  "baseline": "rename_nacional",
+  "versao": "1.0.0",
+  "atualizado_em": "2026-10-18T20:24:24.126Z",
   "presets": [
     {
       "slug": "rename_nacional",
@@ -82,6 +82,20 @@
       "selo_curto": "🟢 [REMUME-RP]",
       "total_itens": 255,
       "verificado": true
+    },
+    {
+      "slug": "pa_garrafao_do_norte",
+      "remume_id": "pa_garrafao_do_norte",
+      "municipio": "Garrafão do Norte",
+      "uf": "PA",
+      "nome_exibicao": "REMUME Garrafão do Norte - PA",
+      "selo_curto": "REMUME Garrafão do Norte/PA",
+      "fonte": "Secretaria Municipal de Saúde de Garrafão do Norte - PA (https://www.garrafaodonorte.pa.gov.br)",
+      "url_oficial": "https://www.garrafaodonorte.pa.gov.br/medicamentoslista.php",
+      "total_itens": 192,
+      "total_medicamentos": 192,
+      "arquivo": "pa_garrafao_do_norte.json",
+      "atualizado_em": "2026-10-18T20:24:24.125Z"
     }
   ]
 }

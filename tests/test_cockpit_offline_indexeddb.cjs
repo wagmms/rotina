@@ -45,7 +45,7 @@ assert(htmlContent.includes('id="btn-copiar-atb"'), 'Botão btn-copiar-atb prese
 assert(htmlContent.includes('id="btn-migrar-crcl-atb"'), 'Botão de migração ClCr para ATB presente');
 assert(htmlContent.includes("adicionarKitPrescricao('atb_pac')"), 'Kit empírico PAC presente');
 assert(htmlContent.includes("adicionarKitPrescricao('atb_itu')"), 'Kit empírico ITU presente');
-assert(htmlContent.includes('O que fazer:</strong> Digite o relato clínico do paciente'), 'Orientação explicativa do que registrar no SOAP presente');
+assert(htmlContent.includes('id="amb-input-queixa"'), 'Input de queixa do SOAP ambulatorial presente');
 assert(htmlContent.includes("onclick=\"setAtestadoDias(3)\""), 'Atalho de dias de atestado presente');
 assert(htmlContent.includes("onclick=\"setAtestadoCid("), 'Atalhos de CIDs presentes');
 assert(htmlContent.includes('id="calc-dhe"'), 'Painel calc-dhe presente');

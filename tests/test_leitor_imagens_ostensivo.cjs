@@ -170,8 +170,8 @@ test('Keep-alive visual: envia upload_photo e NÃO envia mensagem de texto "Anal
   assert.strictEqual(analisandoMsg, undefined, 'NÃO deve enviar balão de texto redundante "Analisando imagem..."');
 });
 
-// 3. Teclado inline limpo e simétrico: Incorporar ao SOAP, Salvar no Notion e Copiar Laudo
-test('Teclado inline: botões [➕ Incorporar ao SOAP], [📁 Salvar no Notion] e [📋 Copiar Laudo]', () => {
+// 3. Teclado inline limpo: Incorporar ao SOAP e Copiar Laudo
+test('Teclado inline: botões [➕ Incorporar ao SOAP] e [📋 Copiar Laudo]', () => {
   const { c, sent, cache } = env();
   const msg = {
     chat: { id: 123 },
@@ -185,11 +185,9 @@ test('Teclado inline: botões [➕ Incorporar ao SOAP], [📁 Salvar no Notion] 
   const kb = msgFinal.payload.reply_markup.inline_keyboard;
   assert.strictEqual(kb.length, 2, 'Deveria ter 2 linhas de botões');
 
-  // Linha 1: Incorporar ao SOAP e Salvar no Notion
+  // Linha 1: Incorporar ao SOAP
   assert.strictEqual(kb[0][0].text, '➕ Incorporar ao SOAP');
   assert.ok(kb[0][0].callback_data.startsWith('incorporarSoap_'), 'Callback deve ser incorporarSoap_');
-  assert.strictEqual(kb[0][1].text, '📁 Salvar no Notion');
-  assert.ok(kb[0][1].callback_data.startsWith('salvarNotion_imagem_'), 'Callback deve ser salvarNotion_imagem_');
 
   // Linha 2: Copiar Laudo
   assert.strictEqual(kb[1][0].text, '📋 Copiar Laudo');

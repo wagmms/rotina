@@ -231,8 +231,8 @@ test('Cockpit Responsividade & SOAP - Modal Ambulatorial com Gaveta de Queixas F
 test('Cockpit Responsividade & SOAP - Filtro Contextual Anti-Poluição de Ações Rápidas na Aba SOAP', () => {
   const html = fs.readFileSync(cockpitHtmlPath, 'utf8');
 
-  // 1. Botão de atalho rápido no header do Copiloto
-  assert.ok(html.includes('Consultório APS'), 'Deve conter atalho Consultório APS no header do Copiloto');
+  // 1. Botão de atalho rápido unificado nas Ações Rápidas (sem redundância no header)
+  assert.ok(html.includes('Prontuário SOAP (APS)') || html.includes('SOAP Ambulatorial'), 'Deve conter atalho SOAP Ambulatorial nas Ações Rápidas');
   assert.ok(html.includes('abrirModalAmbulatorioSOAP()'), 'Atalho deve invocar abrirModalAmbulatorioSOAP');
 
   // 2. Filtro de Contexto Clínico Anti-Poluição

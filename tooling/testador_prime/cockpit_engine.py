@@ -158,14 +158,38 @@ class CockpitEnginePrime:
                 expected_behavior="Transformar ações globais recorrentes em um único componente compartilhado ou barra inferior fixa."
             )
 
-        # 3. Ergonomia de Inputs Clínicos (peso, idade, creatinina, dose)
-        numeric_keywords = ("peso", "idade", "creat", "dose", "ampola", "vazao", "volume", "fc", "pa", "glasgow")
+        # 3. Ergonomia de Inputs Clínicos (grandezas médicas: peso, PA, FC, doses, exames)
+        num_token_re = re.compile(
+            r"(?:^|[-_])(peso|altura|idade|fc|fr|pas|pad|pam|sato2|spo2|tax|temp|"
+            r"glicemia|hgt|gj|sem|semanas|avidez|perda|ml|mg|mcg|gotas|bpm|irpm|"
+            r"glasgow|apgar|ph|hb|ht|plaquetas|creatinina|tfg|clearance|tempo|rota)(?:$|[-_])",
+            re.IGNORECASE,
+        )
+        text_excl_re = re.compile(
+            r"(busca|search|filtro|nome|paciente|queixa|historia|obs|anotac|motivo|"
+            r"cid|alergia|medicamento|conduta|avaliacao|plano|subjetivo|objetivo|"
+            r"resumo|texto|livre|desc|unidade|cidade|hospital|cenario|doc)",
+            re.IGNORECASE,
+        )
         inputs_missing_numeric_mode = []
         for inp in parser.inputs:
-            ident = f"{inp['id']} {inp['name']} {inp['placeholder']}".lower()
-            if any(k in ident for k in numeric_keywords):
-                if inp["type"] not in ("number", "tel", "range") and inp["inputmode"] not in ("decimal", "numeric"):
-                    inputs_missing_numeric_mode.append(inp["id"] or inp["name"] or inp["placeholder"])
+            if inp.get("tag") != "input":
+                continue
+            itype = (inp.get("type") or "text").lower().strip()
+            if itype in ("hidden", "checkbox", "radio", "button", "submit", "reset", "file", "date", "time", "month", "week", "tel", "range"):
+                continue
+            imode = (inp.get("inputmode") or "").lower().strip()
+            iid = inp.get("id") or ""
+            ident = f"{iid} {inp.get('name', '')} {inp.get('placeholder', '')}".lower()
+
+            is_numeric_target = False
+            if itype == "number":
+                is_numeric_target = True
+            elif not text_excl_re.search(ident) and num_token_re.search(iid):
+                is_numeric_target = True
+
+            if is_numeric_target and imode not in ("decimal", "numeric"):
+                inputs_missing_numeric_mode.append(iid or inp.get("name") or "input_sem_id")
 
         if inputs_missing_numeric_mode:
             self.ux.add_suggestion(
@@ -173,7 +197,7 @@ class CockpitEnginePrime:
                 target_file="cockpit_movel.html",
                 component=f"Inputs clínicos ({', '.join(inputs_missing_numeric_mode[:5])})",
                 problem="Campos numéricos clínicos não abrem o teclado numérico decimal automaticamente no celular.",
-                expected_behavior="Adicionar `inputmode=\"decimal\"` nos inputs de peso, creatinina e doses para economizar toques na beira do leito."
+                expected_behavior="Adicionar `inputmode=\"decimal\"` ou `inputmode=\"numeric\"` nos inputs de peso, creatinina e doses para economizar toques na beira do leito."
             )
 
         # 4. Verifica paridade entre cockpit_movel.html e gh_cockpit_deploy/index.html
@@ -272,17 +296,26 @@ class CockpitEnginePrime:
             ("RPC: Calcular Clearance Creatinina", {"metodo": "cockpitCalcular", "args": ["crcl", {"peso": 75, "idade": 60, "creatinina": 1.4, "sexo": "m"}]}),
             ("RPC: Consultar Protocolo Clínico", {"metodo": "cockpitConsultar", "args": ["sepse"]}),
             ("RPC: Busca REMUME Medicamentos", {"metodo": "cockpitRemume", "args": ["amiodarona"]}),
+            # --- NOVAS RPCS: GO & PERFIL ---
+            ("RPC: Cálculo Pré-Natal (GO)", {"metodo": "cockpitCalcularPrenatal", "args": [{"dum": "2026-01-10"}]}),
+            ("RPC: Sulfato de Magnésio (GO)", {"metodo": "cockpitSulfatoMagnesio", "args": [{"esquema": "zuspan", "peso": 65}]}),
+            ("RPC: Consulta Perfil do Médico", {"metodo": "cockpitPerfil", "args": []}),
         ]
 
         for label, payload in rpc_tests:
             self._call_api(label, "POST", "/api/cockpit", payload=payload, auth=True, expected_status=200)
 
-        # 4. Endpoints REST de Rotina e Status
+        # 4. Endpoints REST de Rotina, Status, CNES, Perfil e Sniper
         rest_tests = [
             ("REST: Listar Blocos de Rotina (/api/rotina/blocos)", "GET", "/api/rotina/blocos"),
             ("REST: Resumo da Rotina (/api/rotina/resumo)", "GET", "/api/rotina/resumo"),
             ("REST: Status da Agenda Google (/api/rotina/calendar/status)", "GET", "/api/rotina/calendar/status"),
             ("REST: Status Geral do Sistema (/api/status)", "GET", "/api/status"),
+            # --- NOVOS ENDPOINTS REST: PERFIL, CNES, SNIPER ---
+            ("REST: Contexto e Perfil do Usuário (/api/perfil)", "GET", "/api/perfil"),
+            ("REST: Busca Estabelecimentos CNES (/api/cnes/estabelecimentos)", "GET", "/api/cnes/estabelecimentos?q=Hospital"),
+            ("REST: Busca Municípios CNES (/api/cnes/municipios)", "GET", "/api/cnes/municipios?q=Sao"),
+            ("REST: Status do Plantão Sniper (/api/sniper/status)", "GET", "/api/sniper/status"),
         ]
         for label, method, url in rest_tests:
             self._call_api(label, method, url, auth=True, expected_status=200)

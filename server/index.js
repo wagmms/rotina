@@ -1717,6 +1717,23 @@ async function buildServer() {
   // ══════════════════════════════════════════════════════════════════════════════
   // SNIPER DE PLANTÕES MÉDICOS (WHATSAPP ➔ BOT ROTINA · ISOLAMENTO ZERO-TRUST)
   // ══════════════════════════════════════════════════════════════════════════════
+  const whatsappBridge = require('./whatsapp-bridge.js');
+  const waManager = whatsappBridge.instanciarOuObterManager({
+    onMensagemRecebida: async (envelope) => {
+      const svc = runtime.ctx?.PlantaoSniperService;
+      if (!svc || typeof svc.processarMensagemGrupoWhatsApp !== 'function') return;
+      const allowlist = typeof svc.obterGruposAllowlist === 'function' ? svc.obterGruposAllowlist() : [];
+      const check = whatsappBridge.filtrarPacoteWhatsAppZeroTrust(envelope, allowlist);
+      if (!check.permitido) return;
+      return svc.processarMensagemGrupoWhatsApp(envelope.texto, envelope.grupoNome, envelope.remetenteNumero, {
+        remoteJid: envelope.remoteJid,
+        fromMe: envelope.fromMe,
+        escalistaNome: envelope.pushName,
+        chatId: runtime.ctx?.ConfigService?.get('TELEGRAM_CHAT_ID') || process.env.TELEGRAM_CHAT_ID || ''
+      });
+    }
+  });
+
   fastify.get('/api/sniper/status', async (request, reply) => {
     const svc = runtime.ctx?.PlantaoSniperService;
     if (!svc) {
@@ -1727,8 +1744,27 @@ async function buildServer() {
       config: svc.obterConfig(),
       metricas: svc.obterMetricas(),
       gruposAllowlist: typeof svc.obterGruposAllowlist === 'function' ? svc.obterGruposAllowlist() : [],
-      historicoRecente: svc.obterHistorico().slice(0, 10)
+      historicoRecente: svc.obterHistorico().slice(0, 10),
+      whatsapp: waManager.obterStatusConexao()
     };
+  });
+
+  fastify.post('/api/sniper/pair', async (request, reply) => {
+    const svc = runtime.ctx?.PlantaoSniperService;
+    const body = request.body || {};
+    const telefone = body.telefone || body.phone || body.numero;
+    if (!telefone) {
+      return reply.status(400).send({ ok: false, error: 'Campo "telefone" obrigatório (ex: 5511999998888).' });
+    }
+    try {
+      const resPair = await waManager.solicitarCodigoPareamentoReal(telefone);
+      if (svc && typeof svc.salvarConfigSniper === 'function') {
+        svc.salvarConfigSniper({ telefoneWhatsApp: resPair.telefone });
+      }
+      return { ok: true, ...resPair };
+    } catch (err) {
+      return reply.status(500).send({ ok: false, error: err.message });
+    }
   });
 
   fastify.post('/api/sniper/grupos/sync', async (request, reply) => {
@@ -1736,9 +1772,18 @@ async function buildServer() {
     if (!svc || typeof svc.sincronizarGruposWhatsApp !== 'function') {
       return reply.status(503).send({ ok: false, error: 'PlantaoSniperService indisponível.' });
     }
-    const grupos = Array.isArray(request.body?.grupos) ? request.body.grupos : [];
+    let grupos = Array.isArray(request.body?.grupos) ? request.body.grupos : [];
+    // Se nenhum grupo foi passado no body, tenta consultar grupos reais da sessão conectada
+    if (grupos.length === 0 && request.body?.consultarWhatsAppReal !== false) {
+      try {
+        const buscaReal = await waManager.buscarGruposReaisWhatsApp();
+        if (buscaReal.ok && Array.isArray(buscaReal.grupos) && buscaReal.grupos.length > 0) {
+          grupos = buscaReal.grupos;
+        }
+      } catch (e) {}
+    }
     const res = svc.sincronizarGruposWhatsApp(grupos);
-    return { ok: true, ...res };
+    return { ok: true, gruposSincronizadosQtd: grupos.length, ...res };
   });
 
   fastify.post('/api/sniper/webhook', async (request, reply) => {
@@ -1748,53 +1793,49 @@ async function buildServer() {
     }
     const body = request.body || {};
 
-    // Extração normalizada do envelope WhatsApp (Baileys / Evolution API / WAHA)
-    const remoteJid = String(
-      body.remoteJid ||
-      body.groupJid ||
-      body.key?.remoteJid ||
-      body.data?.key?.remoteJid ||
-      ''
-    ).trim();
-
-    const fromMe = Boolean(
-      body.fromMe === true ||
-      body.key?.fromMe === true ||
-      body.data?.key?.fromMe === true
-    );
+    // Extração normalizada universal de qualquer formato de evento WhatsApp
+    const envelope = whatsappBridge.extrairEnvelopeMensagem(body);
 
     // CAMADA 1 NA BORDA HTTP: Descarte instantâneo de conversas privadas, status ou mensagens próprias
-    if (fromMe) {
+    if (envelope.fromMe) {
       return { ok: true, ignored: true, camada: 1, codigo: 'MENSAGEM_PROPRIA_IGNORADA' };
     }
-    if (remoteJid && (!remoteJid.endsWith('@g.us') || remoteJid.includes('@s.whatsapp.net') || remoteJid.includes('broadcast') || remoteJid.includes('@newsletter'))) {
+    if (envelope.remoteJid && (!envelope.remoteJid.endsWith('@g.us') || envelope.remoteJid.includes('@s.whatsapp.net') || envelope.remoteJid.includes('broadcast') || envelope.remoteJid.includes('@newsletter'))) {
       return { ok: true, ignored: true, camada: 1, codigo: 'CHAT_PRIVADO_OU_STATUS_BLOQUEADO' };
     }
 
-    const texto = String(
-      body.texto ||
-      body.text ||
-      body.message?.conversation ||
-      body.message?.extendedTextMessage?.text ||
-      body.data?.message?.conversation ||
-      ''
-    ).trim();
+    if (!envelope.texto) {
+      return reply.status(400).send({ ok: false, error: 'Campo de texto da mensagem não identificado no payload WhatsApp.' });
+    }
 
-    if (!texto) {
-      return reply.status(400).send({ ok: false, error: 'Campo "texto" ausente na mensagem do WhatsApp.' });
+    const allowlist = typeof svc.obterGruposAllowlist === 'function' ? svc.obterGruposAllowlist() : [];
+    const checkBorda = whatsappBridge.filtrarPacoteWhatsAppZeroTrust(envelope, allowlist);
+    if (!checkBorda.permitido && envelope.remoteJid) {
+      return { ok: true, ignored: true, camada: checkBorda.camada, codigo: checkBorda.codigo, motivo: checkBorda.motivo };
     }
 
     const opcoes = {
-      fromMe,
-      remoteJid,
-      exigirAllowlist: Boolean(remoteJid || body.exigirAllowlist),
-      grupoNome: body.grupoNome || body.groupName || 'Grupo WhatsApp Plantões',
-      escalistaNome: body.escalistaNome || body.pushName || body.senderName || 'Escalista',
-      escalistaFone: body.escalistaFone || body.participant || body.sender || '',
+      fromMe: envelope.fromMe,
+      remoteJid: envelope.remoteJid,
+      exigirAllowlist: Boolean(envelope.remoteJid),
+      grupoNome: envelope.grupoNome || 'Grupo WhatsApp Plantões',
+      escalistaNome: envelope.pushName || 'Escalista',
+      escalistaFone: envelope.remetenteNumero || '',
       chatId: body.chatId || runtime.ctx?.ConfigService?.get('TELEGRAM_CHAT_ID') || process.env.TELEGRAM_CHAT_ID || ''
     };
 
-    const resultado = svc.processarMensagemGrupoWhatsApp(texto, opcoes.grupoNome, opcoes.escalistaFone, opcoes);
+    const resultado = svc.processarMensagemGrupoWhatsApp(envelope.texto, opcoes.grupoNome, opcoes.escalistaFone, opcoes);
+
+    // Se a vaga foi capturada no modo auto e possui plano stealth, executa disparo seguro
+    if (resultado && resultado.status === 'CAPTURADA_SNIPER_AUTO' && resultado.stealth) {
+      try {
+        const resDisparo = await waManager.executarDisparoStealthReal(resultado.stealth, { aplicarDelayReal: false });
+        resultado.disparoWhatsApp = resDisparo;
+      } catch (errDisparo) {
+        resultado.disparoWhatsAppErro = errDisparo.message;
+      }
+    }
+
     return {
       ok: true,
       ...resultado
