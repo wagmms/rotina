@@ -59,6 +59,7 @@ google-credentials*.json
 
 # Dumps, backups e relatórios temporários de calendário
 calendar_manager/*_backup_*.json
+calendar_manager/backup_*.json
 calendar_manager/*_dump.json
 calendar_manager/*.txt
 

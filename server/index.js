@@ -1556,8 +1556,26 @@ async function buildServer() {
       }
       if (!novo) return { ok: true, duplicate: true };
 
-      // Enfileira para processamento em background com Fast-Lane para navegação estática e responde 200.
-      const isFastLane = !!(runtime.ctx && typeof runtime.ctx.destinoNavegacaoRapida === 'function' && runtime.ctx.destinoNavegacaoRapida(updateData));
+      // Fast-Ack de Digitação: feedback visual imediato (< 50ms) no Telegram antes do enfileiramento pesado
+      const ehTeste = process.env.NODE_ENV === 'test' || (runtime.ctx && runtime.ctx.ConfigService && runtime.ctx.ConfigService.get('NODE_ENV') === 'test');
+      const tokenBot = runtime.ctx?.ConfigService?.get('TELEGRAM_BOT_TOKEN');
+      const chatAlvoId = updateData.message?.chat?.id || updateData.callback_query?.message?.chat?.id;
+      if (!ehTeste && tokenBot && chatAlvoId) {
+        const acao = (updateData.message?.voice || updateData.message?.audio) ? 'record_voice' : 'typing';
+        fetch(`https://api.telegram.org/bot${tokenBot}/sendChatAction`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ chat_id: chatAlvoId, action: acao })
+        }).catch(() => {});
+      }
+
+      // Enfileira para processamento em background com Fast-Lane ampliado para navegação e comandos rápidos
+      const ehNavegacaoEstatica = !!(runtime.ctx && typeof runtime.ctx.destinoNavegacaoRapida === 'function' && runtime.ctx.destinoNavegacaoRapida(updateData));
+      const ehBotaoCallback = !!updateData.callback_query;
+      const textoMsg = updateData.message && typeof updateData.message.text === 'string' ? updateData.message.text.trim().toLowerCase() : '';
+      const ehComandoRapido = textoMsg && /^\/(?:menu|start|ajuda|cancelar|novo|leito|rotina|agenda|cockpit|pcr|dva|gaso|crcl|clcr|clearance|ctg|dengue|curb|pancreatite|sca|colestase|swansea)(?:\s|$)/i.test(textoMsg);
+      const isFastLane = ehNavegacaoEstatica || ehBotaoCallback || ehComandoRapido;
+
       const queueItem = { fakeGasEvent, updateId, t0, enqueuedAt: performance.now(), kind: updateKind(updateData), isFastLane };
       if (isFastLane) {
         let insertIdx = 0;
@@ -2446,6 +2464,18 @@ async function startServer() {
         }
       }, INTERVALO_ROTINA_MS);
       if (rotinaTimer.unref) rotinaTimer.unref();
+
+      // Keep-Alive Anti-Hibernação Render: ping periódico a cada 10 min se houver URL externa pública
+      const keepAliveUrl = process.env.RENDER_EXTERNAL_URL || process.env.APP_URL;
+      if (keepAliveUrl) {
+        const keepAliveTimer = setInterval(async () => {
+          try {
+            await fetch(`${keepAliveUrl.replace(/\/+$/, '')}/health`);
+            server.log.info('[Keep-Alive Render] Ping anti-hibernação enviado com sucesso.');
+          } catch (_) {}
+        }, 10 * 60 * 1000);
+        if (keepAliveTimer.unref) keepAliveTimer.unref();
+      }
 
       setTimeout(() => {
         try {

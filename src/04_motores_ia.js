@@ -678,8 +678,11 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
   if (!thinking) {
     if (opcoes.semThinking || opcoes.rapido || opcoes.extrativo) {
       thinking = "low";
-    } else if (opcoes.clinico || opcoes.multimodal) {
-      thinking = "high";
+    } else if (opcoes.multimodal) {
+      // Reconhecimento multimodal e transcrição de áudio: 'low' para retorno ultra-rápido (< 2s)
+      thinking = "low";
+    } else if (opcoes.clinico) {
+      thinking = opcoes.rapidoClinico ? "medium" : "high";
     }
   }
 
@@ -1523,6 +1526,7 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
   var optsMultimodal = Object.assign({
     clinico: true,
     multimodal: true,
+    thinkingLevel: "low",
     timeoutMs: timeoutMultimodal,
     orcamentoMs: timeoutMultimodal
   }, opcoes, { partesUsuario: partes });
@@ -3534,7 +3538,9 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
   if (contextoAnterior) {
     promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE " + ctxConv.saudacao.toUpperCase() + ":\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
-  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  var ehEmergConv = _iaEhEmergencia(textoMensagem) || IA_RE_EMERGENCIA_FORTE.test(_iaNormalizarParaRegex(textoMensagem));
+  var optsConv = { clinico: true, thinkingLevel: ehEmergConv ? "high" : "medium" };
+  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800, optsConv));
   return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
 }
 

@@ -581,7 +581,7 @@ const ctx = {
         propsStore[k] = strVal;
         if (ctx.ConfigService && typeof ctx.ConfigService.invalidar === 'function') ctx.ConfigService.invalidar();
         const ehRotina = k.startsWith('ROTINA_') || k.startsWith('GCAL_');
-        const imediato = ehRotina || k.startsWith('ultima_') || k.startsWith('inbox_') || k.startsWith('LEITO_') || k.startsWith('atendimento_');
+        const imediato = ehRotina || k.startsWith('ultima_') || k.startsWith('LEITO_') || k.startsWith('atendimento_');
         persistirPropriedades(imediato);
 
         if (ehRotina && !k.startsWith('ROTINA_VER_') && !k.startsWith('ROTINA_UPDATED_AT_')) {

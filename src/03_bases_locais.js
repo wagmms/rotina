@@ -898,8 +898,8 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     return a.farnaco.localeCompare(b.farnaco);
   });
 
-  // Nunca exclui fármacos explicitamente mencionados para cumprir o limite.
-  selecionados = selecionados.filter(function(m, i) { return i < 8 || pedidoExplicito(m); });
+  // Foco cirúrgico de alto rendimento: limita a 3 fármacos relevantes ou explicitamente solicitados (máx 4) para evitar sobrecarga de tokens
+  selecionados = selecionados.filter(function(m, i) { return i < 3 || pedidoExplicito(m); }).slice(0, 4);
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {
@@ -1637,7 +1637,8 @@ function filtrarContextoPediatricoPedB(pedidoUsuario) {
     return a.nome.localeCompare(b.nome);
   });
 
-  selecionados = selecionados.slice(0, 5);
+  // Foco cirúrgico de alto rendimento: limita a 3 fármacos pediátricos relevantes
+  selecionados = selecionados.slice(0, 3);
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {

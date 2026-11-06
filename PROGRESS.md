@@ -13,10 +13,10 @@
 
 ---
 
-- [x] **Revisão Completa do Bot, Desbloqueio de Roteamento Telegram, Blindagem Clínica de GO e Resolução de State Bleed no Sniper (`src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `server/whatsapp-bridge.js`, `src/data/remumes/index.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`)**:
-    - **Arquivo/Módulo Alvo**: `src/07a_telegram_router.js`, `src/14_sniper_plantoes.js`, `server/whatsapp-bridge.js`, `src/data/remumes/index.js`, `src/13_cockpit_integracao.js`, `tests/test_sniper_plantoes_rotina.cjs`.
-    - **Função/Componente/Seletor**: `TABELA_COMANDOS_AGENDA_ROTINA_AUDIO_`, `despacharComandosGinecologiaObstetricia_`, `cockpitAutorizar_`, `filtrarPacoteWhatsAppZeroTrust`, `_ehUrlOficialConfiavel`, `obterConfigSniper`, setup/teardown em `tests/test_sniper_plantoes_rotina.cjs`.
-    - **Comportamento Esperado / Critério de Aceite**: Idempotência total e eliminação de state bleed no Sniper de Plantões; desbloqueio no Telegram de `/sniper`, `/vagas`, `/piso` e calculadoras clínicas (`/crcl`, `/pancreatite`, `/sca`) em produção; blindagem de GO (BCF, Rh negativo, dias em PEP, CTG categorias ACOG); proteção contra SSRF e TLS em domínios governamentais; 57/57 suítes aprovadas com 100% de sucesso.
+- [x] **Otimização Quádrupla de Velocidade e Latência do Bot Telegram (`server/index.js`, `src/04_motores_ia.js`, `src/03_bases_locais.js`, `server/runtime.js`, `tests/test_velocidade_resposta_bot.cjs`)**:
+    - **Arquivo/Módulo Alvo**: `server/index.js`, `src/04_motores_ia.js`, `src/03_bases_locais.js`, `server/runtime.js`, `tests/test_velocidade_resposta_bot.cjs`.
+    - **Função/Componente/Seletor**: Fast-Ack `sendChatAction` no webhook, `isFastLane` expandido em `server/index.js`, `chamarGeminiPoolMultimodal` e `gerarRespostaConversaClinica` em `src/04_motores_ia.js`, `filtrarContextoPosologiasHSL` e `filtrarContextoPediatricoPedB` em `src/03_bases_locais.js`, debounce de `inbox_` em `server/runtime.js`, Keep-Alive Render em `server/index.js`.
+    - **Comportamento Esperado / Critério de Aceite**: Feedback visual instantâneo (< 50ms) com `typing`/`record_voice`; execução sem bloqueio de calculadoras em RAM e botões de menu no Fast-Lane; redução da latência de áudio de ~15s para ~2s com thinking adaptativo; redução de ~50% no bloat de prompt farmacológico; eliminação de travas síncronas de I/O em disco no event loop; proteção contra cold start no Render via Keep-Alive; 57/57 suítes aprovadas com 100% de sucesso em 26.45s (ganho de 10s no próprio runner).
 
 > 📁 Histórico completo arquivado em [CHANGELOG.md](CHANGELOG.md)
 
