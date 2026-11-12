@@ -3,8 +3,8 @@
  * ULTRA ROTINA · MASTER ENGINE BUNDLE (NODE.JS / RENDER RUNTIME)
  * ==============================================================================
  * Servidor oficial Node.js/Docker no Render.
- * Gerado automaticamente via build_master.py em: 2026-10-18 18:11:24
- * Checksum SHA256: b6c10a580d476c0f
+ * Gerado automaticamente via build_master.py em: 2026-11-12 17:06:02
+ * Checksum SHA256: df54037d47596f6a
  * ==============================================================================
  */
 
@@ -3120,12 +3120,21 @@ var ArbovirosesDengueService = (function () {
     };
   }
 
-  function calcularHidratacao(grupo, pesoKg) {
-    pesoKg = Math.max(5, Math.min(200, Number(pesoKg) || 70));
+  function calcularHidratacao(grupo, pesoKg, opcoes) {
+    opcoes = opcoes || {};
+    pesoKg = Math.max(2, Math.min(200, Number(pesoKg) || 70));
+    var ehPediatrico = (opcoes.ehPediatrico !== undefined) ? opcoes.ehPediatrico : (pesoKg < 40);
+
+    // Fator de hidratação oral (MS 2024): Adulto 60 mL/kg/dia; Pediátrico estratificado por peso
+    var mlKgDia = 60;
+    if (ehPediatrico) {
+      if (pesoKg <= 10) mlKgDia = 130;
+      else if (pesoKg <= 20) mlKgDia = 100;
+      else mlKgDia = 80;
+    }
 
     if (grupo === 'A') {
-      // 60 mL/kg/dia (1/3 SRO e 2/3 líquidos caseiros)
-      var volTotalA = Math.round(pesoKg * 60);
+      var volTotalA = Math.round(pesoKg * mlKgDia);
       var volSroA = Math.round(volTotalA / 3);
       var volLiquidosA = volTotalA - volSroA;
       return {
@@ -3133,11 +3142,11 @@ var ArbovirosesDengueService = (function () {
         volumeTotal24hMl: volTotalA,
         volumeSroMl: volSroA,
         volumeOutrosLiquidosMl: volLiquidosA,
-        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A:\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
+        ehPediatrico: ehPediatrico,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A (' + (ehPediatrico ? 'PEDIÁTRICO ' + mlKgDia + ' mL/kg/dia - MS 2024' : 'ADULTO 60 mL/kg/dia') + '):\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
       };
     } else if (grupo === 'B') {
-      // 60 mL/kg/dia oral na unidade supervisionada (1/3 nas primeiras 4h) - MS 2024
-      var volTotalB = Math.round(pesoKg * 60);
+      var volTotalB = Math.round(pesoKg * mlKgDia);
       var volPrimQuatroHoras = Math.round(volTotalB / 3);
       var volLiquidosB = volTotalB - volPrimQuatroHoras;
       return {
@@ -3145,7 +3154,8 @@ var ArbovirosesDengueService = (function () {
         volumeTotal24hMl: volTotalB,
         volumeFaseRapidaMl: volPrimQuatroHoras,
         volumeOutrosLiquidosMl: volLiquidosB,
-        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B (MS 2024):\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO (1/3 do volume diário)\n• Manter ingestão constante até liberação do hematócrito\n• Volume total em 24h: ' + volTotalB + ' mL (60 mL/kg/dia)'
+        ehPediatrico: ehPediatrico,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B (MS 2024):\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO (1/3 do volume diário)\n• Manter ingestão constante até liberação do hematócrito\n• Volume total em 24h: ' + volTotalB + ' mL (' + (ehPediatrico ? mlKgDia + ' mL/kg/dia pediátrico' : '60 mL/kg/dia adulto') + ')'
       };
     } else if (grupo === 'C') {
       // Fase rápida: 10 mL/kg/h em 2h
@@ -3205,9 +3215,14 @@ var ArbovirosesDengueService = (function () {
 
   function extrairParametrosTexto(texto) {
     texto = String(texto || '').toLowerCase();
+    var ehLactenteOuCrianca = /(lactente|bebe|bebê|recem[- ]nascido|rn|crianca|criança|pediatr)/i.test(texto);
     var peso = 70;
     var mPeso = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)/);
-    if (mPeso) peso = parseFloat(mPeso[1].replace(',', '.'));
+    if (mPeso) {
+      peso = parseFloat(mPeso[1].replace(',', '.'));
+    } else if (ehLactenteOuCrianca) {
+      peso = 10;
+    }
 
     var temChoque = /(choque|hipotens|pulso fino|tec >|extremidade fria|desmaio)/i.test(texto);
     var temAlarme = /(alarme|dor abdominal|vomit|sangrament|lipotimia|tontura|letargia|sangue)/i.test(texto);
@@ -3215,6 +3230,7 @@ var ArbovirosesDengueService = (function () {
 
     return {
       pesoKg: peso,
+      ehPediatrico: ehLactenteOuCrianca || (peso < 40),
       sinaisChoque: temChoque,
       sinaisAlarme: temAlarme,
       comorbidades: temComorbidade
@@ -3264,25 +3280,39 @@ var ArbovirosesDengueService = (function () {
     } else if (condicaoEspecialOuRiscoSocialOuPetequias) {
       grupo = "GRUPO B";
       localManejo = "Leito de Observação em Unidade de Saúde / UPA até resultado do Hemograma";
-      var volumeTotalDiaB = Math.round(pesoKg * 60);
+      var mlKgDiaB = 60;
+      var ehPediatricoB = (paciente.ehPediatrico !== undefined) ? paciente.ehPediatrico : (pesoKg < 40);
+      if (ehPediatricoB) {
+        if (pesoKg <= 10) mlKgDiaB = 130;
+        else if (pesoKg <= 20) mlKgDiaB = 100;
+        else mlKgDiaB = 80;
+      }
+      var volumeTotalDiaB = Math.round(pesoKg * mlKgDiaB);
       var volumeSroB = Math.round(volumeTotalDiaB / 3);
       var volumeLiquidosCaseirosB = volumeTotalDiaB - volumeSroB;
       prescricaoHidratacao = {
         via: "ORAL SUPERVISIONADA (Enquanto aguarda o Hemograma)",
-        volumeDiarioTotal: volumeTotalDiaB + " mL/dia (60 mL/kg/dia).",
+        volumeDiarioTotal: volumeTotalDiaB + " mL/dia (" + (ehPediatricoB ? mlKgDiaB + " mL/kg/dia pediátrico MS 2024" : "60 mL/kg/dia") + ").",
         fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroB + " mL) e 2/3 com líquidos caseiros (" + volumeLiquidosCaseirosB + " mL: água, sucos, água de coco)."
       };
       examesObrigatorios = ["Hemograma completo OBRIGATÓRIO (colher e liberar resultado em até 4h). Se hemoconcentração -> reclassificar para Grupo C."];
     } else {
       grupo = "GRUPO A";
       localManejo = "Ambulatorial / Domiciliar (Unidade Básica de Saúde)";
-      var volumeTotalDiaA = Math.round(pesoKg * 60);
+      var mlKgDiaA = 60;
+      var ehPediatricoA = (paciente.ehPediatrico !== undefined) ? paciente.ehPediatrico : (pesoKg < 40);
+      if (ehPediatricoA) {
+        if (pesoKg <= 10) mlKgDiaA = 130;
+        else if (pesoKg <= 20) mlKgDiaA = 100;
+        else mlKgDiaA = 80;
+      }
+      var volumeTotalDiaA = Math.round(pesoKg * mlKgDiaA);
       var volumeSroA = Math.round(volumeTotalDiaA / 3);
       var volumeLiquidosCaseirosA = volumeTotalDiaA - volumeSroA;
       prescricaoHidratacao = {
-        via: "ORAL DOMICILIAR PRECOCE",
-        volumeDiarioTotal: volumeTotalDiaA + " mL/dia (60 mL/kg/dia para adultos).",
-        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroA + " mL) nas primeiras 4 a 6 horas e 2/3 com líquidos claros (" + volumeLiquidosCaseirosA + " mL) ao longo do dia."
+        via: "ORAL (Domiciliar)",
+        volumeDiarioTotal: volumeTotalDiaA + " mL/dia (" + (ehPediatricoA ? mlKgDiaA + " mL/kg/dia pediátrico MS 2024" : "60 mL/kg/dia") + ").",
+        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroA + " mL) e 2/3 com líquidos caseiros (" + volumeLiquidosCaseirosA + " mL: água, sucos, água de coco)."
       };
       examesObrigatorios = ["Não há obrigatoriedade de hemograma de rotina (a critério clínico)."];
     }
@@ -4895,13 +4925,13 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ SEQUÊNCIA RÁPIDA DE INTUBAÇÃO ═════════════════════════════
 
   var SRI_FARMACOS = {
-    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  tetoMaximo: 40,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
+    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  tetoMaximo: 30,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
     quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, tetoMaximo: 200, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor', contra: 'Broncodilatador (ideal em asma). Evitar em hipertensão craniana severa ou glaucoma sem uso prévio de opioide.' },
     propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor', contra: 'Hipotensor potente. Reduzir dose pela metade em choque hemodinâmico ou senilidade.' },
     midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  tetoMaximo: 15,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor', contra: 'Depressor miocárdico e venodilatador. Evitar em choque descompensado.' },
     rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, tetoMaximo: 120, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador', contra: 'Ação em ~45-60s. Escolha de excelência. Reversível com Sugamadex.' },
     succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador', contra: '⚠️ CONTRAINDICADA em: Hipercalemia (> 5.5), grandes queimados, esmagamento, miopatias, paralisia/AVC > 48h (risco de PCR por hipercalemia). Teto máximo: 200 mg.' },
-    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, tetoMaximo: 250, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
+    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, tetoMaximo: 200, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
   };
 
   function resolverFarmaco(ctx, v, grupo, rotulo) {
@@ -4944,10 +4974,12 @@ var CalculadorasClinicas = (function () {
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
       // Pré-cálculo universal de todas as drogas para disponibilidade imediata
-      function calcDose(farmaco) {
-        var d = farmaco.dose * peso;
-        if (farmaco.tetoMaximo && d > farmaco.tetoMaximo) {
-          d = farmaco.tetoMaximo;
+      function calcDose(farmaco, doseCustom, tetoCustom) {
+        var doseKg = (doseCustom !== undefined) ? doseCustom : farmaco.dose;
+        var teto = (tetoCustom !== undefined) ? tetoCustom : farmaco.tetoMaximo;
+        var d = doseKg * peso;
+        if (teto && d > teto) {
+          d = teto;
         }
         var ml = d / farmaco.conc;
         exigirFinito(d, ml);
@@ -4959,22 +4991,28 @@ var CalculadorasClinicas = (function () {
         };
       }
 
-      var dFentanil = calcDose(SRI_FARMACOS.fentanil);
-      var dEtomidato = calcDose(SRI_FARMACOS.etomidato);
-      var dQuetamina = calcDose(SRI_FARMACOS.quetamina);
-      var dPropofol = calcDose(SRI_FARMACOS.propofol);
-      var dMidazolam = calcDose(SRI_FARMACOS.midazolam);
+      var ehChoque = (ctxChave === 'choque');
+      var dFentanil = calcDose(SRI_FARMACOS.fentanil, ehChoque ? 0.5 : undefined, ehChoque ? 100 : undefined);
+      var dEtomidato = calcDose(SRI_FARMACOS.etomidato, ehChoque ? 0.2 : undefined, ehChoque ? 20 : undefined);
+      var dQuetamina = calcDose(SRI_FARMACOS.quetamina, ehChoque ? 1.0 : undefined, ehChoque ? 150 : undefined);
+      var dPropofol = calcDose(SRI_FARMACOS.propofol, ehChoque ? 0.8 : undefined, ehChoque ? 100 : undefined);
+      var dMidazolam = calcDose(SRI_FARMACOS.midazolam, ehChoque ? 0.1 : undefined, ehChoque ? 10 : undefined);
       var dSuccinil = calcDose(SRI_FARMACOS.succinilcolina);
       var dRocuronio = calcDose(SRI_FARMACOS.rocuronio);
 
       var mostrarTodos = (ind === null && blq === null && adj === null && semAcento(String(adjuvante || '')) !== 'nenhum');
       var linhasDoses = [];
       if (mostrarTodos) {
-        linhasDoses.push('1️⃣ Pré-tratamento: Fentanil (50 mcg/mL · 2 mcg/kg): ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV lento');
-        linhasDoses.push('2️⃣ Sedativos / Indução (escolha 1):');
-        linhasDoses.push('   • Etomidato (2 mg/mL · 0,3 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
-        linhasDoses.push('   • Quetamina (50 mg/mL · 1,5 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
-        if (ctxChave !== 'choque') {
+        if (ehChoque) {
+          linhasDoses.push('1️⃣ Pré-tratamento: ⚠️ CHOQUE: EVITAR Fentanil (risco de lise simpática e colapso). Se indispensável: ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV');
+          linhasDoses.push('2️⃣ Sedativos / Indução (doses reduzidas no choque):');
+          linhasDoses.push('   • Etomidato (2 mg/mL · 0,2 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
+          linhasDoses.push('   • Quetamina (50 mg/mL · 1,0 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
+        } else {
+          linhasDoses.push('1️⃣ Pré-tratamento: Fentanil (50 mcg/mL · 2 mcg/kg): ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV lento');
+          linhasDoses.push('2️⃣ Sedativos / Indução (escolha 1):');
+          linhasDoses.push('   • Etomidato (2 mg/mL · 0,3 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
+          linhasDoses.push('   • Quetamina (50 mg/mL · 1,5 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
           linhasDoses.push('   • Propofol 1% (10 mg/mL · 1,5 mg/kg): ' + fmt(dPropofol.dose, 0) + ' mg → ' + fmt(dPropofol.ml, 1) + ' mL IV');
         }
         linhasDoses.push('3️⃣ Bloqueadores Neuromusculares (escolha 1):');
@@ -9061,7 +9099,7 @@ var CentroObstetricoService = (function() {
             opcaoPrincipal: {
               farmaco: 'Vancomicina IV (Alérgica grave à penicilina com resistência à clindamicina ou antibiograma desconhecido)',
               doseAtaque: '20 mg/kg IV (máximo 2 g por infusão).',
-              doseManutencao: '20 mg/kg IV a cada 8 horas até o nascimento (infundir em pelo menos 1 a 2 horas para evitar Síndrome do Homem Vermelho).'
+              doseManutencao: '20 mg/kg IV a cada 8 horas até o nascimento (máximo 2 g por dose; infundir em pelo menos 1 a 2 horas para evitar Síndrome do Homem Vermelho).'
             }
           };
         }
@@ -9595,9 +9633,11 @@ var CentroObstetricoService = (function() {
     if (
       typeof globalThis !== "undefined" &&
       globalThis.ObstetriciaRcfDopplerService &&
-      typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function"
+      (typeof globalThis.ObstetriciaRcfDopplerService.avaliarRcf === "function" ||
+       typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function")
     ) {
-      return globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona(dados);
+      var fnRcf = globalThis.ObstetriciaRcfDopplerService.avaliarRcf || globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona;
+      return fnRcf(dados);
     }
 
     var igSem = toNumberSafe(dados.igSemanas, 37);
@@ -11337,7 +11377,9 @@ var CompatibilidadeYDvaService = (function() {
     'ceftriaxona': 'ceftriaxona',
     'rocefin': 'ceftriaxona',
     'ringer lactato': 'ringer_lactato',
-    'rl': 'ringer_lactato'
+    'rl': 'ringer_lactato',
+    'diazepam': 'diazepam',
+    'valium': 'diazepam'
   };
 
   function normalizarNomeDroga(nome) {
@@ -11348,7 +11390,9 @@ var CompatibilidadeYDvaService = (function() {
       .trim();
     if (ALIASES_FARMACOS[str]) return ALIASES_FARMACOS[str];
     for (var k in ALIASES_FARMACOS) {
-      if (str.indexOf(k) === 0 || k.indexOf(str) === 0) return ALIASES_FARMACOS[k];
+      if (str === k || str.indexOf(k + ' ') === 0 || str.indexOf(' ' + k) !== -1) {
+        return ALIASES_FARMACOS[k];
+      }
     }
     return str.replace(/\s+/g, '_');
   }
@@ -11652,6 +11696,72 @@ var CompatibilidadeYDvaService = (function() {
       mecanismo: 'Reação imediata entre íons cálcio e bicarbonato formando carbonato de cálcio insolúvel (solução turva e precipitada como giz).',
       conduta: 'NUNCA INFUNDIR NA MESMA VIA EM Y. Se ambos forem necessários (ex: PCR/hipercalemia grave), administrar sequencialmente com flush vigoroso de 20 mL de SF entre eles.',
       alertaCritico: true
+    },
+
+    // Diazepam e Fenitoína (Precipitações Críticas por pH Extremo)
+    'amiodarona_fenitoina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO IMEDIATA)',
+      mecanismo: 'Incompatibilidade física imediata entre soluções com pH extremo.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA EM Y.',
+      alertaCritico: true
+    },
+    'diazepam_furosemida': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Precipitação física e degradação em Y.',
+      conduta: 'Via exclusiva para diazepam.',
+      alertaCritico: true
+    },
+    'diazepam_noradrenalina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE DIAZEPAM)',
+      mecanismo: 'O pH ácido da noradrenalina quebra a estabilidade aquosa do diazepam, provocando precipitação cristalina.',
+      conduta: 'NUNCA conectar na mesma via em Y.',
+      alertaCritico: true
+    },
+    'diazepam_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO IMEDIATA)',
+      mecanismo: 'Diazepam precipita imediatamente em contato com soluções aquosas e peptídeos em Y.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA EM Y. Via venosa exclusiva ou lúmen independente.',
+      alertaCritico: true
+    },
+    'fenitoina_fentanil': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE FENITOÍNA)',
+      mecanismo: 'O pH básico extremo (~12) da fenitoína causa precipitação de fentanil e turvação imediata.',
+      conduta: 'NUNCA correr em Y. Exige via exclusiva com flush abundante antes e depois.',
+      alertaCritico: true
+    },
+    'fenitoina_midazolam': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO MACIÇA)',
+      mecanismo: 'Precipitação macroscópica instantânea de fenitoína e midazolam por incompatibilidade ácido-base severa.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA. Risco imediato de oclusão de cateter e embolia de microcristais.',
+      alertaCritico: true
+    },
+    'fenitoina_propofol': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (DESESTABILIZAÇÃO DA EMULSÃO)',
+      mecanismo: 'Quebra imediata da emulsão lipídica do propofol com precipitação de cristais de fenitoína.',
+      conduta: 'CONTRAINDICADO EM Y.',
+      alertaCritico: true
+    },
+    'fenitoina_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Degradação alcalina do peptídeo vasopressina e risco de precipitação.',
+      conduta: 'Vias separadas mandatórias.',
+      alertaCritico: true
     }
   };
 
@@ -11730,11 +11840,12 @@ var CompatibilidadeYDvaService = (function() {
         ok: true,
         drogaA: idA,
         drogaB: idB,
-        status: 'COMPATIVEL',
-        icone: '✅',
-        grau: 'COMPATÍVEL / NÃO APLICÁVEL A BIC',
-        mecanismo: 'Fármacos não caracterizados como drogas de infusão contínua parenteral (BIC / UTI). Compatibilidade físico-química em Y não aplicável.',
-        conduta: 'Administrar conforme prescrição médica e vias habituais.',
+        status: 'DESCONHECIDO',
+        icone: '⚠️',
+        compativel: null,
+        grau: 'FÁRMACOS NÃO CATALOGADOS NA MATRIZ DE UTI',
+        mecanismo: 'Fármacos não cadastrados na matriz de drogas de infusão contínua parenteral (BIC / UTI) do banco local.',
+        conduta: 'NÃO ASSUMIR COMPATIBILIDADE. Consultar referências estendidas (Micromedex, Trissel\'s Handbook) ou farmacêutico clínico antes de conectar em Y.',
         alertaCritico: false,
         fichaA: null,
         fichaB: null
@@ -19320,10 +19431,11 @@ var HematologiaAnemiasService = (function () {
     if (ehPediatrico) {
       var doseCalc = Math.round(4 * pesoKg);
       var doseFinal = Math.min(60, doseCalc);
+      var gotasSulfato = Math.round(doseFinal / 1.25);
       return {
         doseFeElementarMgDia: doseFinal,
-        gotasSulfatoPediátrico: doseFinal,
-        esquemaPosologico: doseFinal + ' mg/dia de ferro elementar (' + doseFinal + ' gotas de Sulfato Ferroso)',
+        gotasSulfatoPediátrico: gotasSulfato,
+        esquemaPosologico: doseFinal + ' mg/dia de ferro elementar (~' + gotasSulfato + ' gotas de Sulfato Ferroso gotas [1,25 mg/gota])',
         orientacoes: ['Tomar 1h antes das refeições ou com suco rico em vitamina C.'],
         alertasToxicos: ['⚠️ SEGURANÇA DOMÉSTICA: Manter fora do alcance de crianças pelo risco de intoxicação acidental aguda fatal por ferro.']
       };
@@ -23219,8 +23331,8 @@ var NefrologiaDheService = (function() {
         var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
 
         var alertas = [
-            "🛑 RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA (Mielinólise Pontina): Não ultrapassar elevação de 8 mEq/L nas primeiras 24h (e 18 mEq/L em 48h).",
-            "🧪 PREPARO PRÁTICO DE SALINA 3% (500 mL): 445 mL de Água Destilada (ou SG 5%) + 55 mL de NaCl 20% (OU 425 mL de SF 0,9% + 75 mL de NaCl 20% ≈ 513 mEq/L)."
+            "🛑 RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA (Mielinólise Pontina): Não ultrapassar elevação de 8 mEq/L nas primeiras 24h (e 18 mEq/L em 48h). Em pacientes de alto risco (desnutrição, alcoolismo, cirrose, hipocalemia grave), meta máxima estrita de 6 a 8 mEq/L em 24h.",
+            "🧪 PREPARO PRÁTICO DE SALINA 3% (500 mL ≈ 513 mEq/L): 445 mL de SF 0,9% + 55 mL de NaCl 20% (OU 425 mL de Água Destilada/SG 5% + 75 mL de NaCl 20%)."
         ];
         if (na < 120) {
             alertas.unshift("🚨 SE SINTOMAS NEUROLÓGICOS GRAVES (Convulsão, Coma, Rebaixamento): Bolus imediato de 100 a 150 mL de Salina 3% IV em 10 a 20 min (pode repetir até 2x se persistir sintoma grave, visando subir Na+ em 4-5 mEq/L rapidamente).");
@@ -23386,8 +23498,8 @@ var NefrologiaDheService = (function() {
             eliminacaoCorporal: [],
             hemodialiseEmergencia: null,
             alertaHgtHoraria: "HGT horária por 4-6h devido ao risco severo de hipoglicemia tardia. Se HGT basal >= 250 mg/dL, fazer APENAS Insulina Regular 10 UI IV isolada (sem SG 50%).",
-            gluconatoDose: "Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% ou SF 0,9% em 5 min)",
-            solucaoPolarizanteDose: "SG 50% 50mL (ou SG 10% 250mL) + 10 UI Insulina Regular IV em 20 min (Omitir glicose se HGT >= 250 mg/dL)",
+            gluconatoDose: "Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)",
+            solucaoPolarizanteDose: "SG 50% 50mL + 10 UI Regular em 20 min (Insulina Regular IV)",
             eliminacaoSorcalFurosemida: "Sorcal/Furosemida para eliminação corporal"
         };
 
@@ -23415,7 +23527,7 @@ var NefrologiaDheService = (function() {
 
         // 2. Redistribuição Intracelular (Shift de K+) -> Acionar se K > 5.5 OU se houver alteração de ECG!
         if (k > 5.5 || ecg) {
-            var condutaPolarizante = "REDISTRIBUIÇÃO (SHIFT INTRACELULAR): Glicoinsulina (Solução Polarizante): SG 50% 50mL + 10 UI Insulina Regular IV em 20 min. ⚠️ TRAVA DE HIPERGLICEMIA: Se glicemia capilar (HGT) >= 250 mg/dL, administrar APENAS Insulina Regular 10 UI IV isolada (sem glicose hipertônica, pois a hiperosmolaridade puxa K+ para fora da célula e piora a hipercalemia). Queda esperada de K+: 0,5 a 1,2 mEq/L em 30-60 min. Monitorar HGT de 1/1h por 4-6h.";
+            var condutaPolarizante = "REDISTRIBUIÇÃO (SHIFT INTRACELULAR): Glicoinsulina (Solução Polarizante): SG 50% 50mL + 10 UI Regular em 20 min (Insulina Regular IV). ⚠️ TRAVA DE HIPERGLICEMIA: Se glicemia capilar (HGT) >= 250 mg/dL, administrar APENAS Insulina Regular 10 UI IV isolada (sem glicose hipertônica, pois a hiperosmolaridade puxa K+ para fora da célula e piora a hipercalemia). Queda esperada de K+: 0,5 a 1,2 mEq/L em 30-60 min. HGT horária por 4-6h (vigilância estrita de hipoglicemia tardia).";
             condutas.push(condutaPolarizante);
             tripe.redistribuicaoIntracelular.push(condutaPolarizante);
             prescricoes.push("Solução Polarizante: Insulina Regular 10 UI + Glicose 50% 50 mL IV correr em 20 minutos (ATENÇÃO: Se HGT basal >= 250 mg/dL, fazer APENAS Insulina Regular 10 UI IV sem glicose).");
@@ -26970,6 +27082,7 @@ var ObstetriciaRcfDopplerService = (function() {
         classificarRcf: classificarRcf,
         estadiar: estadiar,
         avaliarRcf: avaliarRcf,
+        classificarRcfBarcelona: avaliarRcf,
         extrairParametrosTexto: extrairParametrosTexto,
         formatarTextoTelegram: formatarTextoTelegram,
         PROTOCOLO_ESTAGIOS: PROTOCOLO_ESTAGIOS
@@ -33568,18 +33681,19 @@ var PuericulturaPediatriaService = (function() {
         ferro.push("2 mg/kg/dia (iniciar com 30 dias de vida até 1 ano). Após 1 ano: 1 mg/kg/dia até 2 anos.");
       }
     } else {
-      // A termo e peso adequado (> 2500g)
-      if (aleitamentoExclusivo) {
+      // A termo e peso adequado (>= 2500g) - Diretriz SBP Anemia Ferropriva 2021
+      var comFatoresRisco = dados.comFatoresRisco || (!aleitamentoExclusivo && dados.comFatoresRisco !== false);
+      if (!comFatoresRisco) {
         if (idadeMeses >= 6 && idadeMeses < 24) {
-          ferro.push("1 mg/kg/dia (iniciar aos 6 meses de vida até 2 anos).");
+          ferro.push("1 mg/kg/dia (iniciar aos 6 meses de vida até 2 anos; teto máx 15 mg/dia).");
         } else if (idadeMeses < 6) {
-          ferro.push("Não indicado no momento (Aleitamento materno exclusivo atende até os 6 meses).");
+          ferro.push("Não indicado no momento (Sem fatores de risco: iniciar profilaxia aos 6 meses [180 dias]).");
         }
       } else {
         if (idadeMeses >= 3 && idadeMeses < 24) {
-          ferro.push("1 mg/kg/dia (iniciar aos 3 meses até 2 anos devido ao desmame/uso de fórmula).");
+          ferro.push("1 mg/kg/dia (iniciar aos 3 meses até 2 anos na presença de fatores de risco; teto máx 15 mg/dia).");
         } else if (idadeMeses < 3) {
-          ferro.push("Aguardar 3 meses para iniciar profilaxia (1 mg/kg/dia).");
+          ferro.push("Aguardar 3 meses (90 dias) para iniciar profilaxia (1 mg/kg/dia; teto 15 mg/dia).");
         }
       }
     }
@@ -33606,7 +33720,9 @@ var PuericulturaPediatriaService = (function() {
           var estaturaM = estaturaCm / 100;
           imc = pesoKg / (estaturaM * estaturaM);
           
-          if (imc > 18) { classificacaoImc = "Risco de Sobrepeso / Obesidade (> Escore Z +1)"; }
+          if (idadeMeses !== undefined && idadeMeses < 6) {
+              classificacaoImc = "Acompanhar curvas Peso/Idade e Peso/Estatura da OMS (< 6 meses)";
+          } else if (imc > 18) { classificacaoImc = "Risco de Sobrepeso / Obesidade (> Escore Z +1)"; }
           else if (imc < 14) { classificacaoImc = "Magreza (< Escore Z -2)"; }
           else { classificacaoImc = "Eutrofia (Escore Z > -2 e < +1)"; }
       }
@@ -33689,7 +33805,7 @@ var PuericulturaPediatriaService = (function() {
       { idadeMeses: 6, nome: "6 Meses", vacinas: ["Pentavalente (3ª dose)", "VIP (3ª dose)"] },
       { idadeMeses: 9, nome: "9 Meses", vacinas: ["Febre Amarela (Dose inicial)"] },
       { idadeMeses: 12, nome: "12 Meses", vacinas: ["Tríplice Viral (1ª dose)", "Pneumocócica 10v (Reforço)", "Meningocócica C (Reforço)"] },
-      { idadeMeses: 15, nome: "15 Meses", vacinas: ["DTP (1º reforço)", "VOP (1º reforço)", "Tetraviral (Tríplice + Varicela)", "Hepatite A"] }
+      { idadeMeses: 15, nome: "15 Meses", vacinas: ["DTP (1º reforço)", "VIP (reforço injetável — VOP extinta pelo PNI)", "Tetraviral (Tríplice + Varicela)", "Hepatite A"] }
   ];
 
   function calendarioVacinal(idadeMeses) {
@@ -35763,36 +35879,13 @@ class SepsePuerperalService {
     }
 
     // PAS
-    if (pas < 80) {
+    // PAS (Hipotensão pontua disfunção hemodinâmica; Albright et al., 2014)
+    if (pas < 70) {
+      sosScore += 4;
+      detalhesSOS.push("PAS < 70 mmHg (+4)");
+    } else if (pas >= 70 && pas <= 89) {
       sosScore += 2;
-      detalhesSOS.push("PAS < 80 mmHg (+2)");
-    } else if (pas >= 80 && pas <= 89) {
-      sosScore += 1;
-      detalhesSOS.push("PAS 80-89 mmHg (+1)");
-    } else if (pas >= 140 && pas <= 149) {
-      sosScore += 1;
-      detalhesSOS.push("PAS 140-149 mmHg (+1)");
-    } else if (pas >= 150 && pas <= 159) {
-      sosScore += 2;
-      detalhesSOS.push("PAS 150-159 mmHg (+2)");
-    } else if (pas >= 160) {
-      sosScore += 3;
-      detalhesSOS.push("PAS >= 160 mmHg (+3)");
-    }
-
-    // PAD (Apenas para score, qSOFA usa PAS)
-    if (pad <= 40) {
-      sosScore += 2;
-      detalhesSOS.push("PAD <= 40 mmHg (+2)");
-    } else if (pad >= 90 && pad <= 99) {
-      sosScore += 1;
-      detalhesSOS.push("PAD 90-99 mmHg (+1)");
-    } else if (pad >= 100 && pad <= 109) {
-      sosScore += 2;
-      detalhesSOS.push("PAD 100-109 mmHg (+2)");
-    } else if (pad >= 110) {
-      sosScore += 3;
-      detalhesSOS.push("PAD >= 110 mmHg (+3)");
+      detalhesSOS.push("PAS 70-89 mmHg (+2)");
     }
 
     // SpO2
@@ -35842,17 +35935,21 @@ class SepsePuerperalService {
       riscoAltoQSofa,
       choqueSeptico,
       classificacao: (riscoAltoSOS || riscoAltoQSofa || choqueSeptico) ? "ALTO RISCO PARA SEPSE" : "BAIXO RISCO",
-      conduta: this.gerarBundleUmaHora(choqueSeptico)
+      conduta: this.gerarBundleUmaHora(choqueSeptico, pas)
     };
   }
 
-  static gerarBundleUmaHora(choqueSeptico) {
+  static gerarBundleUmaHora(choqueSeptico, pas) {
+    const alertaPE = (pas && pas >= 140) ?
+      "3. ⚠️ ATENÇÃO (GESTANTE/PUÉRPERA HIPERTENSA): Risco crítico de Edema Agudo de Pulmão (EAP). NÃO fazer expansão rápida de 30 mL/kg. Realizar ressuscitação volêmica restritiva (alíquotas de 250-500 mL) monitorando ausculta pulmonar e saturação." :
+      "3. Ressuscitação volêmica criteriosa com Cristaloides (Lactato de Ringer): 30 mL/kg se hipotensão (PAS < 90 ou PAM < 65) ou Lactato >= 4 mmol/L, com atenção ao risco de EAP (Edema Agudo de Pulmão) na gestante.";
+
     const bundle = [
       "1. Coleta de Lactato Sérico (repetir se > 2 mmol/L).",
       "2. Hemoculturas ANTES do início do antibiótico.",
-      "3. Ressuscitação volêmica criteriosa com Cristaloides (Lactato de Ringer): 30 mL/kg, com atenção ao risco de EAP (Edema Agudo de Pulmão) na gestante.",
+      alertaPE,
       "4. Antibioticoterapia de amplo espectro intravenosa:",
-      "   - Opção 1: Ampicilina 2g IV + Gentamicina 5mg/kg IV + Clindamicina 900mg IV",
+      "   - Opção 1: Ampicilina 2g IV + Gentamicina 5mg/kg IV (máximo 360-400 mg/dia) + Clindamicina 900mg IV",
       "   - Opção 2: Ceftriaxona 2g IV + Metronidazol 500mg IV"
     ];
 
@@ -42314,51 +42411,54 @@ var ViaAereaDificilService = (function() {
 
     var doseHipnotico = {};
     if (hipnotico === 'etomidato') {
-      var mgEtom = +(pesoKg * 0.3).toFixed(1);
+      var doseKgEtom = riscoColapsoHemodinamico ? 0.2 : 0.3;
+      var mgEtom = Math.min(+(pesoKg * doseKgEtom).toFixed(1), 30);
       var mlEtom = +(mgEtom / 2.0).toFixed(1); // 2 mg/mL
       doseHipnotico = {
         farmaco: 'Etomidato',
         doseMg: mgEtom,
         apresentacao: 'Ampola 20 mg/10 mL (2 mg/mL)',
         volumeMl: mlEtom,
-        posologia: mgEtom + ' mg (' + mlEtom + ' mL) IV em bolus rápido',
+        posologia: mgEtom + ' mg (' + mlEtom + ' mL) IV em bolus rápido (teto 30 mg' + (riscoColapsoHemodinamico ? '; dose reduzida a 0,2 mg/kg no choque' : '') + ')',
         justificativa: 'Fármaco de excelência hemodinâmica, mantendo estabilidade de pressão arterial e perfusão coronariana.'
       };
     } else if (hipnotico === 'cetamina') {
-      var mgCet = +(pesoKg * 2.0).toFixed(1);
+      var doseKgCet = riscoColapsoHemodinamico ? 1.0 : 1.5;
+      var mgCet = Math.min(+(pesoKg * doseKgCet).toFixed(1), 200);
       var mlCet = +(mgCet / 50.0).toFixed(1); // 50 mg/mL
       doseHipnotico = {
         farmaco: 'Cetamina',
         doseMg: mgCet,
         apresentacao: 'Frasco-ampola 500 mg/10 mL (50 mg/mL)',
         volumeMl: mlCet,
-        posologia: mgCet + ' mg (' + mlCet + ' mL) IV em bolus rápido',
+        posologia: mgCet + ' mg (' + mlCet + ' mL) IV em bolus rápido (teto 200 mg' + (riscoColapsoHemodinamico ? '; dose reduzida a 1,0 mg/kg no choque' : '') + ')',
         justificativa: 'Potente broncodilatador e simpatomimético indireto, preservando drive e pressão arterial.'
       };
     } else if (hipnotico === 'propofol') {
-      var doseKgProp = riscoColapsoHemodinamico ? 1.0 : 2.0;
-      var mgProp = +(pesoKg * doseKgProp).toFixed(1);
+      var doseKgProp = riscoColapsoHemodinamico ? 0.8 : 1.5;
+      var mgProp = Math.min(+(pesoKg * doseKgProp).toFixed(1), 200);
       var mlProp = +(mgProp / 10.0).toFixed(1); // 10 mg/mL (1%)
       doseHipnotico = {
         farmaco: 'Propofol',
         doseMg: mgProp,
         apresentacao: 'Ampola 200 mg/20 mL (10 mg/mL a 1%)',
         volumeMl: mlProp,
-        posologia: mgProp + ' mg (' + mlProp + ' mL) IV em bolus lento (cuidado com vasodilatação)',
+        posologia: mgProp + ' mg (' + mlProp + ' mL) IV em bolus lento (teto 200 mg; cuidado com vasodilatação)',
         justificativa: 'Excelente sedativo e anticonvulsivante; requer vigilância rigorosa de hipotensão profunda.'
       };
       if (riscoColapsoHemodinamico) {
         alertasCriticos.push("AVISO: Propofol causa vasodilatação e inotropismo negativo marcados. Se paciente instável, preferir Etomidato ou Cetamina.");
       }
     } else if (hipnotico === 'midazolam') {
-      var mgMid = +(pesoKg * 0.25).toFixed(1);
+      var doseKgMid = riscoColapsoHemodinamico ? 0.1 : 0.2;
+      var mgMid = Math.min(+(pesoKg * doseKgMid).toFixed(1), 15);
       var mlMid = +(mgMid / 5.0).toFixed(1); // 5 mg/mL
       doseHipnotico = {
         farmaco: 'Midazolam',
         doseMg: mgMid,
         apresentacao: 'Ampola 15 mg/3 mL (5 mg/mL)',
         volumeMl: mlMid,
-        posologia: mgMid + ' mg (' + mlMid + ' mL) IV em bolus',
+        posologia: mgMid + ' mg (' + mlMid + ' mL) IV em bolus (teto 15 mg)',
         justificativa: 'Alternativa quando Etomidato ou Cetamina indisponíveis; início de ação mais demorado (2 a 3 min).'
       };
     }
@@ -42402,7 +42502,7 @@ var ViaAereaDificilService = (function() {
 
     var doseBnm = {};
     if (bnmEscolhido === 'rocuronio') {
-      var mgRoc = +(pesoKg * 1.2).toFixed(1); // Dose de RSI = 1.2 mg/kg
+      var mgRoc = Math.min(+(pesoKg * 1.2).toFixed(1), 120); // Dose de RSI = 1.2 mg/kg (teto 120 mg)
       var mlRoc = +(mgRoc / 10.0).toFixed(1); // 10 mg/mL
       var doseSugamadexResgate = +(pesoKg * 16.0).toFixed(1);
       doseBnm = {
@@ -42410,20 +42510,20 @@ var ViaAereaDificilService = (function() {
         doseMg: mgRoc,
         apresentacao: 'Frasco-ampola 50 mg/5 mL (10 mg/mL)',
         volumeMl: mlRoc,
-        posologia: mgRoc + ' mg (' + mlRoc + ' mL) IV em bolus imediato após o hipnótico',
+        posologia: mgRoc + ' mg (' + mlRoc + ' mL) IV em bolus imediato após o hipnótico (teto 120 mg)',
         tempoInicio: '60 segundos',
         duracaoAcao: '40 a 60 minutos',
         antidotoResgate: 'Sugamadex 16 mg/kg (' + doseSugamadexResgate + ' mg IV em bolus) para reversão imediata de emergência se via aérea não for obtida.'
       };
     } else {
-      var mgSucc = +(pesoKg * 1.5).toFixed(1); // 1.0 a 1.5 mg/kg
+      var mgSucc = Math.min(+(pesoKg * 1.5).toFixed(1), 200); // 1.0 a 1.5 mg/kg (teto 200 mg)
       var mlSucc = +(mgSucc / 10.0).toFixed(1); // 100 mg reconstituído em 10 mL (10 mg/mL)
       doseBnm = {
         farmaco: 'Succinilcolina',
         doseMg: mgSucc,
         apresentacao: 'Frasco-ampola 100 mg pó liofilizado (reconstituir com 10 mL de AD = 10 mg/mL)',
         volumeMl: mlSucc,
-        posologia: mgSucc + ' mg (' + mlSucc + ' mL) IV em bolus imediato após o hipnótico',
+        posologia: mgSucc + ' mg (' + mlSucc + ' mL) IV em bolus imediato após o hipnótico (teto 200 mg)',
         tempoInicio: '45 a 60 segundos',
         duracaoAcao: '6 a 10 minutos (bloqueador despolarizante de curta duração)',
         antidotoResgate: 'Não há antídoto específico direto. Aguardar metabolismo pela colinesterase plasmática sob ventilação de resgate.'
@@ -43226,7 +43326,7 @@ function obterItensRemumeRP(chatId) {
   if (!conteudo) return [];
   var linhas = String(conteudo).split(/\r?\n/)
     .map(function(l) { return l.replace(/^"|"$/g, "").trim(); })
-    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento"; });
+    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento" && !/^UI(?:\/mL)?\s*-\s*/i.test(l); });
 
   _cacheItensRemumeRP = linhas;
   return _cacheItensRemumeRP;
@@ -43637,8 +43737,8 @@ function filtrarContextoPosologiasHSL(pedidoUsuario) {
     return a.farnaco.localeCompare(b.farnaco);
   });
 
-  // Nunca exclui fármacos explicitamente mencionados para cumprir o limite.
-  selecionados = selecionados.filter(function(m, i) { return i < 8 || pedidoExplicito(m); });
+  // Foco cirúrgico de alto rendimento: limita a 3 fármacos relevantes ou explicitamente solicitados (máx 4) para evitar sobrecarga de tokens
+  selecionados = selecionados.filter(function(m, i) { return i < 3 || pedidoExplicito(m); }).slice(0, 4);
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {
@@ -44376,7 +44476,8 @@ function filtrarContextoPediatricoPedB(pedidoUsuario) {
     return a.nome.localeCompare(b.nome);
   });
 
-  selecionados = selecionados.slice(0, 5);
+  // Foco cirúrgico de alto rendimento: limita a 3 fármacos pediátricos relevantes
+  selecionados = selecionados.slice(0, 3);
 
   var blocos = [];
   for (var s = 0; s < selecionados.length; s++) {
@@ -47362,7 +47463,7 @@ function _iaCfg(chave, padrao) {
     var v = ConfigService.get(chave, padrao);
     return (v === undefined || v === null || v === "") ? padrao : v;
   } catch (e) {
-    return "📚 MODELO DE REFERÊNCIA — confirmar os achados antes de registrar.\n\n" + padrao;
+    return padrao !== undefined ? padrao : "";
   }
 }
 
@@ -47901,7 +48002,7 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
 
   var projectId = auth.projectId || VertexAuthService.getProjectId();
   var primaryLoc = opcoes.location || ConfigService.get("VERTEX_LOCATION", VertexAuthService.getLocation() || "global");
-  var primaryModel = opcoes.model || ConfigService.get("VERTEX_MODEL", VertexAuthService.getModel() || "gemini-4-argon");
+  var primaryModel = opcoes.model || ConfigService.get("VERTEX_MODEL", VertexAuthService.getModel() || "gemini-2.5-flash");
 
   // Lista de tentativas na Vertex AI (Prioridade 1: gemini-4-argon em global)
   var rotasVertex = [
@@ -47931,8 +48032,11 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
   if (!thinking) {
     if (opcoes.semThinking || opcoes.rapido || opcoes.extrativo) {
       thinking = "low";
-    } else if (opcoes.clinico || opcoes.multimodal) {
-      thinking = "high";
+    } else if (opcoes.multimodal) {
+      // Reconhecimento multimodal e transcrição de áudio: 'low' para retorno ultra-rápido (< 2s)
+      thinking = "low";
+    } else if (opcoes.clinico) {
+      thinking = opcoes.rapidoClinico ? "medium" : "high";
     }
   }
 
@@ -48019,22 +48123,8 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
 function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   opcoes = opcoes || {};
 
-  // 0. Prioridade Tier-0: Google Cloud Vertex AI (gemini-4-argon)
-  if (typeof VertexAuthService !== "undefined" && VertexAuthService && VertexAuthService.isConfigured()) {
-    try {
-      var partesUser = opcoes.partesUsuario || [{ text: prompt }];
-      var instrucaoVertex = (opcoes.instrucaoSistema || sistema) + IA_DIRETIVA_SEM_LATEX;
-      var optsVertex = Object.assign({}, opcoes, {
-        maxOutputTokens: _iaTokensEfetivos(tokens)
-      });
-      var resVertex = chamarVertexAIGemini(partesUser, instrucaoVertex, optsVertex);
-      if (resVertex && String(resVertex).trim()) {
-        return { texto: String(resVertex).trim(), truncado: false, modelo: "gemini-4-argon", groundingMetadata: null };
-      }
-    } catch (eVx) {
-      _iaLog(ctx, "VERTEX AI falha, recorrendo ao pool de fallback: " + (eVx.message || eVx));
-    }
-  }
+  // 0. Prioridade Tier-0: Vertex AI / Argon descontinuado conforme diretriz global (AGENTS.md)
+  // Execução direta via pool nativo da API do Gemini para eliminar latência de fallback
 
   if (_iaBloqueado("GEMINI_NET_FAIL")) {
     _iaLog(ctx, "GEMINI: indisponibilidade transitória de rede ativa (Fast-Ack / cooldown), pulando para motor local.");
@@ -48776,6 +48866,7 @@ function chamarGeminiPoolMultimodal(base64Data, mimeType, sistema, promptUsuario
   var optsMultimodal = Object.assign({
     clinico: true,
     multimodal: true,
+    thinkingLevel: "low",
     timeoutMs: timeoutMultimodal,
     orcamentoMs: timeoutMultimodal
   }, opcoes, { partesUsuario: partes });
@@ -50299,6 +50390,31 @@ function gerarPitchERoundComIA(dadosCaso) {
 }
 
 function processarCalculadoraClinicaComIA(dadosCalc) {
+  // 1. Roteamento Determinístico em RAM para fórmulas puras (0ms de latência)
+  if (typeof CalculadorasClinicas !== "undefined") {
+    try {
+      var tCalc = String(dadosCalc || "").trim();
+      if (/(?:parkland|queimadura)/i.test(tCalc) && typeof CalculadorasClinicas.calcularParklandPorTextoLivre === "function") {
+        var resPark = CalculadorasClinicas.calcularParklandPorTextoLivre(tCalc);
+        if (resPark && resPark.ok && resPark.textoFormatado) return resPark.textoFormatado;
+      }
+      if (/(?:trombolise|trombólise|avc|rtpa|tenecte)/i.test(tCalc) && typeof CalculadorasClinicas.calcularTrombolisePorTextoLivre === "function") {
+        var resTromb = CalculadorasClinicas.calcularTrombolisePorTextoLivre(tCalc);
+        if (resTromb && resTromb.ok && resTromb.textoFormatado) return resTromb.textoFormatado;
+      }
+      if (/(?:ajuste\s*renal|clcr\s*ajuste)/i.test(tCalc) && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+        var resRen = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(tCalc);
+        if (resRen && resRen.ok && resRen.dados) {
+          var dAtb = resRen.dados;
+          return "💉 *AJUSTE RENAL — " + dAtb.nomeExibicao.toUpperCase() + "*\n\n" +
+            "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
+            "• *Dose Padrão:* " + dAtb.dosePadrao + "\n\n" +
+            "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados;
+        }
+      }
+    } catch (_) {}
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: CALCULADORA E ESTRATIFICAÇÃO DE RISCO. Interprete escores e cálculos do internato com concisão.",
@@ -50323,6 +50439,16 @@ function processarCalculadoraClinicaComIA(dadosCalc) {
 var IA_STOP_INTERACAO = ["com", "uso", "dose", "para", "and", "mais", "entre", "interacao", "interacoes", "the", "que", "por", "mg", "dos", "das", "uma"];
 
 function verificarInteracaoComIA(drogas) {
+  // 1. Roteamento Determinístico Imediato em RAM (0ms de latência)
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var checkLocal = executarCrossCheckSegurancaClinica(drogas);
+      if (checkLocal && checkLocal.farmacosDetectados && checkLocal.farmacosDetectados.length >= 2 && checkLocal.interacoes && checkLocal.interacoes.length > 0) {
+        return checkLocal.textoFormatado;
+      }
+    } catch (_) {}
+  }
+
   var idInteracoes = ConfigService.get("SPREADSHEET_ID_INTERACOES");
   var baseInteracoes = "";
   var erroPlanilha = null;
@@ -50787,7 +50913,9 @@ function gerarRespostaConversaClinica(textoMensagem, contextoAnterior) {
   if (contextoAnterior) {
     promptUsuario = "HISTÓRICO RECENTE DA CONVERSA:\n" + contextoAnterior + "\n\nNOVA MENSAGEM DE " + ctxConv.saudacao.toUpperCase() + ":\n" + contextoProtocolo + contextoMedicamentos + textoMensagem;
   }
-  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800));
+  var ehEmergConv = _iaEhEmergencia(textoMensagem) || IA_RE_EMERGENCIA_FORTE.test(_iaNormalizarParaRegex(textoMensagem));
+  var optsConv = { clinico: true, thinkingLevel: ehEmergConv ? "high" : "medium" };
+  var respostaConv = _iaFinalizarTexto(executarRaciocinioClinico(promptSistema, promptUsuario, 1800, optsConv));
   return _iaAnexarCrossCheckSeguranca(respostaConv, textoMensagem);
 }
 
@@ -52178,14 +52306,15 @@ var RotinaService = {
       }
     }
 
-    // Fallback com Gemini caso seja texto complexo ou áudio longo
-    if (!alterado && typeof chamarModeloComFallback === "function") {
+    // Fallback com Gemini/IA caso seja texto complexo ou áudio longo
+    var fnIa = (typeof chamarMotorIaComFallback === "function") ? chamarMotorIaComFallback : ((typeof chamarModeloComFallback === "function") ? chamarModeloComFallback : null);
+    if (!alterado && fnIa) {
       try {
         var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
           "\"" + instrucao + "\"\n\n" +
           "Lista atual de blocos em JSON:\n" + JSON.stringify(blocos, null, 2) + "\n\n" +
           "Retorne EXCLUSIVAMENTE um array JSON válido contendo os blocos atualizados. Não inclua markdown.";
-        var respostaIA = chamarModeloComFallback(promptAjuste, { temperatura: 0.1, topP: 0.8 });
+        var respostaIA = fnIa(promptAjuste, { temperatura: 0.1, topP: 0.8 });
         if (respostaIA && respostaIA.texto) {
           var limpo = respostaIA.texto.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
           var blocosIA = JSON.parse(limpo);
@@ -61073,6 +61202,11 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
     return true;
   }
+  if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+    try {
+      responderCallbackTelegram(cb.id, data.startsWith("habit_") ? "Atualizando hábito..." : "Atualizando energia...");
+    } catch (_) {}
+  }
   var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
   var dataISO = ctx.dataAlvoISO || Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
   var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(dataISO) : null;
@@ -61355,6 +61489,35 @@ function tratarCallbackCalculadoras_(cb, data, ctx) {
       enviarMensagemParaChat(ctx.chatId, "⚠️ Erro ao processar ação da calculadora.");
     }
     return true;
+  }
+  if (data === "calc_Mero" || data === "calc_Vanco") {
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try { responderCallbackTelegram(cb.id, (data === "calc_Mero" ? "Meropenem ClCr" : "Vancomicina ClCr")); } catch (_) {}
+    }
+    var farmaco = (data === "calc_Mero" ? "meropenem" : "vancomicina");
+    var msgOrig = (cb.message && cb.message.text) ? cb.message.text : "";
+    var mClcr = msgOrig.match(/(?:ClCr|Clearance|Cockcroft|TFG)[^0-9]*([0-9]+(?:[\.,][0-9]+)?)\s*mL\/min/i);
+    var tecladoRetorno = {
+      inline_keyboard: [
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (mClcr && typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var clcrNum = parseFloat(mClcr[1].replace(',', '.'));
+      var resAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(farmaco + " clcr " + clcrNum);
+      if (resAtb && resAtb.ok && resAtb.dados) {
+        var dAtb = resAtb.dados;
+        var msgAtb = "💉 *AJUSTE RENAL — " + dAtb.nomeExibicao.toUpperCase() + "*\n\n" +
+          "• *ClCr Detectado:* `" + clcrNum + " mL/min`\n" +
+          "• *Dose Ajustada Recomendada:* `" + dAtb.doseAjustada + "`\n" +
+          "• *Dose Padrão (sem disfunção):* " + dAtb.dosePadrao + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
+        return enviarMensagemComTecladoParaChat(ctx.chatId, msgAtb, tecladoRetorno);
+      }
+    }
+    var instrucoesAtb = (typeof obterInstrucoesCalculadora === "function") ? obterInstrucoesCalculadora(farmaco) : "";
+    return enviarMensagemComTecladoParaChat(ctx.chatId, instrucoesAtb, tecladoRetorno);
   }
   if (data.startsWith("calc_")) {
     var tipoCalc = data.replace("calc_", "");
@@ -61712,6 +61875,19 @@ function tratarCallbackAnemiaGanzoni_(cb, data, ctx) {
 }
 
 function tratarCallbackDhe_(cb, data, ctx) {
+  if (data.startsWith("cmd_dhe:")) {
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try { responderCallbackTelegram(cb.id, "Calculando DHE..."); } catch (_) {}
+    }
+    var param = data.replace(/^cmd_dhe:/, "").replace(/_/g, " ").trim();
+    if (typeof tratarComandoDhe === "function") {
+      return tratarComandoDhe(ctx.chatId, param, ctx.msgId);
+    }
+    if (typeof processarMensagemTexto === "function") {
+      return processarMensagemTexto({ chat: { id: ctx.chatId }, text: "/dhe " + param });
+    }
+    return false;
+  }
   if (data === "dhe_hipo") {
     responderCallbackTelegram(cb.id, "Hiponatremia (Adrogué-Madias)");
     return enviarMensagemParaChat(ctx.chatId, "💧 *CORREÇÃO DE HIPONATREMIA (ADROGUÉ-MADIAS)*\n\nEnvie os dados com sódio, peso e sexo:\n💡 *Exemplo:* `/dhe na 118 peso 60 f 72`\nou `/dhe na 122 peso 70 m nacl 3%`\n\nCalcula a elevação de Na+ por litro de NaCl 3%, teto seguro em 24h (máx 8 mEq/L) e taxa na BIC em mL/h.");
@@ -62128,6 +62304,7 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "gerarRound_", handler: tratarCallbackGerarRound_ },
   { prefix: "incorporarSoap_", handler: tratarCallbackIncorporarLaudoSoap_ },
   { prefix: "incorporarLaudoSoap_", handler: tratarCallbackIncorporarLaudoSoap_ },
+  { prefix: "cmd_dhe:", handler: tratarCallbackDhe_ },
   { prefix: "calc_cat_", handler: tratarCallbackCalculadoras_ },
   { prefix: "calc:", handler: tratarCallbackCalculadoras_ },
   { prefix: "calc_", handler: tratarCallbackCalculadoras_ },
@@ -62166,6 +62343,9 @@ function processarCallbackBotao(cb) {
 
     // Fast-path: extração de receita SOAP
     if (data.indexOf("ux:soap:extrair_rx") === 0) {
+      if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+        try { responderCallbackTelegram(cb.id, "Extraindo receita..."); } catch (_) {}
+      }
       var ckSoap = data.replace(/^ux:soap:extrair_rx:?/, "").trim();
       var chatExtrair = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : (cb.from ? cb.from.id : null);
       if (typeof executarExtracaoReceitaSoap === "function") {
@@ -63590,6 +63770,29 @@ function tentarCalcularDeterministico(texto) {
 function obterInstrucoesCalculadora(tipo) {
   var t = (tipo || "").toUpperCase().replace(/[\-_]/g, " ");
 
+  if (t.indexOf("MERO") !== -1) {
+    return "💊 *AJUSTE RENAL: MEROPENEM (GUIA HSL / IDSA)*\n\n" +
+      "• *Dose Habitual:* 1g IV de 8/8h (infusão estendida em 3h para sepse grave / P. aeruginosa)\n" +
+      "• *ClCr 26-50 mL/min:* 1g IV de 12/12h\n" +
+      "• *ClCr 10-25 mL/min:* 500 mg IV de 12/12h\n" +
+      "• *ClCr < 10 mL/min:* 500 mg IV de 24/24h\n" +
+      "• *Hemodiálise:* 500 mg IV após cada sessão de diálise\n\n" +
+      "💡 *Para calcular com o ClCr exato, envie:*\n" +
+      "`/atb meropenem clcr [valor]`";
+  }
+
+  if (t.indexOf("VANCO") !== -1) {
+    return "💊 *AJUSTE RENAL: VANCOMICINA (GUIA HSL / IDSA)*\n\n" +
+      "• *Dose de Ataque:* 25-30 mg/kg IV (máx 2-3g) em infusão lenta (1h para cada 1g)\n" +
+      "• *Manutenção Habitual:* 15-20 mg/kg IV de 8/8h a 12/12h\n" +
+      "• *ClCr 50-80 mL/min:* 15 mg/kg IV de 12/12h\n" +
+      "• *ClCr 20-49 mL/min:* 15 mg/kg IV de 24/24h\n" +
+      "• *ClCr < 20 mL/min:* 15 mg/kg dose única; dosar vancocinemia antes da próxima dose\n" +
+      "• *Hemodiálise:* Dose de ataque 20-25 mg/kg + dose pós-diálise guiada por nível sérico\n\n" +
+      "💡 *Para calcular com o ClCr exato, envie:*\n" +
+      "`/atb vancomicina clcr [valor]`";
+  }
+
   if (t.indexOf("CURB") !== -1) {
     return "📐 *CALCULADORA: CURB-65 (Gravidade na PAC)*\n\n" +
       "Dados estritamente necessários para o cálculo:\n" +
@@ -64180,6 +64383,13 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "Trombólise AVC (rtPA/TNK)", "callback_data": "calc_Trombolise_AVC"}, {"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}],
       [{"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}, {"text": "Child-Pugh", "callback_data": "calc_Child"}],
       [{"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+    ];
+  } else if (categoria === "calc_cat_nefro") {
+    tituloCat = "💊 *Ajuste Renal de Antimicrobianos (Guia HSL / IDSA):*";
+    teclado = [
+      [{"text": "💊 Meropenem", "callback_data": "calc_Mero"}, {"text": "💊 Vancomicina", "callback_data": "calc_Vanco"}],
+      [{"text": "🧪 Cockcroft (ClCr)", "callback_data": "calc_Cockcroft"}, {"text": "🧪 CKD-EPI (TFG)", "callback_data": "calc_CKD"}],
       [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }
@@ -67027,16 +67237,18 @@ var EnfermariaService=(function(){
       var censo = contarCensoLeitos(all, keys);
       var cards = keys.map(function (id) {
         var l = all[id];
-        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
+        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
       });
-      return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n');
+      return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n') + '\n\n💡 *' + CHECKLIST_PRE_ROUND + '*';
     },
     obterTextoConsolidadoParaPassagem: function () {
       var all = carregar(), keys = ids(all);
-      return keys.length ? keys.map(function (id) {
+      if (!keys.length) return null;
+      var leitosTxt = keys.map(function (id) {
         var l = all[id];
-        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
-      }).join('\n\n') : null;
+        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+      }).join('\n\n');
+      return leitosTxt + '\n\n' + CHECKLIST_PRE_ROUND;
     },
     gerarPassagemSBARConsolidada: function (idLeitoAlvo) {
       var all = carregar(), keys = ids(all);
@@ -72823,6 +73035,24 @@ function tratarCallbackUX(cb) {
       } else if (v.indexOf('extrair_rx') === 0) {
         var ckRx = v.indexOf('extrair_rx:') === 0 ? v.replace(/^extrair_rx:/, '').trim() : '';
         return executarExtracaoReceitaSoap(chat, ckRx, msgId);
+      } else if (v === 'copiar') {
+        var textoLimpo = '';
+        var estSoap = modoBot(chat);
+        if (estSoap && estSoap.data) textoLimpo = estSoap.data;
+        else if (cache && cache.get('ctx_' + chat)) textoLimpo = cache.get('ctx_' + chat);
+        else if (cb.message && cb.message.text) {
+          textoLimpo = cb.message.text
+            .replace(/^📱\s*[^\n]*\n─+[^\n]*\nOrigem:[^\n]*\n+/i, '')
+            .replace(/\n+✅\s*Dados integrados[^\n]*/i, '')
+            .trim();
+        }
+        if (!textoLimpo) {
+          if (cb.id) responderCallbackTelegram(cb.id, "⚠️ Nenhum texto de evolução para copiar.", true);
+          return true;
+        }
+        if (cb.id) responderCallbackTelegram(cb.id, "📋 Pronto para copiar!");
+        enviarMensagemParaChat(chat, "📋 *EVOLUÇÃO CLÍNICA / PRONTUÁRIO (Toque no bloco abaixo para copiar):*\n\n```\n" + textoLimpo + "\n```");
+        return true;
       }
     } else if (op === 'ef_inc') {
       var estInc = modoBot(chat), legInc = cache.get('ctx_' + chat);

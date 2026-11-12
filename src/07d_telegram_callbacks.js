@@ -55,6 +55,11 @@ function tratarCallbackHabitoEEnergia_(cb, data, ctx) {
     responderCallbackTelegram(cb.id, "🔒 O Habit Tracker do Notion é exclusivo do titular.", true);
     return true;
   }
+  if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+    try {
+      responderCallbackTelegram(cb.id, data.startsWith("habit_") ? "Atualizando hábito..." : "Atualizando energia...");
+    } catch (_) {}
+  }
   var tz = (typeof ConfigService !== "undefined" && ConfigService.get) ? ConfigService.get("TIMEZONE", "America/Sao_Paulo") : "America/Sao_Paulo";
   var dataISO = ctx.dataAlvoISO || Utilities.formatDate(new Date(), tz, "yyyy-MM-dd");
   var pageId = (typeof obterOuCriarPaginaHabitLog === "function") ? obterOuCriarPaginaHabitLog(dataISO) : null;
@@ -337,6 +342,35 @@ function tratarCallbackCalculadoras_(cb, data, ctx) {
       enviarMensagemParaChat(ctx.chatId, "⚠️ Erro ao processar ação da calculadora.");
     }
     return true;
+  }
+  if (data === "calc_Mero" || data === "calc_Vanco") {
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try { responderCallbackTelegram(cb.id, (data === "calc_Mero" ? "Meropenem ClCr" : "Vancomicina ClCr")); } catch (_) {}
+    }
+    var farmaco = (data === "calc_Mero" ? "meropenem" : "vancomicina");
+    var msgOrig = (cb.message && cb.message.text) ? cb.message.text : "";
+    var mClcr = msgOrig.match(/(?:ClCr|Clearance|Cockcroft|TFG)[^0-9]*([0-9]+(?:[\.,][0-9]+)?)\s*mL\/min/i);
+    var tecladoRetorno = {
+      inline_keyboard: [
+        [{ text: "🔙 Enfermaria", callback_data: "ux:hub:enf" }, { text: "🏠 Início", callback_data: "ux:hub:inicio" }]
+      ]
+    };
+    if (mClcr && typeof CalculadorasClinicas !== "undefined" && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+      var clcrNum = parseFloat(mClcr[1].replace(',', '.'));
+      var resAtb = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(farmaco + " clcr " + clcrNum);
+      if (resAtb && resAtb.ok && resAtb.dados) {
+        var dAtb = resAtb.dados;
+        var msgAtb = "💉 *AJUSTE RENAL — " + dAtb.nomeExibicao.toUpperCase() + "*\n\n" +
+          "• *ClCr Detectado:* `" + clcrNum + " mL/min`\n" +
+          "• *Dose Ajustada Recomendada:* `" + dAtb.doseAjustada + "`\n" +
+          "• *Dose Padrão (sem disfunção):* " + dAtb.dosePadrao + "\n\n" +
+          "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados + "\n\n" +
+          "🛡️ *Monitorização:*\n" + dAtb.monitorizacao;
+        return enviarMensagemComTecladoParaChat(ctx.chatId, msgAtb, tecladoRetorno);
+      }
+    }
+    var instrucoesAtb = (typeof obterInstrucoesCalculadora === "function") ? obterInstrucoesCalculadora(farmaco) : "";
+    return enviarMensagemComTecladoParaChat(ctx.chatId, instrucoesAtb, tecladoRetorno);
   }
   if (data.startsWith("calc_")) {
     var tipoCalc = data.replace("calc_", "");
@@ -694,6 +728,19 @@ function tratarCallbackAnemiaGanzoni_(cb, data, ctx) {
 }
 
 function tratarCallbackDhe_(cb, data, ctx) {
+  if (data.startsWith("cmd_dhe:")) {
+    if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+      try { responderCallbackTelegram(cb.id, "Calculando DHE..."); } catch (_) {}
+    }
+    var param = data.replace(/^cmd_dhe:/, "").replace(/_/g, " ").trim();
+    if (typeof tratarComandoDhe === "function") {
+      return tratarComandoDhe(ctx.chatId, param, ctx.msgId);
+    }
+    if (typeof processarMensagemTexto === "function") {
+      return processarMensagemTexto({ chat: { id: ctx.chatId }, text: "/dhe " + param });
+    }
+    return false;
+  }
   if (data === "dhe_hipo") {
     responderCallbackTelegram(cb.id, "Hiponatremia (Adrogué-Madias)");
     return enviarMensagemParaChat(ctx.chatId, "💧 *CORREÇÃO DE HIPONATREMIA (ADROGUÉ-MADIAS)*\n\nEnvie os dados com sódio, peso e sexo:\n💡 *Exemplo:* `/dhe na 118 peso 60 f 72`\nou `/dhe na 122 peso 70 m nacl 3%`\n\nCalcula a elevação de Na+ por litro de NaCl 3%, teto seguro em 24h (máx 8 mEq/L) e taxa na BIC em mL/h.");
@@ -1110,6 +1157,7 @@ var ROTEADORES_PREFIXO_CALLBACKS_ = [
   { prefix: "gerarRound_", handler: tratarCallbackGerarRound_ },
   { prefix: "incorporarSoap_", handler: tratarCallbackIncorporarLaudoSoap_ },
   { prefix: "incorporarLaudoSoap_", handler: tratarCallbackIncorporarLaudoSoap_ },
+  { prefix: "cmd_dhe:", handler: tratarCallbackDhe_ },
   { prefix: "calc_cat_", handler: tratarCallbackCalculadoras_ },
   { prefix: "calc:", handler: tratarCallbackCalculadoras_ },
   { prefix: "calc_", handler: tratarCallbackCalculadoras_ },
@@ -1148,6 +1196,9 @@ function processarCallbackBotao(cb) {
 
     // Fast-path: extração de receita SOAP
     if (data.indexOf("ux:soap:extrair_rx") === 0) {
+      if (cb && cb.id && typeof responderCallbackTelegram === "function") {
+        try { responderCallbackTelegram(cb.id, "Extraindo receita..."); } catch (_) {}
+      }
       var ckSoap = data.replace(/^ux:soap:extrair_rx:?/, "").trim();
       var chatExtrair = (cb.message && cb.message.chat && cb.message.chat.id) ? cb.message.chat.id : (cb.from ? cb.from.id : null);
       if (typeof executarExtracaoReceitaSoap === "function") {

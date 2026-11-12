@@ -865,7 +865,7 @@ var CentroObstetricoService = (function() {
             opcaoPrincipal: {
               farmaco: 'Vancomicina IV (Alérgica grave à penicilina com resistência à clindamicina ou antibiograma desconhecido)',
               doseAtaque: '20 mg/kg IV (máximo 2 g por infusão).',
-              doseManutencao: '20 mg/kg IV a cada 8 horas até o nascimento (infundir em pelo menos 1 a 2 horas para evitar Síndrome do Homem Vermelho).'
+              doseManutencao: '20 mg/kg IV a cada 8 horas até o nascimento (máximo 2 g por dose; infundir em pelo menos 1 a 2 horas para evitar Síndrome do Homem Vermelho).'
             }
           };
         }
@@ -1399,9 +1399,11 @@ var CentroObstetricoService = (function() {
     if (
       typeof globalThis !== "undefined" &&
       globalThis.ObstetriciaRcfDopplerService &&
-      typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function"
+      (typeof globalThis.ObstetriciaRcfDopplerService.avaliarRcf === "function" ||
+       typeof globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona === "function")
     ) {
-      return globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona(dados);
+      var fnRcf = globalThis.ObstetriciaRcfDopplerService.avaliarRcf || globalThis.ObstetriciaRcfDopplerService.classificarRcfBarcelona;
+      return fnRcf(dados);
     }
 
     var igSem = toNumberSafe(dados.igSemanas, 37);

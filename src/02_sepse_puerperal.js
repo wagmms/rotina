@@ -62,36 +62,13 @@ class SepsePuerperalService {
     }
 
     // PAS
-    if (pas < 80) {
+    // PAS (Hipotensão pontua disfunção hemodinâmica; Albright et al., 2014)
+    if (pas < 70) {
+      sosScore += 4;
+      detalhesSOS.push("PAS < 70 mmHg (+4)");
+    } else if (pas >= 70 && pas <= 89) {
       sosScore += 2;
-      detalhesSOS.push("PAS < 80 mmHg (+2)");
-    } else if (pas >= 80 && pas <= 89) {
-      sosScore += 1;
-      detalhesSOS.push("PAS 80-89 mmHg (+1)");
-    } else if (pas >= 140 && pas <= 149) {
-      sosScore += 1;
-      detalhesSOS.push("PAS 140-149 mmHg (+1)");
-    } else if (pas >= 150 && pas <= 159) {
-      sosScore += 2;
-      detalhesSOS.push("PAS 150-159 mmHg (+2)");
-    } else if (pas >= 160) {
-      sosScore += 3;
-      detalhesSOS.push("PAS >= 160 mmHg (+3)");
-    }
-
-    // PAD (Apenas para score, qSOFA usa PAS)
-    if (pad <= 40) {
-      sosScore += 2;
-      detalhesSOS.push("PAD <= 40 mmHg (+2)");
-    } else if (pad >= 90 && pad <= 99) {
-      sosScore += 1;
-      detalhesSOS.push("PAD 90-99 mmHg (+1)");
-    } else if (pad >= 100 && pad <= 109) {
-      sosScore += 2;
-      detalhesSOS.push("PAD 100-109 mmHg (+2)");
-    } else if (pad >= 110) {
-      sosScore += 3;
-      detalhesSOS.push("PAD >= 110 mmHg (+3)");
+      detalhesSOS.push("PAS 70-89 mmHg (+2)");
     }
 
     // SpO2
@@ -141,17 +118,21 @@ class SepsePuerperalService {
       riscoAltoQSofa,
       choqueSeptico,
       classificacao: (riscoAltoSOS || riscoAltoQSofa || choqueSeptico) ? "ALTO RISCO PARA SEPSE" : "BAIXO RISCO",
-      conduta: this.gerarBundleUmaHora(choqueSeptico)
+      conduta: this.gerarBundleUmaHora(choqueSeptico, pas)
     };
   }
 
-  static gerarBundleUmaHora(choqueSeptico) {
+  static gerarBundleUmaHora(choqueSeptico, pas) {
+    const alertaPE = (pas && pas >= 140) ?
+      "3. ⚠️ ATENÇÃO (GESTANTE/PUÉRPERA HIPERTENSA): Risco crítico de Edema Agudo de Pulmão (EAP). NÃO fazer expansão rápida de 30 mL/kg. Realizar ressuscitação volêmica restritiva (alíquotas de 250-500 mL) monitorando ausculta pulmonar e saturação." :
+      "3. Ressuscitação volêmica criteriosa com Cristaloides (Lactato de Ringer): 30 mL/kg se hipotensão (PAS < 90 ou PAM < 65) ou Lactato >= 4 mmol/L, com atenção ao risco de EAP (Edema Agudo de Pulmão) na gestante.";
+
     const bundle = [
       "1. Coleta de Lactato Sérico (repetir se > 2 mmol/L).",
       "2. Hemoculturas ANTES do início do antibiótico.",
-      "3. Ressuscitação volêmica criteriosa com Cristaloides (Lactato de Ringer): 30 mL/kg, com atenção ao risco de EAP (Edema Agudo de Pulmão) na gestante.",
+      alertaPE,
       "4. Antibioticoterapia de amplo espectro intravenosa:",
-      "   - Opção 1: Ampicilina 2g IV + Gentamicina 5mg/kg IV + Clindamicina 900mg IV",
+      "   - Opção 1: Ampicilina 2g IV + Gentamicina 5mg/kg IV (máximo 360-400 mg/dia) + Clindamicina 900mg IV",
       "   - Opção 2: Ceftriaxona 2g IV + Metronidazol 500mg IV"
     ];
 

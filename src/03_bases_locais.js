@@ -487,7 +487,7 @@ function obterItensRemumeRP(chatId) {
   if (!conteudo) return [];
   var linhas = String(conteudo).split(/\r?\n/)
     .map(function(l) { return l.replace(/^"|"$/g, "").trim(); })
-    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento"; });
+    .filter(function(l) { return l.length > 0 && l.toLowerCase() !== "medicamento" && !/^UI(?:\/mL)?\s*-\s*/i.test(l); });
 
   _cacheItensRemumeRP = linhas;
   return _cacheItensRemumeRP;

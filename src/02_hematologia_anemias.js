@@ -930,10 +930,11 @@ var HematologiaAnemiasService = (function () {
     if (ehPediatrico) {
       var doseCalc = Math.round(4 * pesoKg);
       var doseFinal = Math.min(60, doseCalc);
+      var gotasSulfato = Math.round(doseFinal / 1.25);
       return {
         doseFeElementarMgDia: doseFinal,
-        gotasSulfatoPediátrico: doseFinal,
-        esquemaPosologico: doseFinal + ' mg/dia de ferro elementar (' + doseFinal + ' gotas de Sulfato Ferroso)',
+        gotasSulfatoPediátrico: gotasSulfato,
+        esquemaPosologico: doseFinal + ' mg/dia de ferro elementar (~' + gotasSulfato + ' gotas de Sulfato Ferroso gotas [1,25 mg/gota])',
         orientacoes: ['Tomar 1h antes das refeições ou com suco rico em vitamina C.'],
         alertasToxicos: ['⚠️ SEGURANÇA DOMÉSTICA: Manter fora do alcance de crianças pelo risco de intoxicação acidental aguda fatal por ferro.']
       };

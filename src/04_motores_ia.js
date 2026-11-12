@@ -109,7 +109,7 @@ function _iaCfg(chave, padrao) {
     var v = ConfigService.get(chave, padrao);
     return (v === undefined || v === null || v === "") ? padrao : v;
   } catch (e) {
-    return "📚 MODELO DE REFERÊNCIA — confirmar os achados antes de registrar.\n\n" + padrao;
+    return padrao !== undefined ? padrao : "";
   }
 }
 
@@ -648,7 +648,7 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
 
   var projectId = auth.projectId || VertexAuthService.getProjectId();
   var primaryLoc = opcoes.location || ConfigService.get("VERTEX_LOCATION", VertexAuthService.getLocation() || "global");
-  var primaryModel = opcoes.model || ConfigService.get("VERTEX_MODEL", VertexAuthService.getModel() || "gemini-4-argon");
+  var primaryModel = opcoes.model || ConfigService.get("VERTEX_MODEL", VertexAuthService.getModel() || "gemini-2.5-flash");
 
   // Lista de tentativas na Vertex AI (Prioridade 1: gemini-4-argon em global)
   var rotasVertex = [
@@ -769,22 +769,8 @@ function chamarVertexAIGemini(parts, systemPrompt, opcoes) {
 function _iaProvGemini(sistema, prompt, tokens, ctx, opcoes) {
   opcoes = opcoes || {};
 
-  // 0. Prioridade Tier-0: Google Cloud Vertex AI (gemini-4-argon)
-  if (typeof VertexAuthService !== "undefined" && VertexAuthService && VertexAuthService.isConfigured()) {
-    try {
-      var partesUser = opcoes.partesUsuario || [{ text: prompt }];
-      var instrucaoVertex = (opcoes.instrucaoSistema || sistema) + IA_DIRETIVA_SEM_LATEX;
-      var optsVertex = Object.assign({}, opcoes, {
-        maxOutputTokens: _iaTokensEfetivos(tokens)
-      });
-      var resVertex = chamarVertexAIGemini(partesUser, instrucaoVertex, optsVertex);
-      if (resVertex && String(resVertex).trim()) {
-        return { texto: String(resVertex).trim(), truncado: false, modelo: "gemini-4-argon", groundingMetadata: null };
-      }
-    } catch (eVx) {
-      _iaLog(ctx, "VERTEX AI falha, recorrendo ao pool de fallback: " + (eVx.message || eVx));
-    }
-  }
+  // 0. Prioridade Tier-0: Vertex AI / Argon descontinuado conforme diretriz global (AGENTS.md)
+  // Execução direta via pool nativo da API do Gemini para eliminar latência de fallback
 
   if (_iaBloqueado("GEMINI_NET_FAIL")) {
     _iaLog(ctx, "GEMINI: indisponibilidade transitória de rede ativa (Fast-Ack / cooldown), pulando para motor local.");
@@ -3050,6 +3036,31 @@ function gerarPitchERoundComIA(dadosCaso) {
 }
 
 function processarCalculadoraClinicaComIA(dadosCalc) {
+  // 1. Roteamento Determinístico em RAM para fórmulas puras (0ms de latência)
+  if (typeof CalculadorasClinicas !== "undefined") {
+    try {
+      var tCalc = String(dadosCalc || "").trim();
+      if (/(?:parkland|queimadura)/i.test(tCalc) && typeof CalculadorasClinicas.calcularParklandPorTextoLivre === "function") {
+        var resPark = CalculadorasClinicas.calcularParklandPorTextoLivre(tCalc);
+        if (resPark && resPark.ok && resPark.textoFormatado) return resPark.textoFormatado;
+      }
+      if (/(?:trombolise|trombólise|avc|rtpa|tenecte)/i.test(tCalc) && typeof CalculadorasClinicas.calcularTrombolisePorTextoLivre === "function") {
+        var resTromb = CalculadorasClinicas.calcularTrombolisePorTextoLivre(tCalc);
+        if (resTromb && resTromb.ok && resTromb.textoFormatado) return resTromb.textoFormatado;
+      }
+      if (/(?:ajuste\s*renal|clcr\s*ajuste)/i.test(tCalc) && typeof CalculadorasClinicas.calcularAjusteRenalPorTextoLivre === "function") {
+        var resRen = CalculadorasClinicas.calcularAjusteRenalPorTextoLivre(tCalc);
+        if (resRen && resRen.ok && resRen.dados) {
+          var dAtb = resRen.dados;
+          return "💉 *AJUSTE RENAL — " + dAtb.nomeExibicao.toUpperCase() + "*\n\n" +
+            "• *Dose Ajustada:* `" + dAtb.doseAjustada + "`\n" +
+            "• *Dose Padrão:* " + dAtb.dosePadrao + "\n\n" +
+            "💡 *Cuidados Farmacológicos:*\n" + dAtb.cuidados;
+        }
+      }
+    } catch (_) {}
+  }
+
   var promptSistema = [
     IA_PERSONA, "", IA_VISUAL, "",
     "MODO: CALCULADORA E ESTRATIFICAÇÃO DE RISCO. Interprete escores e cálculos do internato com concisão.",
@@ -3074,6 +3085,16 @@ function processarCalculadoraClinicaComIA(dadosCalc) {
 var IA_STOP_INTERACAO = ["com", "uso", "dose", "para", "and", "mais", "entre", "interacao", "interacoes", "the", "que", "por", "mg", "dos", "das", "uma"];
 
 function verificarInteracaoComIA(drogas) {
+  // 1. Roteamento Determinístico Imediato em RAM (0ms de latência)
+  if (typeof executarCrossCheckSegurancaClinica === "function") {
+    try {
+      var checkLocal = executarCrossCheckSegurancaClinica(drogas);
+      if (checkLocal && checkLocal.farmacosDetectados && checkLocal.farmacosDetectados.length >= 2 && checkLocal.interacoes && checkLocal.interacoes.length > 0) {
+        return checkLocal.textoFormatado;
+      }
+    } catch (_) {}
+  }
+
   var idInteracoes = ConfigService.get("SPREADSHEET_ID_INTERACOES");
   var baseInteracoes = "";
   var erroPlanilha = null;

@@ -318,7 +318,9 @@ var CompatibilidadeYDvaService = (function() {
     'ceftriaxona': 'ceftriaxona',
     'rocefin': 'ceftriaxona',
     'ringer lactato': 'ringer_lactato',
-    'rl': 'ringer_lactato'
+    'rl': 'ringer_lactato',
+    'diazepam': 'diazepam',
+    'valium': 'diazepam'
   };
 
   function normalizarNomeDroga(nome) {
@@ -329,7 +331,9 @@ var CompatibilidadeYDvaService = (function() {
       .trim();
     if (ALIASES_FARMACOS[str]) return ALIASES_FARMACOS[str];
     for (var k in ALIASES_FARMACOS) {
-      if (str.indexOf(k) === 0 || k.indexOf(str) === 0) return ALIASES_FARMACOS[k];
+      if (str === k || str.indexOf(k + ' ') === 0 || str.indexOf(' ' + k) !== -1) {
+        return ALIASES_FARMACOS[k];
+      }
     }
     return str.replace(/\s+/g, '_');
   }
@@ -633,6 +637,72 @@ var CompatibilidadeYDvaService = (function() {
       mecanismo: 'Reação imediata entre íons cálcio e bicarbonato formando carbonato de cálcio insolúvel (solução turva e precipitada como giz).',
       conduta: 'NUNCA INFUNDIR NA MESMA VIA EM Y. Se ambos forem necessários (ex: PCR/hipercalemia grave), administrar sequencialmente com flush vigoroso de 20 mL de SF entre eles.',
       alertaCritico: true
+    },
+
+    // Diazepam e Fenitoína (Precipitações Críticas por pH Extremo)
+    'amiodarona_fenitoina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO IMEDIATA)',
+      mecanismo: 'Incompatibilidade física imediata entre soluções com pH extremo.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA EM Y.',
+      alertaCritico: true
+    },
+    'diazepam_furosemida': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Precipitação física e degradação em Y.',
+      conduta: 'Via exclusiva para diazepam.',
+      alertaCritico: true
+    },
+    'diazepam_noradrenalina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE DIAZEPAM)',
+      mecanismo: 'O pH ácido da noradrenalina quebra a estabilidade aquosa do diazepam, provocando precipitação cristalina.',
+      conduta: 'NUNCA conectar na mesma via em Y.',
+      alertaCritico: true
+    },
+    'diazepam_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO IMEDIATA)',
+      mecanismo: 'Diazepam precipita imediatamente em contato com soluções aquosas e peptídeos em Y.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA EM Y. Via venosa exclusiva ou lúmen independente.',
+      alertaCritico: true
+    },
+    'fenitoina_fentanil': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO DE FENITOÍNA)',
+      mecanismo: 'O pH básico extremo (~12) da fenitoína causa precipitação de fentanil e turvação imediata.',
+      conduta: 'NUNCA correr em Y. Exige via exclusiva com flush abundante antes e depois.',
+      alertaCritico: true
+    },
+    'fenitoina_midazolam': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (PRECIPITAÇÃO MACIÇA)',
+      mecanismo: 'Precipitação macroscópica instantânea de fenitoína e midazolam por incompatibilidade ácido-base severa.',
+      conduta: 'CONTRAINDICAÇÃO ABSOLUTA. Risco imediato de oclusão de cateter e embolia de microcristais.',
+      alertaCritico: true
+    },
+    'fenitoina_propofol': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y (DESESTABILIZAÇÃO DA EMULSÃO)',
+      mecanismo: 'Quebra imediata da emulsão lipídica do propofol com precipitação de cristais de fenitoína.',
+      conduta: 'CONTRAINDICADO EM Y.',
+      alertaCritico: true
+    },
+    'fenitoina_vasopressina': {
+      status: 'INCOMPATIVEL',
+      icone: '🛑',
+      grau: 'INCOMPATÍVEL EM Y',
+      mecanismo: 'Degradação alcalina do peptídeo vasopressina e risco de precipitação.',
+      conduta: 'Vias separadas mandatórias.',
+      alertaCritico: true
     }
   };
 
@@ -711,11 +781,12 @@ var CompatibilidadeYDvaService = (function() {
         ok: true,
         drogaA: idA,
         drogaB: idB,
-        status: 'COMPATIVEL',
-        icone: '✅',
-        grau: 'COMPATÍVEL / NÃO APLICÁVEL A BIC',
-        mecanismo: 'Fármacos não caracterizados como drogas de infusão contínua parenteral (BIC / UTI). Compatibilidade físico-química em Y não aplicável.',
-        conduta: 'Administrar conforme prescrição médica e vias habituais.',
+        status: 'DESCONHECIDO',
+        icone: '⚠️',
+        compativel: null,
+        grau: 'FÁRMACOS NÃO CATALOGADOS NA MATRIZ DE UTI',
+        mecanismo: 'Fármacos não cadastrados na matriz de drogas de infusão contínua parenteral (BIC / UTI) do banco local.',
+        conduta: 'NÃO ASSUMIR COMPATIBILIDADE. Consultar referências estendidas (Micromedex, Trissel\'s Handbook) ou farmacêutico clínico antes de conectar em Y.',
         alertaCritico: false,
         fichaA: null,
         fichaB: null

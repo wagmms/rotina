@@ -672,14 +672,15 @@ var RotinaService = {
       }
     }
 
-    // Fallback com Gemini caso seja texto complexo ou áudio longo
-    if (!alterado && typeof chamarModeloComFallback === "function") {
+    // Fallback com Gemini/IA caso seja texto complexo ou áudio longo
+    var fnIa = (typeof chamarMotorIaComFallback === "function") ? chamarMotorIaComFallback : ((typeof chamarModeloComFallback === "function") ? chamarModeloComFallback : null);
+    if (!alterado && fnIa) {
       try {
         var promptAjuste = "Você é o Copiloto de Rotina e Lifestyle Médico. O usuário enviou a seguinte instrução para ajustar a rotina de hoje:\n" +
           "\"" + instrucao + "\"\n\n" +
           "Lista atual de blocos em JSON:\n" + JSON.stringify(blocos, null, 2) + "\n\n" +
           "Retorne EXCLUSIVAMENTE um array JSON válido contendo os blocos atualizados. Não inclua markdown.";
-        var respostaIA = chamarModeloComFallback(promptAjuste, { temperatura: 0.1, topP: 0.8 });
+        var respostaIA = fnIa(promptAjuste, { temperatura: 0.1, topP: 0.8 });
         if (respostaIA && respostaIA.texto) {
           var limpo = respostaIA.texto.replace(/^```json\s*/i, "").replace(/```\s*$/i, "").trim();
           var blocosIA = JSON.parse(limpo);

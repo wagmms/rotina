@@ -370,7 +370,7 @@ try {
     const content = fs.readFileSync(REMUME_CSV_FILE, 'utf8');
     remumeRows = content.split('\n')
       .map(line => line.trim())
-      .filter(line => line.length > 0)
+      .filter(line => line.length > 0 && line.toLowerCase() !== 'medicamento' && !/^UI(?:\/mL)?\s*-\s*/i.test(line))
       .map(line => [line.replace(/^"|"$/g, '').trim()]);
     console.log(`[Runtime] REMUME carregado localmente: ${remumeRows.length} itens prontos em RAM.`);
   }
@@ -569,7 +569,7 @@ const ctx = {
       return propsStore.VERTEX_PROJECT_ID || propsStore.GCP_PROJECT_ID || (info && info.creds && info.creds.project_id) || 'gen-lang-client-0798056953';
     },
     getLocation: () => propsStore.VERTEX_LOCATION || 'global',
-    getModel: () => propsStore.VERTEX_MODEL || propsStore.GEMINI_MODEL || 'gemini-4-argon'
+    getModel: () => propsStore.VERTEX_MODEL || propsStore.GEMINI_MODEL || 'gemini-2.5-flash'
   },
 
   PropertiesService: {

@@ -61,7 +61,10 @@ function createD1Inbox(env = process.env, fetchImpl = fetch) {
 
   return {
     async init() {
-      await query({ sql: 'CREATE TABLE IF NOT EXISTS bot_inbox (id INTEGER PRIMARY KEY, state TEXT NOT NULL, payload TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL); CREATE INDEX IF NOT EXISTS bot_inbox_state_created ON bot_inbox(state, created_at);' });
+      await query({ batch: [
+        { sql: 'CREATE TABLE IF NOT EXISTS bot_inbox (id INTEGER PRIMARY KEY, state TEXT NOT NULL, payload TEXT NOT NULL, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL)' },
+        { sql: 'CREATE INDEX IF NOT EXISTS bot_inbox_state_created ON bot_inbox(state, created_at)' }
+      ] });
     },
     async accept(update) {
       const id = String(update.update_id);

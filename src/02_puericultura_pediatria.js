@@ -39,18 +39,19 @@ var PuericulturaPediatriaService = (function() {
         ferro.push("2 mg/kg/dia (iniciar com 30 dias de vida até 1 ano). Após 1 ano: 1 mg/kg/dia até 2 anos.");
       }
     } else {
-      // A termo e peso adequado (> 2500g)
-      if (aleitamentoExclusivo) {
+      // A termo e peso adequado (>= 2500g) - Diretriz SBP Anemia Ferropriva 2021
+      var comFatoresRisco = dados.comFatoresRisco || (!aleitamentoExclusivo && dados.comFatoresRisco !== false);
+      if (!comFatoresRisco) {
         if (idadeMeses >= 6 && idadeMeses < 24) {
-          ferro.push("1 mg/kg/dia (iniciar aos 6 meses de vida até 2 anos).");
+          ferro.push("1 mg/kg/dia (iniciar aos 6 meses de vida até 2 anos; teto máx 15 mg/dia).");
         } else if (idadeMeses < 6) {
-          ferro.push("Não indicado no momento (Aleitamento materno exclusivo atende até os 6 meses).");
+          ferro.push("Não indicado no momento (Sem fatores de risco: iniciar profilaxia aos 6 meses [180 dias]).");
         }
       } else {
         if (idadeMeses >= 3 && idadeMeses < 24) {
-          ferro.push("1 mg/kg/dia (iniciar aos 3 meses até 2 anos devido ao desmame/uso de fórmula).");
+          ferro.push("1 mg/kg/dia (iniciar aos 3 meses até 2 anos na presença de fatores de risco; teto máx 15 mg/dia).");
         } else if (idadeMeses < 3) {
-          ferro.push("Aguardar 3 meses para iniciar profilaxia (1 mg/kg/dia).");
+          ferro.push("Aguardar 3 meses (90 dias) para iniciar profilaxia (1 mg/kg/dia; teto 15 mg/dia).");
         }
       }
     }
@@ -77,7 +78,9 @@ var PuericulturaPediatriaService = (function() {
           var estaturaM = estaturaCm / 100;
           imc = pesoKg / (estaturaM * estaturaM);
           
-          if (imc > 18) { classificacaoImc = "Risco de Sobrepeso / Obesidade (> Escore Z +1)"; }
+          if (idadeMeses !== undefined && idadeMeses < 6) {
+              classificacaoImc = "Acompanhar curvas Peso/Idade e Peso/Estatura da OMS (< 6 meses)";
+          } else if (imc > 18) { classificacaoImc = "Risco de Sobrepeso / Obesidade (> Escore Z +1)"; }
           else if (imc < 14) { classificacaoImc = "Magreza (< Escore Z -2)"; }
           else { classificacaoImc = "Eutrofia (Escore Z > -2 e < +1)"; }
       }
@@ -160,7 +163,7 @@ var PuericulturaPediatriaService = (function() {
       { idadeMeses: 6, nome: "6 Meses", vacinas: ["Pentavalente (3ª dose)", "VIP (3ª dose)"] },
       { idadeMeses: 9, nome: "9 Meses", vacinas: ["Febre Amarela (Dose inicial)"] },
       { idadeMeses: 12, nome: "12 Meses", vacinas: ["Tríplice Viral (1ª dose)", "Pneumocócica 10v (Reforço)", "Meningocócica C (Reforço)"] },
-      { idadeMeses: 15, nome: "15 Meses", vacinas: ["DTP (1º reforço)", "VOP (1º reforço)", "Tetraviral (Tríplice + Varicela)", "Hepatite A"] }
+      { idadeMeses: 15, nome: "15 Meses", vacinas: ["DTP (1º reforço)", "VIP (reforço injetável — VOP extinta pelo PNI)", "Tetraviral (Tríplice + Varicela)", "Hepatite A"] }
   ];
 
   function calendarioVacinal(idadeMeses) {

@@ -240,51 +240,54 @@ var ViaAereaDificilService = (function() {
 
     var doseHipnotico = {};
     if (hipnotico === 'etomidato') {
-      var mgEtom = +(pesoKg * 0.3).toFixed(1);
+      var doseKgEtom = riscoColapsoHemodinamico ? 0.2 : 0.3;
+      var mgEtom = Math.min(+(pesoKg * doseKgEtom).toFixed(1), 30);
       var mlEtom = +(mgEtom / 2.0).toFixed(1); // 2 mg/mL
       doseHipnotico = {
         farmaco: 'Etomidato',
         doseMg: mgEtom,
         apresentacao: 'Ampola 20 mg/10 mL (2 mg/mL)',
         volumeMl: mlEtom,
-        posologia: mgEtom + ' mg (' + mlEtom + ' mL) IV em bolus rápido',
+        posologia: mgEtom + ' mg (' + mlEtom + ' mL) IV em bolus rápido (teto 30 mg' + (riscoColapsoHemodinamico ? '; dose reduzida a 0,2 mg/kg no choque' : '') + ')',
         justificativa: 'Fármaco de excelência hemodinâmica, mantendo estabilidade de pressão arterial e perfusão coronariana.'
       };
     } else if (hipnotico === 'cetamina') {
-      var mgCet = +(pesoKg * 2.0).toFixed(1);
+      var doseKgCet = riscoColapsoHemodinamico ? 1.0 : 1.5;
+      var mgCet = Math.min(+(pesoKg * doseKgCet).toFixed(1), 200);
       var mlCet = +(mgCet / 50.0).toFixed(1); // 50 mg/mL
       doseHipnotico = {
         farmaco: 'Cetamina',
         doseMg: mgCet,
         apresentacao: 'Frasco-ampola 500 mg/10 mL (50 mg/mL)',
         volumeMl: mlCet,
-        posologia: mgCet + ' mg (' + mlCet + ' mL) IV em bolus rápido',
+        posologia: mgCet + ' mg (' + mlCet + ' mL) IV em bolus rápido (teto 200 mg' + (riscoColapsoHemodinamico ? '; dose reduzida a 1,0 mg/kg no choque' : '') + ')',
         justificativa: 'Potente broncodilatador e simpatomimético indireto, preservando drive e pressão arterial.'
       };
     } else if (hipnotico === 'propofol') {
-      var doseKgProp = riscoColapsoHemodinamico ? 1.0 : 2.0;
-      var mgProp = +(pesoKg * doseKgProp).toFixed(1);
+      var doseKgProp = riscoColapsoHemodinamico ? 0.8 : 1.5;
+      var mgProp = Math.min(+(pesoKg * doseKgProp).toFixed(1), 200);
       var mlProp = +(mgProp / 10.0).toFixed(1); // 10 mg/mL (1%)
       doseHipnotico = {
         farmaco: 'Propofol',
         doseMg: mgProp,
         apresentacao: 'Ampola 200 mg/20 mL (10 mg/mL a 1%)',
         volumeMl: mlProp,
-        posologia: mgProp + ' mg (' + mlProp + ' mL) IV em bolus lento (cuidado com vasodilatação)',
+        posologia: mgProp + ' mg (' + mlProp + ' mL) IV em bolus lento (teto 200 mg; cuidado com vasodilatação)',
         justificativa: 'Excelente sedativo e anticonvulsivante; requer vigilância rigorosa de hipotensão profunda.'
       };
       if (riscoColapsoHemodinamico) {
         alertasCriticos.push("AVISO: Propofol causa vasodilatação e inotropismo negativo marcados. Se paciente instável, preferir Etomidato ou Cetamina.");
       }
     } else if (hipnotico === 'midazolam') {
-      var mgMid = +(pesoKg * 0.25).toFixed(1);
+      var doseKgMid = riscoColapsoHemodinamico ? 0.1 : 0.2;
+      var mgMid = Math.min(+(pesoKg * doseKgMid).toFixed(1), 15);
       var mlMid = +(mgMid / 5.0).toFixed(1); // 5 mg/mL
       doseHipnotico = {
         farmaco: 'Midazolam',
         doseMg: mgMid,
         apresentacao: 'Ampola 15 mg/3 mL (5 mg/mL)',
         volumeMl: mlMid,
-        posologia: mgMid + ' mg (' + mlMid + ' mL) IV em bolus',
+        posologia: mgMid + ' mg (' + mlMid + ' mL) IV em bolus (teto 15 mg)',
         justificativa: 'Alternativa quando Etomidato ou Cetamina indisponíveis; início de ação mais demorado (2 a 3 min).'
       };
     }
@@ -328,7 +331,7 @@ var ViaAereaDificilService = (function() {
 
     var doseBnm = {};
     if (bnmEscolhido === 'rocuronio') {
-      var mgRoc = +(pesoKg * 1.2).toFixed(1); // Dose de RSI = 1.2 mg/kg
+      var mgRoc = Math.min(+(pesoKg * 1.2).toFixed(1), 120); // Dose de RSI = 1.2 mg/kg (teto 120 mg)
       var mlRoc = +(mgRoc / 10.0).toFixed(1); // 10 mg/mL
       var doseSugamadexResgate = +(pesoKg * 16.0).toFixed(1);
       doseBnm = {
@@ -336,20 +339,20 @@ var ViaAereaDificilService = (function() {
         doseMg: mgRoc,
         apresentacao: 'Frasco-ampola 50 mg/5 mL (10 mg/mL)',
         volumeMl: mlRoc,
-        posologia: mgRoc + ' mg (' + mlRoc + ' mL) IV em bolus imediato após o hipnótico',
+        posologia: mgRoc + ' mg (' + mlRoc + ' mL) IV em bolus imediato após o hipnótico (teto 120 mg)',
         tempoInicio: '60 segundos',
         duracaoAcao: '40 a 60 minutos',
         antidotoResgate: 'Sugamadex 16 mg/kg (' + doseSugamadexResgate + ' mg IV em bolus) para reversão imediata de emergência se via aérea não for obtida.'
       };
     } else {
-      var mgSucc = +(pesoKg * 1.5).toFixed(1); // 1.0 a 1.5 mg/kg
+      var mgSucc = Math.min(+(pesoKg * 1.5).toFixed(1), 200); // 1.0 a 1.5 mg/kg (teto 200 mg)
       var mlSucc = +(mgSucc / 10.0).toFixed(1); // 100 mg reconstituído em 10 mL (10 mg/mL)
       doseBnm = {
         farmaco: 'Succinilcolina',
         doseMg: mgSucc,
         apresentacao: 'Frasco-ampola 100 mg pó liofilizado (reconstituir com 10 mL de AD = 10 mg/mL)',
         volumeMl: mlSucc,
-        posologia: mgSucc + ' mg (' + mlSucc + ' mL) IV em bolus imediato após o hipnótico',
+        posologia: mgSucc + ' mg (' + mlSucc + ' mL) IV em bolus imediato após o hipnótico (teto 200 mg)',
         tempoInicio: '45 a 60 segundos',
         duracaoAcao: '6 a 10 minutos (bloqueador despolarizante de curta duração)',
         antidotoResgate: 'Não há antídoto específico direto. Aguardar metabolismo pela colinesterase plasmática sob ventilação de resgate.'

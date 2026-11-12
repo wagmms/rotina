@@ -93,8 +93,8 @@ var NefrologiaDheService = (function() {
         var taxaInfusaoSegura = volumeParaTeto24h / 24; // em mL/h
 
         var alertas = [
-            "🛑 RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA (Mielinólise Pontina): Não ultrapassar elevação de 8 mEq/L nas primeiras 24h (e 18 mEq/L em 48h).",
-            "🧪 PREPARO PRÁTICO DE SALINA 3% (500 mL): 445 mL de Água Destilada (ou SG 5%) + 55 mL de NaCl 20% (OU 425 mL de SF 0,9% + 75 mL de NaCl 20% ≈ 513 mEq/L)."
+            "🛑 RISCO DE SÍNDROME DE DESMIELINIZAÇÃO OSMÓTICA (Mielinólise Pontina): Não ultrapassar elevação de 8 mEq/L nas primeiras 24h (e 18 mEq/L em 48h). Em pacientes de alto risco (desnutrição, alcoolismo, cirrose, hipocalemia grave), meta máxima estrita de 6 a 8 mEq/L em 24h.",
+            "🧪 PREPARO PRÁTICO DE SALINA 3% (500 mL ≈ 513 mEq/L): 445 mL de SF 0,9% + 55 mL de NaCl 20% (OU 425 mL de Água Destilada/SG 5% + 75 mL de NaCl 20%)."
         ];
         if (na < 120) {
             alertas.unshift("🚨 SE SINTOMAS NEUROLÓGICOS GRAVES (Convulsão, Coma, Rebaixamento): Bolus imediato de 100 a 150 mL de Salina 3% IV em 10 a 20 min (pode repetir até 2x se persistir sintoma grave, visando subir Na+ em 4-5 mEq/L rapidamente).");
@@ -260,8 +260,8 @@ var NefrologiaDheService = (function() {
             eliminacaoCorporal: [],
             hemodialiseEmergencia: null,
             alertaHgtHoraria: "HGT horária por 4-6h devido ao risco severo de hipoglicemia tardia. Se HGT basal >= 250 mg/dL, fazer APENAS Insulina Regular 10 UI IV isolada (sem SG 50%).",
-            gluconatoDose: "Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% ou SF 0,9% em 5 min)",
-            solucaoPolarizanteDose: "SG 50% 50mL (ou SG 10% 250mL) + 10 UI Insulina Regular IV em 20 min (Omitir glicose se HGT >= 250 mg/dL)",
+            gluconatoDose: "Gluconato de Cálcio 10% (10-20mL em 100mL SG 5% em 5 min)",
+            solucaoPolarizanteDose: "SG 50% 50mL + 10 UI Regular em 20 min (Insulina Regular IV)",
             eliminacaoSorcalFurosemida: "Sorcal/Furosemida para eliminação corporal"
         };
 
@@ -289,7 +289,7 @@ var NefrologiaDheService = (function() {
 
         // 2. Redistribuição Intracelular (Shift de K+) -> Acionar se K > 5.5 OU se houver alteração de ECG!
         if (k > 5.5 || ecg) {
-            var condutaPolarizante = "REDISTRIBUIÇÃO (SHIFT INTRACELULAR): Glicoinsulina (Solução Polarizante): SG 50% 50mL + 10 UI Insulina Regular IV em 20 min. ⚠️ TRAVA DE HIPERGLICEMIA: Se glicemia capilar (HGT) >= 250 mg/dL, administrar APENAS Insulina Regular 10 UI IV isolada (sem glicose hipertônica, pois a hiperosmolaridade puxa K+ para fora da célula e piora a hipercalemia). Queda esperada de K+: 0,5 a 1,2 mEq/L em 30-60 min. Monitorar HGT de 1/1h por 4-6h.";
+            var condutaPolarizante = "REDISTRIBUIÇÃO (SHIFT INTRACELULAR): Glicoinsulina (Solução Polarizante): SG 50% 50mL + 10 UI Regular em 20 min (Insulina Regular IV). ⚠️ TRAVA DE HIPERGLICEMIA: Se glicemia capilar (HGT) >= 250 mg/dL, administrar APENAS Insulina Regular 10 UI IV isolada (sem glicose hipertônica, pois a hiperosmolaridade puxa K+ para fora da célula e piora a hipercalemia). Queda esperada de K+: 0,5 a 1,2 mEq/L em 30-60 min. HGT horária por 4-6h (vigilância estrita de hipoglicemia tardia).";
             condutas.push(condutaPolarizante);
             tripe.redistribuicaoIntracelular.push(condutaPolarizante);
             prescricoes.push("Solução Polarizante: Insulina Regular 10 UI + Glicose 50% 50 mL IV correr em 20 minutos (ATENÇÃO: Se HGT basal >= 250 mg/dL, fazer APENAS Insulina Regular 10 UI IV sem glicose).");

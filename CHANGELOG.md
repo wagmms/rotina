@@ -1,5 +1,32 @@
 # 📦 Ultra Rotina — Histórico Completo de Melhorias Concluídas
 
+0C100. [x] **Auditoria Absoluta e Profunda do Medbot — Execução Integral em 4 Ondas (Segurança Clínica, Autenticação/Event Loop, Telegram UX/Cockpit Mobile e Roteamento em RAM/REMUME)**:
+    - **Onda 1 (Segurança Clínica & Fórmulas Críticas)**:
+      * *Matriz em Y de Drogas Vasoativas*: Adicionadas incompatibilidades de Vasopressina, Fenitoína e Diazepam; corrigido fallback de drogas não catalogadas de `COMPATIVEL` (`✅`) para `DESCONHECIDO` (`⚠️`); normalização com fronteira de palavras em `src/02_compatibilidade_y_dva.js`.
+      * *Farmacotécnica de Salina 3%*: Corrigida inversão de diluentes para `445 mL SF 0,9% + 55 mL NaCl 20%` (ou `425 mL AD + 75 mL NaCl 20%`); limites estritos de segurança de 8 mEq/L em 24h contra desmielinização osmótica em `src/02_nefrologia_dhe.js`; tripé de hipercalemia harmonizado.
+      * *Safety Guard*: Excluídos sulfatos inorgânicos (`sulfato ferroso`, `sulfato de magnesio`, `sulfato de salbutamol`, `sulfato de zinco`, `sulfato de morfina`) do grupo `SULFAMIDAS` em `src/clinical/safety_guard.js`, evitando falsos bloqueios na emergência respiratória e obstétrica.
+      * *Via Aérea & SRI*: Tetos absolutos de dose por bólus em SRI (Etomidato <= 30 mg, Cetamina <= 200 mg, Propofol <= 200 mg, Midazolam <= 15 mg, Rocurônio <= 120 mg, Succinilcolina <= 200 mg), redução obrigatória no choque e supressão de Fentanil no pré-tratamento em `src/02_via_aerea_dificil.js` e `src/02_calculadoras_puras.js`.
+      * *Sepse Puerperal & Obstetrícia*: Removida pontuação indevida de PAD e PAS hipertensiva do Escore SOS (Albright 2014); trava contra expansão rápida de 30 mL/kg na pré-eclâmpsia; teto diário de Gentamicina (360–400 mg) em `src/02_sepse_puerperal.js`.
+      * *Dengue Pediátrica MS 2024*: Hidratação escalonada por peso nos Grupos A e B (<= 10 kg: 130 mL/kg/dia; 10–20 kg: 100 mL/kg/dia; 20–40 kg: 80 mL/kg/dia) e eliminado default cego de 70 kg para lactentes em `src/02_arboviroses_dengue.js`.
+      * *Hematologia & Puericultura*: Gotas de ferro unificadas para 1,25 mg de ferro elementar por gota em `src/02_hematologia_anemias.js`; PNI atualizado para reforço de VIP injetável aos 15 meses (VOP extinta pelo MS) e estratificação por fatores de risco em `src/02_puericultura_pediatria.js`.
+    - **Onda 2 (Autenticação, Runtime & Event Loop)**:
+      * *Fechamento de Sessão Pública*: Bloqueado vazamento de sessão do titular em `GET /api/cockpit-url` exigindo `WEBHOOK_SECRET` com `timingSafeCompare` (`crypto.timingSafeEqual`) em `server/index.js`.
+      * *Proteção contra Timing Attack*: `POST /api/admin/config` migrado para comparação em tempo constante.
+      * *Desbloqueio de Fila D1*: Teto de 3 retries antes de realocar para o fim da fila, eliminando Head-of-Line Blocking infinito em `server/index.js` e migrado `init()` em `server/d1-inbox.js` para `query({ batch: [...] })`.
+      * *Cache de 1.2 MB em RAM*: Eliminado `fs.readFileSync` repetitivo de `cockpit_movel.html` em `/cockpit` e `/index.html` com suporte nativo a ETag e HTTP 304 Not Modified.
+      * *Expurgo de Vertex AI Síncrono*: Eliminada chamada residual com erro 429 de `_iaProvGemini` em `src/04_motores_ia.js`, eliminando até 70s de latência síncrona; corrigido catch de `_iaCfg`.
+    - **Onda 3 (Telegram UX, Fast-Ack, Resiliência de Callbacks e Mobile Cockpit)**:
+      * *Fast-Ack em Botões Inline*: `responderCallbackTelegram` imediato no início de handlers assíncronos pesados (`tratarCallbackHabitoEEnergia_`, `ux:soap:extrair_rx`), eliminando travamento do spinner no Telegram em `src/07d_telegram_callbacks.js`.
+      * *Mapeamento de Callbacks Órfãos*: Conectados `cmd_dhe:`, `calc_cat_nefro`, `calc_Mero` e `calc_Vanco` aos despachantes determinísticos em `src/07d_telegram_callbacks.js` e `src/07f_telegram_calculadoras_parser.js`; suporte a `ux:soap:copiar` com bloco de cópia rápida no Telegram em `src/12_experiencia_bot.js`.
+      * *IndexedDB no Cockpit SOAP*: Inicializada a constante global `IDB_STORE = 'soap_evolutions'` em `estacao_soap.js` e `gh_cockpit_deploy/estacao_soap.js`, eliminando `ReferenceError: IDB_STORE is not defined`.
+      * *Correção de Regex Duplicador no Cockpit*: Corrigido `escapeRegExpCockpit` em `cockpit_movel.html`, `index.html`, `gh_cockpit_deploy/cockpit_movel.html` e `gh_cockpit_deploy/index.html` substituindo string corrompida por `'\\$&'`, eliminando duplicação de itens da REMUME no `#soap-brain-dump`.
+      * *Prevenção de Estouro de 4096 Caracteres*: Removida a concatenação repetitiva de `CHECKLIST_PRE_ROUND` de dentro do loop de cada leito em `src/09_enfermaria.js`.
+    - **Onda 4 (Roteamento Determinístico em RAM, Limpeza de LLMs e Saneamento da REMUME)**:
+      * *Roteamento em RAM (0ms)*: Inseridos atalhos determinísticos em `processarCalculadoraClinicaComIA` e `verificarInteracaoComIA` em `src/04_motores_ia.js` delegando direto a `CalculadorasClinicas` e `executarCrossCheckSegurancaClinica` antes de invocar LLM externo.
+      * *Saneamento da REMUME*: Corrigidas linhas truncadas de `Espiramicina 1.500.000 UI` e `Gliclazida 30 mg MR` em `REMUME_RP.csv`; descartadas linhas de legenda (`UI - Unidade(s)...`) na indexação em `src/03_bases_locais.js` e `server/runtime.js`.
+      * *Conformidade de Schema*: Adicionado `verificado: false` ao preset `pa_garrafao_do_norte` em `src/data/remumes/presets/manifest.json`.
+    - **Recibo de Estabilidade**: Bateria completa com 57/57 suítes aprovadas com 100% de sucesso em 15.21s (`npm test`). Zero regressões.
+
 0C99. [x] **Otimização Quádrupla de Velocidade e Latência do Bot Telegram (`server/index.js`, `src/04_motores_ia.js`, `src/03_bases_locais.js`, `server/runtime.js`, `tests/test_velocidade_resposta_bot.cjs`)**:
     - **Diagnóstico e Resolução Integral**:
       * *Fast-Ack de Digitação no Ingress do Webhook*: Ao receber mensagens de texto ou áudio no endpoint `/webhook` do Fastify, dispara imediatamente `sendChatAction` não-bloqueante via fetch nativo assíncrono. Elimina a percepção de congelamento e fornece feedback visual ("digitando..." / "gravando áudio...") em < 50ms.

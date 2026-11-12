@@ -109,12 +109,21 @@ var ArbovirosesDengueService = (function () {
     };
   }
 
-  function calcularHidratacao(grupo, pesoKg) {
-    pesoKg = Math.max(5, Math.min(200, Number(pesoKg) || 70));
+  function calcularHidratacao(grupo, pesoKg, opcoes) {
+    opcoes = opcoes || {};
+    pesoKg = Math.max(2, Math.min(200, Number(pesoKg) || 70));
+    var ehPediatrico = (opcoes.ehPediatrico !== undefined) ? opcoes.ehPediatrico : (pesoKg < 40);
+
+    // Fator de hidratação oral (MS 2024): Adulto 60 mL/kg/dia; Pediátrico estratificado por peso
+    var mlKgDia = 60;
+    if (ehPediatrico) {
+      if (pesoKg <= 10) mlKgDia = 130;
+      else if (pesoKg <= 20) mlKgDia = 100;
+      else mlKgDia = 80;
+    }
 
     if (grupo === 'A') {
-      // 60 mL/kg/dia (1/3 SRO e 2/3 líquidos caseiros)
-      var volTotalA = Math.round(pesoKg * 60);
+      var volTotalA = Math.round(pesoKg * mlKgDia);
       var volSroA = Math.round(volTotalA / 3);
       var volLiquidosA = volTotalA - volSroA;
       return {
@@ -122,11 +131,11 @@ var ArbovirosesDengueService = (function () {
         volumeTotal24hMl: volTotalA,
         volumeSroMl: volSroA,
         volumeOutrosLiquidosMl: volLiquidosA,
-        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A:\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
+        ehPediatrico: ehPediatrico,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL GRUPO A (' + (ehPediatrico ? 'PEDIÁTRICO ' + mlKgDia + ' mL/kg/dia - MS 2024' : 'ADULTO 60 mL/kg/dia') + '):\n• Volume total em 24h: ' + volTotalA + ' mL (' + (volTotalA / 1000).toFixed(1) + ' L/dia)\n• Soro de Reidratação Oral (SRO): ' + volSroA + ' mL fracionados\n• Outros líquidos (água, sucos de frutas, água de coco): ' + volLiquidosA + ' mL'
       };
     } else if (grupo === 'B') {
-      // 60 mL/kg/dia oral na unidade supervisionada (1/3 nas primeiras 4h) - MS 2024
-      var volTotalB = Math.round(pesoKg * 60);
+      var volTotalB = Math.round(pesoKg * mlKgDia);
       var volPrimQuatroHoras = Math.round(volTotalB / 3);
       var volLiquidosB = volTotalB - volPrimQuatroHoras;
       return {
@@ -134,7 +143,8 @@ var ArbovirosesDengueService = (function () {
         volumeTotal24hMl: volTotalB,
         volumeFaseRapidaMl: volPrimQuatroHoras,
         volumeOutrosLiquidosMl: volLiquidosB,
-        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B (MS 2024):\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO (1/3 do volume diário)\n• Manter ingestão constante até liberação do hematócrito\n• Volume total em 24h: ' + volTotalB + ' mL (60 mL/kg/dia)'
+        ehPediatrico: ehPediatrico,
+        prescricaoFormatada: '💧 HIDRATAÇÃO ORAL SUPERVISIONADA GRUPO B (MS 2024):\n• Volume nas primeiras 4 horas na UPA: ' + volPrimQuatroHoras + ' mL de SRO (1/3 do volume diário)\n• Manter ingestão constante até liberação do hematócrito\n• Volume total em 24h: ' + volTotalB + ' mL (' + (ehPediatrico ? mlKgDia + ' mL/kg/dia pediátrico' : '60 mL/kg/dia adulto') + ')'
       };
     } else if (grupo === 'C') {
       // Fase rápida: 10 mL/kg/h em 2h
@@ -194,9 +204,14 @@ var ArbovirosesDengueService = (function () {
 
   function extrairParametrosTexto(texto) {
     texto = String(texto || '').toLowerCase();
+    var ehLactenteOuCrianca = /(lactente|bebe|bebê|recem[- ]nascido|rn|crianca|criança|pediatr)/i.test(texto);
     var peso = 70;
     var mPeso = texto.match(/(\d+(?:[.,]\d+)?)\s*(?:kg|quilos?)/);
-    if (mPeso) peso = parseFloat(mPeso[1].replace(',', '.'));
+    if (mPeso) {
+      peso = parseFloat(mPeso[1].replace(',', '.'));
+    } else if (ehLactenteOuCrianca) {
+      peso = 10;
+    }
 
     var temChoque = /(choque|hipotens|pulso fino|tec >|extremidade fria|desmaio)/i.test(texto);
     var temAlarme = /(alarme|dor abdominal|vomit|sangrament|lipotimia|tontura|letargia|sangue)/i.test(texto);
@@ -204,6 +219,7 @@ var ArbovirosesDengueService = (function () {
 
     return {
       pesoKg: peso,
+      ehPediatrico: ehLactenteOuCrianca || (peso < 40),
       sinaisChoque: temChoque,
       sinaisAlarme: temAlarme,
       comorbidades: temComorbidade
@@ -253,25 +269,39 @@ var ArbovirosesDengueService = (function () {
     } else if (condicaoEspecialOuRiscoSocialOuPetequias) {
       grupo = "GRUPO B";
       localManejo = "Leito de Observação em Unidade de Saúde / UPA até resultado do Hemograma";
-      var volumeTotalDiaB = Math.round(pesoKg * 60);
+      var mlKgDiaB = 60;
+      var ehPediatricoB = (paciente.ehPediatrico !== undefined) ? paciente.ehPediatrico : (pesoKg < 40);
+      if (ehPediatricoB) {
+        if (pesoKg <= 10) mlKgDiaB = 130;
+        else if (pesoKg <= 20) mlKgDiaB = 100;
+        else mlKgDiaB = 80;
+      }
+      var volumeTotalDiaB = Math.round(pesoKg * mlKgDiaB);
       var volumeSroB = Math.round(volumeTotalDiaB / 3);
       var volumeLiquidosCaseirosB = volumeTotalDiaB - volumeSroB;
       prescricaoHidratacao = {
         via: "ORAL SUPERVISIONADA (Enquanto aguarda o Hemograma)",
-        volumeDiarioTotal: volumeTotalDiaB + " mL/dia (60 mL/kg/dia).",
+        volumeDiarioTotal: volumeTotalDiaB + " mL/dia (" + (ehPediatricoB ? mlKgDiaB + " mL/kg/dia pediátrico MS 2024" : "60 mL/kg/dia") + ").",
         fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroB + " mL) e 2/3 com líquidos caseiros (" + volumeLiquidosCaseirosB + " mL: água, sucos, água de coco)."
       };
       examesObrigatorios = ["Hemograma completo OBRIGATÓRIO (colher e liberar resultado em até 4h). Se hemoconcentração -> reclassificar para Grupo C."];
     } else {
       grupo = "GRUPO A";
       localManejo = "Ambulatorial / Domiciliar (Unidade Básica de Saúde)";
-      var volumeTotalDiaA = Math.round(pesoKg * 60);
+      var mlKgDiaA = 60;
+      var ehPediatricoA = (paciente.ehPediatrico !== undefined) ? paciente.ehPediatrico : (pesoKg < 40);
+      if (ehPediatricoA) {
+        if (pesoKg <= 10) mlKgDiaA = 130;
+        else if (pesoKg <= 20) mlKgDiaA = 100;
+        else mlKgDiaA = 80;
+      }
+      var volumeTotalDiaA = Math.round(pesoKg * mlKgDiaA);
       var volumeSroA = Math.round(volumeTotalDiaA / 3);
       var volumeLiquidosCaseirosA = volumeTotalDiaA - volumeSroA;
       prescricaoHidratacao = {
-        via: "ORAL DOMICILIAR PRECOCE",
-        volumeDiarioTotal: volumeTotalDiaA + " mL/dia (60 mL/kg/dia para adultos).",
-        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroA + " mL) nas primeiras 4 a 6 horas e 2/3 com líquidos claros (" + volumeLiquidosCaseirosA + " mL) ao longo do dia."
+        via: "ORAL (Domiciliar)",
+        volumeDiarioTotal: volumeTotalDiaA + " mL/dia (" + (ehPediatricoA ? mlKgDiaA + " mL/kg/dia pediátrico MS 2024" : "60 mL/kg/dia") + ").",
+        fracionamento: "1/3 com Soro de Reidratação Oral (" + volumeSroA + " mL) e 2/3 com líquidos caseiros (" + volumeLiquidosCaseirosA + " mL: água, sucos, água de coco)."
       };
       examesObrigatorios = ["Não há obrigatoriedade de hemograma de rotina (a critério clínico)."];
     }

@@ -4564,6 +4564,24 @@ function tratarCallbackUX(cb) {
       } else if (v.indexOf('extrair_rx') === 0) {
         var ckRx = v.indexOf('extrair_rx:') === 0 ? v.replace(/^extrair_rx:/, '').trim() : '';
         return executarExtracaoReceitaSoap(chat, ckRx, msgId);
+      } else if (v === 'copiar') {
+        var textoLimpo = '';
+        var estSoap = modoBot(chat);
+        if (estSoap && estSoap.data) textoLimpo = estSoap.data;
+        else if (cache && cache.get('ctx_' + chat)) textoLimpo = cache.get('ctx_' + chat);
+        else if (cb.message && cb.message.text) {
+          textoLimpo = cb.message.text
+            .replace(/^📱\s*[^\n]*\n─+[^\n]*\nOrigem:[^\n]*\n+/i, '')
+            .replace(/\n+✅\s*Dados integrados[^\n]*/i, '')
+            .trim();
+        }
+        if (!textoLimpo) {
+          if (cb.id) responderCallbackTelegram(cb.id, "⚠️ Nenhum texto de evolução para copiar.", true);
+          return true;
+        }
+        if (cb.id) responderCallbackTelegram(cb.id, "📋 Pronto para copiar!");
+        enviarMensagemParaChat(chat, "📋 *EVOLUÇÃO CLÍNICA / PRONTUÁRIO (Toque no bloco abaixo para copiar):*\n\n```\n" + textoLimpo + "\n```");
+        return true;
       }
     } else if (op === 'ef_inc') {
       var estInc = modoBot(chat), legInc = cache.get('ctx_' + chat);

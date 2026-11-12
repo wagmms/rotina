@@ -63,6 +63,14 @@ function etagCorresponde(headerIfNoneMatch, etag) {
   return tags.includes(target) || tags.includes('*');
 }
 
+function timingSafeCompare(a, b) {
+  if (typeof a !== 'string' || typeof b !== 'string') return false;
+  const bufA = Buffer.from(a);
+  const bufB = Buffer.from(b);
+  if (bufA.length !== bufB.length) return false;
+  return crypto.timingSafeEqual(bufA, bufB);
+}
+
 function traduzirErroSchemaAjv(error) {
   if (!error || !error.validation || !Array.isArray(error.validation) || error.validation.length === 0) {
     return error?.message || 'Parâmetro de entrada inválido no schema Fastify.';
@@ -471,9 +479,19 @@ async function buildServer() {
     }
   });
 
-  // 4. Endpoint de geração da URL com sessão do Cockpit PWA
+  // 4. Endpoint de geração da URL com sessão do Cockpit PWA (Protegido por WEBHOOK_SECRET)
   fastify.get('/api/cockpit-url', async (request, reply) => {
     try {
+      const secretEsperado = runtime.ctx.ConfigService.get('WEBHOOK_SECRET');
+      const secretHeader = request.headers['x-admin-secret'] || request.headers['x-telegram-bot-api-secret-token'];
+      const secretQuery = request.query ? request.query.secret : null;
+      const secretRecebido = secretHeader || secretQuery;
+
+      if (!secretEsperado || !timingSafeCompare(secretRecebido, secretEsperado)) {
+        reply.status(401);
+        return { ok: false, erro: 'Unauthorized: WEBHOOK_SECRET obrigatório para emitir URL de sessão.' };
+      }
+
       const url = runtime.ctx.obterUrlCockpit();
       return { ok: true, url };
     } catch (err) {
@@ -1306,7 +1324,7 @@ async function buildServer() {
     const secretQuery = request.query ? request.query.secret : null;
     const secretRecebido = secretHeader || secretQuery;
 
-    if (!secretEsperado || secretRecebido !== secretEsperado) {
+    if (!secretEsperado || !timingSafeCompare(secretRecebido, secretEsperado)) {
       reply.status(401);
       return { ok: false, erro: 'Unauthorized' };
     }
@@ -1397,8 +1415,14 @@ async function buildServer() {
       estado = 'error';
       fastify.log.error(`[Webhook Background Erro] Update ${updateId}: ${err.message}`);
       if (d1Inbox && !reservadoRemoto) {
-        webhookQueue.unshift(item);
-        tentarNovamente = true;
+        item.retries = (item.retries || 0) + 1;
+        if (item.retries <= 3) {
+          webhookQueue.unshift(item);
+          tentarNovamente = true;
+        } else {
+          fastify.log.error(`[Webhook Background] Update ${updateId} excedeu 3 tentativas de reserva D1; movendo para fim da fila.`);
+          webhookQueue.push(item);
+        }
       } else if (d1Inbox) {
         try { await d1Inbox.markState(updateId, 'uncertain'); }
         catch (statusErr) { fastify.log.error({ err: statusErr, updateId }, '[Webhook] Estado remoto incerto'); }
@@ -1601,12 +1625,18 @@ async function buildServer() {
   });
 
   const pathCockpitHtml = require('path').join(__dirname, '..', 'cockpit_movel.html');
+  let cacheCockpitHtml = null;
+  let etagCockpitHtml = null;
 
   function renderCockpitHtml() {
-    if (!require('fs').existsSync(pathCockpitHtml)) {
-      return '<h1>Cockpit Móvel não encontrado</h1>';
+    if (!cacheCockpitHtml) {
+      if (!require('fs').existsSync(pathCockpitHtml)) {
+        return '<h1>Cockpit Móvel não encontrado</h1>';
+      }
+      cacheCockpitHtml = require('fs').readFileSync(pathCockpitHtml, 'utf8');
+      etagCockpitHtml = gerarETag(cacheCockpitHtml);
     }
-    return require('fs').readFileSync(pathCockpitHtml, 'utf8');
+    return cacheCockpitHtml;
   }
 
   // Rota raiz: serve o Cockpit PWA para navegadores e JSON para clientes de API
@@ -1614,6 +1644,14 @@ async function buildServer() {
     const accept = request.headers['accept'] || '';
     if (accept.includes('text/html') || (request.query && request.query.ui)) {
       reply.type('text/html; charset=utf-8');
+      if (etagCockpitHtml) {
+        reply.header('ETag', etagCockpitHtml);
+        reply.header('Cache-Control', 'no-cache');
+        if (etagCorresponde(request.headers['if-none-match'], etagCockpitHtml)) {
+          reply.status(304).send();
+          return;
+        }
+      }
       return renderCockpitHtml();
     }
     return {
@@ -1626,13 +1664,31 @@ async function buildServer() {
   });
 
   fastify.get('/cockpit', async (request, reply) => {
+    const html = renderCockpitHtml();
     reply.type('text/html; charset=utf-8');
-    return renderCockpitHtml();
+    if (etagCockpitHtml) {
+      reply.header('ETag', etagCockpitHtml);
+      reply.header('Cache-Control', 'no-cache');
+      if (etagCorresponde(request.headers['if-none-match'], etagCockpitHtml)) {
+        reply.status(304).send();
+        return;
+      }
+    }
+    return html;
   });
 
   fastify.get('/index.html', async (request, reply) => {
+    const html = renderCockpitHtml();
     reply.type('text/html; charset=utf-8');
-    return renderCockpitHtml();
+    if (etagCockpitHtml) {
+      reply.header('ETag', etagCockpitHtml);
+      reply.header('Cache-Control', 'no-cache');
+      if (etagCorresponde(request.headers['if-none-match'], etagCockpitHtml)) {
+        reply.status(304).send();
+        return;
+      }
+    }
+    return html;
   });
 
   const pathManifest = require('path').join(__dirname, '..', 'manifest.json');

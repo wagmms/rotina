@@ -95,7 +95,8 @@
       "total_itens": 192,
       "total_medicamentos": 192,
       "arquivo": "pa_garrafao_do_norte.json",
-      "atualizado_em": "2026-10-18T20:24:24.125Z"
+      "atualizado_em": "2026-10-18T20:24:24.125Z",
+      "verificado": false
     }
   ]
 }

@@ -255,12 +255,27 @@ function extractPatientAllergies(soapResult, rawInput) {
  */
 function findDrugFamilies(normalizedTerm) {
   const matchedFamilies = [];
+  const term = String(normalizedTerm || '').toLowerCase().trim();
+  if (!term) return matchedFamilies;
 
   for (const [familyName, synonyms] of Object.entries(DRUG_FAMILIES)) {
-    const belongsToFamily = synonyms.some(
-      (synonym) =>
-        normalizedTerm.includes(synonym) || synonym.includes(normalizedTerm)
-    );
+    if (familyName === 'SULFAMIDAS') {
+      // Sulfatos inorgânicos (sulfato ferroso, sulfato de magnésio, sulfato de salbutamol, etc.) NÃO são sulfas!
+      if (/\bsulfatos?\b/i.test(term) && !/\b(sulfametoxazol|sulfadiazina|sulfassalazina|sulfamida)\b/i.test(term)) {
+        continue;
+      }
+    }
+
+    const belongsToFamily = synonyms.some((synonym) => {
+      const syn = synonym.toLowerCase().trim();
+      if (term === syn) return true;
+      const regex = new RegExp('\\b' + syn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\b', 'i');
+      if (regex.test(term)) return true;
+      if (syn.length >= 5 && term.includes(syn)) return true;
+      if (term.length >= 5 && syn.includes(term)) return true;
+      return false;
+    });
+
     if (belongsToFamily) {
       matchedFamilies.push(familyName);
     }

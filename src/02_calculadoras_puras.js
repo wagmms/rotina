@@ -1536,13 +1536,13 @@ var CalculadorasClinicas = (function () {
   // ═════════════════════════════ SEQUÊNCIA RÁPIDA DE INTUBAÇÃO ═════════════════════════════
 
   var SRI_FARMACOS = {
-    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  tetoMaximo: 40,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
+    etomidato:      { nome: 'Etomidato',      dose: 0.3, un: 'mg', conc: 2,  tetoMaximo: 30,  txt: '0,3 mg/kg · 2 mg/mL (ampola 20mg/10mL)',  grupo: 'indutor', contra: 'Evitar em sepse se suspeita de insuficiência adrenal aguda, risco de supressão adrenal transitória.' },
     quetamina:      { nome: 'Quetamina',      dose: 1.5, un: 'mg', conc: 50, tetoMaximo: 200, txt: '1,5 mg/kg · 50 mg/mL (ampola 50mg/mL)', grupo: 'indutor', contra: 'Broncodilatador (ideal em asma). Evitar em hipertensão craniana severa ou glaucoma sem uso prévio de opioide.' },
     propofol:       { nome: 'Propofol 1%',    dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (ampola 1%)',        grupo: 'indutor', contra: 'Hipotensor potente. Reduzir dose pela metade em choque hemodinâmico ou senilidade.' },
     midazolam:      { nome: 'Midazolam',      dose: 0.2, un: 'mg', conc: 5,  tetoMaximo: 15,  txt: '0,2 mg/kg · 5 mg/mL (ampola 5mg/mL)',   grupo: 'indutor', contra: 'Depressor miocárdico e venodilatador. Evitar em choque descompensado.' },
     rocuronio:      { nome: 'Rocurônio',      dose: 1.2, un: 'mg', conc: 10, tetoMaximo: 120, txt: '1,2 mg/kg · 10 mg/mL (frasco 50mg/5mL)', grupo: 'bloqueador', contra: 'Ação em ~45-60s. Escolha de excelência. Reversível com Sugamadex.' },
     succinilcolina: { nome: 'Succinilcolina', dose: 1.5, un: 'mg', conc: 10, tetoMaximo: 200, txt: '1,5 mg/kg · 10 mg/mL (frasco 100mg/10mL)', grupo: 'bloqueador', contra: '⚠️ CONTRAINDICADA em: Hipercalemia (> 5.5), grandes queimados, esmagamento, miopatias, paralisia/AVC > 48h (risco de PCR por hipercalemia). Teto máximo: 200 mg.' },
-    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, tetoMaximo: 250, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
+    fentanil:       { nome: 'Fentanil',       dose: 2.0, un: 'mcg',conc: 50, tetoMaximo: 200, txt: '2 mcg/kg · 50 mcg/mL (ampola 50mcg/mL)',  grupo: 'adjuvante', contra: 'Pico de ação em 3-5 min. Atenua reflexo simpático da laringoscopia.' }
   };
 
   function resolverFarmaco(ctx, v, grupo, rotulo) {
@@ -1585,10 +1585,12 @@ var CalculadorasClinicas = (function () {
       if (pendente(c)) return falhaCtx(ID, NOME, c);
 
       // Pré-cálculo universal de todas as drogas para disponibilidade imediata
-      function calcDose(farmaco) {
-        var d = farmaco.dose * peso;
-        if (farmaco.tetoMaximo && d > farmaco.tetoMaximo) {
-          d = farmaco.tetoMaximo;
+      function calcDose(farmaco, doseCustom, tetoCustom) {
+        var doseKg = (doseCustom !== undefined) ? doseCustom : farmaco.dose;
+        var teto = (tetoCustom !== undefined) ? tetoCustom : farmaco.tetoMaximo;
+        var d = doseKg * peso;
+        if (teto && d > teto) {
+          d = teto;
         }
         var ml = d / farmaco.conc;
         exigirFinito(d, ml);
@@ -1600,22 +1602,28 @@ var CalculadorasClinicas = (function () {
         };
       }
 
-      var dFentanil = calcDose(SRI_FARMACOS.fentanil);
-      var dEtomidato = calcDose(SRI_FARMACOS.etomidato);
-      var dQuetamina = calcDose(SRI_FARMACOS.quetamina);
-      var dPropofol = calcDose(SRI_FARMACOS.propofol);
-      var dMidazolam = calcDose(SRI_FARMACOS.midazolam);
+      var ehChoque = (ctxChave === 'choque');
+      var dFentanil = calcDose(SRI_FARMACOS.fentanil, ehChoque ? 0.5 : undefined, ehChoque ? 100 : undefined);
+      var dEtomidato = calcDose(SRI_FARMACOS.etomidato, ehChoque ? 0.2 : undefined, ehChoque ? 20 : undefined);
+      var dQuetamina = calcDose(SRI_FARMACOS.quetamina, ehChoque ? 1.0 : undefined, ehChoque ? 150 : undefined);
+      var dPropofol = calcDose(SRI_FARMACOS.propofol, ehChoque ? 0.8 : undefined, ehChoque ? 100 : undefined);
+      var dMidazolam = calcDose(SRI_FARMACOS.midazolam, ehChoque ? 0.1 : undefined, ehChoque ? 10 : undefined);
       var dSuccinil = calcDose(SRI_FARMACOS.succinilcolina);
       var dRocuronio = calcDose(SRI_FARMACOS.rocuronio);
 
       var mostrarTodos = (ind === null && blq === null && adj === null && semAcento(String(adjuvante || '')) !== 'nenhum');
       var linhasDoses = [];
       if (mostrarTodos) {
-        linhasDoses.push('1️⃣ Pré-tratamento: Fentanil (50 mcg/mL · 2 mcg/kg): ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV lento');
-        linhasDoses.push('2️⃣ Sedativos / Indução (escolha 1):');
-        linhasDoses.push('   • Etomidato (2 mg/mL · 0,3 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
-        linhasDoses.push('   • Quetamina (50 mg/mL · 1,5 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
-        if (ctxChave !== 'choque') {
+        if (ehChoque) {
+          linhasDoses.push('1️⃣ Pré-tratamento: ⚠️ CHOQUE: EVITAR Fentanil (risco de lise simpática e colapso). Se indispensável: ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV');
+          linhasDoses.push('2️⃣ Sedativos / Indução (doses reduzidas no choque):');
+          linhasDoses.push('   • Etomidato (2 mg/mL · 0,2 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
+          linhasDoses.push('   • Quetamina (50 mg/mL · 1,0 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
+        } else {
+          linhasDoses.push('1️⃣ Pré-tratamento: Fentanil (50 mcg/mL · 2 mcg/kg): ' + fmt(dFentanil.dose, 0) + ' mcg → ' + fmt(dFentanil.ml, 1) + ' mL IV lento');
+          linhasDoses.push('2️⃣ Sedativos / Indução (escolha 1):');
+          linhasDoses.push('   • Etomidato (2 mg/mL · 0,3 mg/kg): ' + fmt(dEtomidato.dose, 1) + ' mg → ' + fmt(dEtomidato.ml, 1) + ' mL IV');
+          linhasDoses.push('   • Quetamina (50 mg/mL · 1,5 mg/kg): ' + fmt(dQuetamina.dose, 0) + ' mg → ' + fmt(dQuetamina.ml, 1) + ' mL IV');
           linhasDoses.push('   • Propofol 1% (10 mg/mL · 1,5 mg/kg): ' + fmt(dPropofol.dose, 0) + ' mg → ' + fmt(dPropofol.ml, 1) + ' mL IV');
         }
         linhasDoses.push('3️⃣ Bloqueadores Neuromusculares (escolha 1):');

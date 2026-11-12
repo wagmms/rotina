@@ -31,6 +31,7 @@ let debounceTimerSoap = null;
 
 const SOAP_DRAFT_KEY = 'rotina_soap_draft';
 const IDB_NAME = 'RotinaClinicalDB';
+const IDB_STORE = 'soap_evolutions';
 const IDB_VERSION = 1;
 const MAX_HISTORY_ITEMS = 50;
 
@@ -1535,6 +1536,13 @@ const CnesWorkplaceManager = {
     const modal = document.getElementById('rotina-cnes-modal');
     if (modal) {
       modal.style.display = 'flex';
+      const cidadeInput = document.getElementById('cnes-input-cidade');
+      if (cidadeInput) {
+        const cidCtx = (window.cockpitContextoClinico && window.cockpitContextoClinico.municipio)
+          ? window.cockpitContextoClinico.municipio
+          : (this.localAtivo && this.localAtivo.cidade ? this.localAtivo.cidade : 'Ribeirão Preto');
+        cidadeInput.value = cidCtx;
+      }
       this.executarBusca();
     }
   },

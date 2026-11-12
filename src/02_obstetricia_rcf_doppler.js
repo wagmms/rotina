@@ -725,6 +725,7 @@ var ObstetriciaRcfDopplerService = (function() {
         classificarRcf: classificarRcf,
         estadiar: estadiar,
         avaliarRcf: avaliarRcf,
+        classificarRcfBarcelona: avaliarRcf,
         extrairParametrosTexto: extrairParametrosTexto,
         formatarTextoTelegram: formatarTextoTelegram,
         PROTOCOLO_ESTAGIOS: PROTOCOLO_ESTAGIOS

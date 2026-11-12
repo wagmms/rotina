@@ -290,16 +290,18 @@ var EnfermariaService=(function(){
       var censo = contarCensoLeitos(all, keys);
       var cards = keys.map(function (id) {
         var l = all[id];
-        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
+        return '*LEITO ' + id + '* · ' + l.status + '\n' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
       });
-      return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n');
+      return '🏥 *Enfermaria* · ' + censo.resumoPainel + '\n\n' + cards.join('\n\n') + '\n\n💡 *' + CHECKLIST_PRE_ROUND + '*';
     },
     obterTextoConsolidadoParaPassagem: function () {
       var all = carregar(), keys = ids(all);
-      return keys.length ? keys.map(function (id) {
+      if (!keys.length) return null;
+      var leitosTxt = keys.map(function (id) {
         var l = all[id];
-        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados + '\n' + CHECKLIST_PRE_ROUND;
-      }).join('\n\n') : null;
+        return 'LEITO ' + id + ' · ' + l.status + ' · ' + l.dataISO + ' ' + l.atualizadoEm + '\n' + l.dados;
+      }).join('\n\n');
+      return leitosTxt + '\n\n' + CHECKLIST_PRE_ROUND;
     },
     gerarPassagemSBARConsolidada: function (idLeitoAlvo) {
       var all = carregar(), keys = ids(all);

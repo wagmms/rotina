@@ -902,6 +902,29 @@ function tentarCalcularDeterministico(texto) {
 function obterInstrucoesCalculadora(tipo) {
   var t = (tipo || "").toUpperCase().replace(/[\-_]/g, " ");
 
+  if (t.indexOf("MERO") !== -1) {
+    return "💊 *AJUSTE RENAL: MEROPENEM (GUIA HSL / IDSA)*\n\n" +
+      "• *Dose Habitual:* 1g IV de 8/8h (infusão estendida em 3h para sepse grave / P. aeruginosa)\n" +
+      "• *ClCr 26-50 mL/min:* 1g IV de 12/12h\n" +
+      "• *ClCr 10-25 mL/min:* 500 mg IV de 12/12h\n" +
+      "• *ClCr < 10 mL/min:* 500 mg IV de 24/24h\n" +
+      "• *Hemodiálise:* 500 mg IV após cada sessão de diálise\n\n" +
+      "💡 *Para calcular com o ClCr exato, envie:*\n" +
+      "`/atb meropenem clcr [valor]`";
+  }
+
+  if (t.indexOf("VANCO") !== -1) {
+    return "💊 *AJUSTE RENAL: VANCOMICINA (GUIA HSL / IDSA)*\n\n" +
+      "• *Dose de Ataque:* 25-30 mg/kg IV (máx 2-3g) em infusão lenta (1h para cada 1g)\n" +
+      "• *Manutenção Habitual:* 15-20 mg/kg IV de 8/8h a 12/12h\n" +
+      "• *ClCr 50-80 mL/min:* 15 mg/kg IV de 12/12h\n" +
+      "• *ClCr 20-49 mL/min:* 15 mg/kg IV de 24/24h\n" +
+      "• *ClCr < 20 mL/min:* 15 mg/kg dose única; dosar vancocinemia antes da próxima dose\n" +
+      "• *Hemodiálise:* Dose de ataque 20-25 mg/kg + dose pós-diálise guiada por nível sérico\n\n" +
+      "💡 *Para calcular com o ClCr exato, envie:*\n" +
+      "`/atb vancomicina clcr [valor]`";
+  }
+
   if (t.indexOf("CURB") !== -1) {
     return "📐 *CALCULADORA: CURB-65 (Gravidade na PAC)*\n\n" +
       "Dados estritamente necessários para o cálculo:\n" +
@@ -1492,6 +1515,13 @@ function enviarSubmenuCalculadoras(chatId, messageId, categoria) {
       [{"text": "Trombólise AVC (rtPA/TNK)", "callback_data": "calc_Trombolise_AVC"}, {"text": "qSOFA (Sepse)", "callback_data": "calc_SOFA"}],
       [{"text": "MELD / MELD-Na", "callback_data": "calc_MELD"}, {"text": "Child-Pugh", "callback_data": "calc_Child"}],
       [{"text": "BISAP (Pancreatite)", "callback_data": "calc_Ranson"}, {"text": "APACHE II", "callback_data": "calc_APACHE"}],
+      [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
+    ];
+  } else if (categoria === "calc_cat_nefro") {
+    tituloCat = "💊 *Ajuste Renal de Antimicrobianos (Guia HSL / IDSA):*";
+    teclado = [
+      [{"text": "💊 Meropenem", "callback_data": "calc_Mero"}, {"text": "💊 Vancomicina", "callback_data": "calc_Vanco"}],
+      [{"text": "🧪 Cockcroft (ClCr)", "callback_data": "calc_Cockcroft"}, {"text": "🧪 CKD-EPI (TFG)", "callback_data": "calc_CKD"}],
       [{"text": "🔙 Calculadoras", "callback_data": "ux:hub:calc"}, {"text": "⬅️ Voltar", "callback_data": "calc_menu_principal"}, {"text": "🏠 Início", "callback_data": "ux:hub:inicio"}]
     ];
   }
